@@ -54,4 +54,5 @@
 49. Un reembolso no puede superar el importe neto pagado y aún no reembolsado por las unidades devueltas.
 50. El método del reembolso se registra según la salida real de dinero y puede diferir del pago original.
 51. En el MVP, los conteos posteriores se resuelven por producto mediante ajustes auditables; no existe una jornada masiva de inventario.
-
+52. Los acuerdos con clientes de confianza se modelan como acuerdos informales de pago dentro de ventas con saldo pendiente.
+53. Nova no genera ni administra pagarés o títulos valores con efectos legales.

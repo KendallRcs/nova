@@ -15,3 +15,4 @@
 | 2026-08-06 | Se confirmó la administración de categorías y etiquetas mediante creación, renombrado y desactivación con historial. |
 | 2026-08-07 | Se confirmó la consistencia mínimo ≤ sugerido ≤ máximo para los precios presentes. |
 | 2026-08-07 | Se cerró la Fase 2 con reglas de edición y ajuste de ventas, límites de pago y devolución, reembolsos y conteos individuales de inventario. |
+| 2026-08-08 | Se aclaró que las deudas de clientes de confianza son acuerdos informales de pago; se excluyeron pagarés y títulos valores del modelo. |

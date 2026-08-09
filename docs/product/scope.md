@@ -35,5 +35,5 @@
 - Operación sin conexión.
 - Importación continua desde Excel.
 - Importación de ventas históricas.
+- Emisión o administración de pagarés y otros títulos valores legales.
 - Producción en Vercel.
-

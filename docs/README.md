@@ -18,7 +18,7 @@ Este es el punto de entrada para personas y agentes. La documentación se versio
 | --- | --- | --- |
 | [Producto](product/README.md) | Problema, contexto y alcance | Fases 1 y 2 cerradas |
 | [Requerimientos](requirements/README.md) | Historias y reglas de negocio | Fase 2 cerrada |
-| [Dominio](domain/README.md) | Lenguaje, contextos, agregados y eventos | Siguiente fase |
+| [Dominio](domain/README.md) | Lenguaje, contextos, agregados y eventos | Fase 3 en progreso |
 | [Arquitectura](architecture/README.md) | Arquitectura general, frontend y backend | En definición |
 | [ADR](adr/README.md) | Decisiones costosas de revertir | Activo |
 | [Datos](data/README.md) | Modelo relacional, integridad y transacciones | Pendiente |
@@ -34,4 +34,3 @@ Este es el punto de entrada para personas y agentes. La documentación se versio
 - Los documentos de dominio no deben contener tablas Prisma ni detalles HTTP.
 - Un cambio de comportamiento exige actualizar la historia y las reglas afectadas.
 - Un cambio arquitectónico significativo exige evaluar un ADR nuevo o la sustitución de uno existente.
-
