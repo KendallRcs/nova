@@ -56,3 +56,4 @@
 51. En el MVP, los conteos posteriores se resuelven por producto mediante ajustes auditables; no existe una jornada masiva de inventario.
 52. Los acuerdos con clientes de confianza se modelan como acuerdos informales de pago dentro de ventas con saldo pendiente.
 53. Nova no genera ni administra pagarés o títulos valores con efectos legales.
+54. Cada pago pertenece exactamente a una venta; no existen pagos generales de cliente pendientes de distribución ni pagos repartidos entre varias ventas.

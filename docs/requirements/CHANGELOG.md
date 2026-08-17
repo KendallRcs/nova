@@ -16,3 +16,4 @@
 | 2026-08-07 | Se confirmó la consistencia mínimo ≤ sugerido ≤ máximo para los precios presentes. |
 | 2026-08-07 | Se cerró la Fase 2 con reglas de edición y ajuste de ventas, límites de pago y devolución, reembolsos y conteos individuales de inventario. |
 | 2026-08-08 | Se aclaró que las deudas de clientes de confianza son acuerdos informales de pago; se excluyeron pagarés y títulos valores del modelo. |
+| 2026-08-16 | Se confirmó que cada pago pertenece a una sola venta y se preparó el mapa inicial de bounded contexts. |

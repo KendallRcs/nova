@@ -10,6 +10,7 @@ El significado de un término pertenece a un contexto. No se utilizarán sinóni
 | Unidad | Ejemplar físico de un producto; no posee identidad o número de serie propio | Inventario | Producto del catálogo |
 | Stock físico | Unidades que se encuentran físicamente en una ubicación | Inventario | Stock disponible |
 | Stock reservado | Unidades físicas comprometidas con una separación | Inventario | Unidades entregadas |
+| Stock en revisión | Unidades físicamente presentes que todavía no pueden venderse hasta evaluar su condición | Inventario | Stock reservado o disponible |
 | Stock disponible | Unidades físicas que todavía pueden ofrecerse | Inventario | Stock físico total |
 | Separación | Acuerdo comercial en el que el cliente deja un pago y todavía no recibe una o más unidades | Ventas | Reserva de inventario |
 | Reserva de inventario | Bloqueo de unidades físicas como consecuencia de una separación | Inventario | Venta con saldo pendiente |
@@ -18,7 +19,7 @@ El significado de un término pertenece a un contexto. No se utilizarán sinóni
 | Venta con saldo pendiente | Venta cuyo total acordado todavía no fue cubierto completamente | Ventas y cobros | Separación |
 | Acuerdo de pago | Condición informal acordada con un cliente de confianza para pagar una venta en uno o más momentos | Ventas y cobros | Pagaré legal |
 | Entrega | Salida física de unidades hacia el cliente | Ventas e inventario | Pago |
-| Pago | Entrada de dinero vinculada con una venta | Cobros | Total acordado |
+| Pago | Entrada de dinero que pertenece exactamente a una venta | Operaciones Comerciales | Total acordado o pago general del cliente |
 | Total acordado | Valor vigente que el negocio y el cliente acuerdan para una venta | Ventas | Total cobrado |
 | Saldo pendiente | Importe vigente que todavía se espera cobrar de una venta | Cobros | Monto condonado |
 | Cuenta por cobrar | Posición consolidada de los saldos que un cliente todavía debe | Cobros | Una venta individual |
