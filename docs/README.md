@@ -22,7 +22,7 @@ Este es el punto de entrada para personas y agentes. La documentación se versio
 | [Dominio](domain/README.md) | Lenguaje, contextos, agregados y eventos | Fase 3 cerrada |
 | [Arquitectura](architecture/README.md) | Arquitectura general, frontend y backend | En definición |
 | [ADR](adr/README.md) | Decisiones costosas de revertir | Activo |
-| [Datos](data/README.md) | Modelo relacional, integridad y transacciones | Fase 4: siguiente |
+| [Datos](data/README.md) | Modelo relacional, integridad y transacciones | Fase 4 cerrada |
 | [UI/UX](ui-ux/README.md) | Design system, flujos y accesibilidad | Pendiente |
 | [Calidad](quality/README.md) | Estrategia de pruebas y calidad | Pendiente |
 | [Operaciones](operations/README.md) | Docker, CI/CD, observabilidad y despliegue | Pendiente |
