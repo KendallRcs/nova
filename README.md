@@ -8,10 +8,11 @@ El producto se construye como un monorepo con frontend Next.js, backend NestJS y
 
 - Descubrimiento del negocio: completado.
 - Levantamiento funcional: completado.
-- Modelo de dominio: siguiente fase.
+- Modelo de dominio: completado.
+- Arquitectura de datos: completada.
+- Base técnica del monorepo: en definición.
 - Implementación: no iniciada.
 
 ## Cómo leer el proyecto
 
 Empieza por el [índice de documentación](docs/README.md). Allí se indica qué documentos leer según el tipo de trabajo.
-

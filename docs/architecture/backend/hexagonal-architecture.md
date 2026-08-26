@@ -55,5 +55,5 @@ Ventas e Inventario justifican modelado rico. Catálogo simple, categorías y co
 - Aplicación: pruebas de capacidades usando fakes de puertos requeridos.
 - Adaptadores de salida: pruebas de integración con PostgreSQL u otros proveedores reales.
 - Adaptadores de entrada: pruebas de contrato y transporte.
-- Sistema: Playwright para flujos críticos completos.
-
+- Sistema: revisión manual acotada de los flujos visibles durante la etapa inicial;
+  una suite E2E de navegador se reevaluará solo ante una necesidad demostrada.

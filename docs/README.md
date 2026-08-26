@@ -20,11 +20,11 @@ Este es el punto de entrada para personas y agentes. La documentación se versio
 | [Producto](product/README.md) | Problema, contexto y alcance | Fases 1 y 2 cerradas |
 | [Requerimientos](requirements/README.md) | Historias y reglas de negocio | Fase 2 cerrada |
 | [Dominio](domain/README.md) | Lenguaje, contextos, agregados y eventos | Fase 3 cerrada |
-| [Arquitectura](architecture/README.md) | Arquitectura general, frontend y backend | En definición |
+| [Arquitectura](architecture/README.md) | Arquitectura general, frontend y backend | Fase 5 en progreso |
 | [ADR](adr/README.md) | Decisiones costosas de revertir | Activo |
 | [Datos](data/README.md) | Modelo relacional, integridad y transacciones | Fase 4 cerrada |
 | [UI/UX](ui-ux/README.md) | Design system, flujos y accesibilidad | Pendiente |
-| [Calidad](quality/README.md) | Estrategia de pruebas y calidad | Pendiente |
+| [Calidad](quality/README.md) | Estrategia de pruebas y calidad | Base backend confirmada |
 | [Operaciones](operations/README.md) | Docker, CI/CD, observabilidad y despliegue | Pendiente |
 
 ## Reglas documentales
