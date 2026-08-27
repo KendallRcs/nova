@@ -1,6 +1,6 @@
 # Herramientas de código y plan de scaffolding
 
-**Estado:** Propuesta para validación.
+**Estado:** Confirmada el 2026-08-26.
 
 **Investigación verificada:** 2026-08-26.
 
@@ -8,20 +8,20 @@ Esta propuesta cierra lint, formato, configuración TypeScript y el orden exacto
 para crear el monorepo ejecutable. Todavía no instala dependencias ni genera las
 aplicaciones.
 
-## Selección recomendada
+## Selección confirmada
 
-| Área | Elección |
-| --- | --- |
-| TypeScript | 5.9 estable, una sola versión exacta para el workspace |
-| Lint | ESLint 10 mediante CLI y flat config |
-| TypeScript lint | versión estable de `typescript-eslint`, con typed linting |
-| Next.js lint | `eslint-config-next/core-web-vitals` y `eslint-config-next/typescript` |
-| Formato | Prettier 3.9.0 exacto |
-| Arquitectura | dependency-cruiser, ya confirmado por ADR-0012 |
-| Configuración de editor | `.editorconfig` mínimo |
-| Hooks Git | ninguno inicialmente |
+| Área                    | Elección                                                               |
+| ----------------------- | ---------------------------------------------------------------------- |
+| TypeScript              | 5.9 estable, una sola versión exacta para el workspace                 |
+| Lint                    | ESLint 9.39.5 mediante CLI y flat config                               |
+| TypeScript lint         | versión estable de `typescript-eslint`, con typed linting              |
+| Next.js lint            | `eslint-config-next/core-web-vitals` y `eslint-config-next/typescript` |
+| Formato                 | Prettier 3.9 exacto                                                    |
+| Arquitectura            | dependency-cruiser, ya confirmado por ADR-0012                         |
+| Configuración de editor | `.editorconfig` mínimo                                                 |
+| Hooks Git               | ninguno inicialmente                                                   |
 
-ESLint 10 requiere flat config y es compatible con Node 24. Next.js 16 eliminó
+ESLint 9 utiliza flat config y es compatible con Node 24. Next.js 16 eliminó
 `next lint` y el lint dentro de `next build`, por lo que Nova ejecutará ESLint
 directamente y conservará `lint` como paso independiente y obligatorio.
 
@@ -105,6 +105,12 @@ y no atraviesa la frontera entre aplicaciones.
 Antes de crear o modificar archivos Next.js se leerán las guías correspondientes
 instaladas en `node_modules/next/dist/docs/`, conforme a `AGENTS.md`.
 
+En Next.js 16.3 se configura `experimental.useTypeScriptCli: false`. Con Node
+24.20, el comprobador CLI predeterminado finaliza con éxito pero Next.js pierde
+la salida capturada de `tsc --showConfig`; la API de TypeScript 5.9 realiza la
+misma comprobación completa durante `next build`. No se desactivan ni se ignoran
+errores de tipos.
+
 ## ESLint flat config
 
 El root tendrá un `eslint.config.mjs` explícito, organizado por patrones:
@@ -143,8 +149,14 @@ explique el problema real que resuelve.
 
 ## Prettier y archivos de texto
 
-Prettier 3.9.0 se fija sin rango, como recomienda su propio proyecto. Una sola
-configuración root formatea TypeScript, JavaScript, JSON, YAML, Markdown y CSS.
+Prettier 3.9 se fija sin rango, como recomienda su propio proyecto. Una sola
+configuración root formatea TypeScript, JavaScript, JSON, YAML y CSS.
+
+Los documentos Markdown se mantienen fuera del formateo automático: son fuentes
+de verdad extensas y una actualización mecánica global ocultaría cambios
+semánticos en revisiones. Su estructura se revisa editorialmente; Prettier cubre
+código y configuración mantenidos a mano. `next-env.d.ts` y `*.tsbuildinfo` también
+se excluyen por ser artefactos generados.
 
 Configuración inicial deliberadamente pequeña:
 
@@ -254,7 +266,7 @@ CLI: se responde “no” hasta cerrar arquitectura frontend y design system.
 
 ### Paso 4 — herramientas comunes
 
-1. Instalar TypeScript 5.9, ESLint 10, typescript-eslint, Prettier 3.9.0 y configs
+1. Instalar TypeScript 5.9, ESLint 9.39.5, typescript-eslint, Prettier 3.9 y configs
    compatibles con versiones exactas.
 2. Crear el flat config root y comprobar archivos de ambas aplicaciones.
 3. Configurar dependency-cruiser con las prohibiciones del documento de Calidad.
@@ -325,11 +337,11 @@ el backend vertical; se verifica manualmente conforme al ADR-0012.
 - observabilidad y política de logs;
 - estrategia de pruebas frontend más allá de la revisión manual inicial.
 
-## ADR propuesto al aprobar
+## Registro de la decisión
 
-La aprobación justificará un ADR que registre ESLint 10 con flat config, Prettier
-separado, TypeScript 5.9 estricto y scripts root como puerta de calidad. Los
-detalles triviales de formato permanecerán en este estándar y no en el ADR.
+El ADR-0013 registra ESLint 9.39.5 con flat config, Prettier separado, TypeScript 5.9
+estricto y scripts root como puerta de calidad. Los detalles triviales de formato
+permanecen en este estándar y no en el ADR.
 
 ## Fuentes oficiales
 

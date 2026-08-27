@@ -14,5 +14,6 @@
 | [0010](0010-use-versioned-rest-api-with-openapi.md) | Exponer una API REST versionada y documentada con OpenAPI | accepted | 2026-08-24 |
 | [0011](0011-use-server-side-opaque-sessions.md) | Usar sesiones opacas persistidas en el servidor | accepted | 2026-08-24 |
 | [0012](0012-test-backend-boundaries-without-browser-e2e.md) | Verificar el backend por fronteras sin E2E de navegador inicialmente | accepted | 2026-08-26 |
+| [0013](0013-standardize-typescript-tooling-and-quality-gate.md) | Estandarizar herramientas TypeScript y puerta de calidad | accepted | 2026-08-26 |
 
 Los ADR registran decisiones costosas de revertir. Una decisión reemplazada no se elimina: cambia a `superseded` y enlaza su reemplazo.

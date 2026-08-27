@@ -1,0 +1,12 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Los modelos se incorporan desde docs/data/prisma-postgresql-mapping.md como
+// una unidad revisada junto con su migración SQL. No se usa db push ni se crea
+// aquí un modelo parcial que contradiga el diseño relacional confirmado.

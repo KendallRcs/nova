@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+
+# Builds and test output
+.next/
+dist/
+build/
+coverage/
+test-results/
+*.tsbuildinfo
+
+# Generated clients
+apps/api/src/generated/
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+
+# Runtime files
+*.log
+*.pid
+
+# Editors and operating systems
+.DS_Store
+.idea/
+.vscode/
+
+# Local database volumes
+.data/

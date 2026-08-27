@@ -16,11 +16,12 @@
 - [ADR-0011: usar sesiones opacas persistidas en el servidor](../adr/0011-use-server-side-opaque-sessions.md)
 - [Base de calidad del backend](../quality/backend-quality-foundation.md)
 - [ADR-0012: verificar el backend por fronteras sin E2E de navegador inicialmente](../adr/0012-test-backend-boundaries-without-browser-e2e.md)
+- [Herramientas de código y plan de scaffolding](tooling-and-scaffolding.md)
+- [ADR-0013: estandarizar herramientas TypeScript y puerta de calidad](../adr/0013-standardize-typescript-tooling-and-quality-gate.md)
 
 ## En definición
 
-- [Herramientas de código y plan de scaffolding](tooling-and-scaffolding.md) —
-  propuesta para validación.
+- Scaffolding ejecutable del monorepo.
 
 ## Áreas
 

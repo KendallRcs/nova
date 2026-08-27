@@ -1,0 +1,16 @@
+node_modules
+.next
+dist
+build
+coverage
+pnpm-lock.yaml
+apps/api/src/generated
+apps/web/next-env.d.ts
+**/*.md
+*.tsbuildinfo
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.gif
+*.ico

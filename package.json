@@ -1,0 +1,36 @@
+{
+  "name": "nova",
+  "version": "0.0.0",
+  "private": true,
+  "packageManager": "pnpm@11.24.0",
+  "engines": {
+    "node": ">=24.20.0 <25",
+    "pnpm": "11.24.0"
+  },
+  "scripts": {
+    "dev:api": "pnpm --filter @nova/api dev",
+    "dev:web": "pnpm --filter @nova/web dev",
+    "db:generate": "pnpm --filter @nova/api db:generate",
+    "db:validate": "pnpm --filter @nova/api db:validate",
+    "build": "pnpm -r --if-present build",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "test": "pnpm --filter @nova/api test",
+    "test:architecture": "dependency-cruiser apps/api/src",
+    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test:architecture && pnpm test"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.39.5",
+    "dependency-cruiser": "18.2.0",
+    "eslint": "9.39.5",
+    "eslint-config-next": "16.3.3",
+    "eslint-config-prettier": "10.1.8",
+    "globals": "17.11.0",
+    "prettier": "3.9.6",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.68.0"
+  }
+}
