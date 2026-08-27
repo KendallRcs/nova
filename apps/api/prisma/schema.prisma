@@ -7,6 +7,22 @@ datasource db {
   provider = "postgresql"
 }
 
-// Los modelos se incorporan desde docs/data/prisma-postgresql-mapping.md como
-// una unidad revisada junto con su migración SQL. No se usa db push ni se crea
-// aquí un modelo parcial que contradiga el diseño relacional confirmado.
+enum RecordStatus {
+  ACTIVE   @map("active")
+  INACTIVE @map("inactive")
+
+  @@map("record_status")
+}
+
+model Category {
+  id             String       @id @db.Uuid
+  name           String
+  nameNormalized String       @unique(map: "uq_categories_name_normalized") @map("name_normalized")
+  description    String?
+  status         RecordStatus @default(ACTIVE)
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([status, nameNormalized], map: "idx_categories_status_name")
+  @@map("categories")
+}

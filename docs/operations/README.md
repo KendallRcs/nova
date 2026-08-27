@@ -31,7 +31,22 @@ La web escucha por defecto en `http://localhost:3000`.
 
 ## Infraestructura posterior
 
-`infra/compose.yaml` contiene PostgreSQL 18.6. Cuando Docker esté disponible, el
-flujo de migraciones y las pruebas de integración se documentarán aquí. pgAdmin,
-Mailpit, Nginx, Cloudinary, CI/CD, observabilidad, copias de seguridad y despliegue
-al VPS continúan pendientes y no deben instalarse anticipadamente.
+`infra/compose.yaml` contiene PostgreSQL 18.6, validado localmente el 2026-08-26.
+Se levanta y consulta desde la raíz con:
+
+```bash
+docker compose --env-file .env.example -f infra/compose.yaml up -d postgres
+docker compose --env-file .env.example -f infra/compose.yaml ps
+```
+
+La imagen incluye `psql`; no hace falta instalar el cliente en Ubuntu. Para detener
+el servicio sin eliminar los datos:
+
+```bash
+docker compose --env-file .env.example -f infra/compose.yaml stop postgres
+```
+
+No se ejecuta `down --volumes` como operación cotidiana porque elimina el volumen
+local. pgAdmin, Mailpit, Nginx, Cloudinary, CI/CD, observabilidad, copias de
+seguridad y despliegue al VPS continúan pendientes y no deben instalarse
+anticipadamente.
