@@ -14,4 +14,8 @@ describe('Argon2idCredentialProtector', () => {
     await expect(protector.matches('otra frase secreta', protectedCredential)).resolves.toBe(false);
     expect(protector.needsRefresh(protectedCredential)).toBe(false);
   });
+
+  it('performs a dummy verification when the account does not exist', async () => {
+    await expect(protector.matches('credential-that-does-not-exist', null)).resolves.toBe(false);
+  });
 });

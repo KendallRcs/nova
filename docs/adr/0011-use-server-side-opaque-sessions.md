@@ -19,6 +19,11 @@ PostgreSQL. Las contraseñas se protegen con Argon2id; el backend valida cada se
 y aplica autorización por capacidad, sin JWT ni credenciales en almacenamiento
 web accesible mediante JavaScript.
 
+La sesión de negocio permanece activa hasta cierre o revocación. Su credencial
+técnica y cookie duran 365 días y se renuevan por otros 365 días cuando restan 30
+días o menos. La renovación extiende la misma sesión sin crear otra; perder o dejar
+expirar la cookie exige autenticarse nuevamente.
+
 ## Alternatives Considered
 
 ### JWT de acceso y renovación
@@ -60,6 +65,8 @@ web accesible mediante JavaScript.
 - Cada autenticación de request necesita consultar o resolver estado de sesión.
 - Las cookies requieren protección CSRF y configuración CORS/origin rigurosa.
 - La persistencia técnica está limitada por el comportamiento del navegador.
+- Una persona que no abra Nova durante 365 días debe volver a autenticarse aunque
+  la sesión histórica todavía permita explicar por qué terminó el acceso técnico.
 
 ### Risks
 

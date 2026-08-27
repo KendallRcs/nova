@@ -65,6 +65,11 @@ Set-Cookie: __Host-nova-session=<secreto-opaco>;
 - CORS permite únicamente el origen exacto del frontend y credenciales; nunca usa
   `*` junto con cookies.
 
+En desarrollo local sobre HTTP se usa temporalmente `nova-session` sin `Secure`,
+porque los navegadores no aceptarían una cookie `__Host-` fuera de HTTPS. Esta
+excepción depende de `NODE_ENV=development|test`; producción siempre aplica el
+nombre y los atributos seguros descritos arriba.
+
 La cookie pertenece al host del API. Web y API pueden desplegarse por separado,
 pero deberán usar HTTPS y orígenes configurados explícitamente. Si el proveedor de
 despliegue impide una relación segura entre ambos, se evaluará un BFF antes de
@@ -72,11 +77,10 @@ debilitar los atributos de la cookie.
 
 ## Persistencia hasta cerrar sesión
 
-La sesión de negocio no tiene expiración absoluta automática. La credencial del
-navegador sí necesita una fecha técnica porque una cookie persistente no puede ser
-eterna: se emitirá con una duración amplia y se renovará antes de vencer cuando el
-usuario vuelva a usar Nova. El valor exacto se medirá y fijará al desplegar,
-respetando los límites reales de los navegadores.
+La sesión de negocio no tiene expiración absoluta automática. La credencial y la
+cookie tienen una duración técnica de 365 días. Cuando restan 30 días o menos, una
+petición autenticada extiende su vigencia otros 365 días sin crear una nueva
+sesión de negocio.
 
 Por ello:
 
@@ -88,8 +92,10 @@ Por ello:
   técnicos exige iniciar sesión otra vez, aunque la fila histórica permanezca;
 - la cuenta puede tener varias sesiones, una por dispositivo o navegador.
 
-La credencial opaca podrá rotarse periódicamente. La rotación debe tolerar
-peticiones simultáneas de varias pestañas y nunca crear dos sesiones de negocio.
+La renovación inicial conserva el mismo secreto y actualiza la vigencia de forma
+idempotente para tolerar peticiones simultáneas de varias pestañas. Una rotación
+futura deberá aceptar una ventana segura entre credenciales y nunca crear dos
+sesiones de negocio.
 
 ## Contraseñas
 
@@ -204,10 +210,8 @@ comprueba el permiso en cada capacidad.
 
 ## Decisiones aún diferidas
 
-- librería Node concreta para Argon2id;
-- librería o implementación acotada de sesiones/guards;
-- duración técnica y frecuencia de rotación de la cookie;
 - valores exactos y almacén del rate limiter;
+- librería o implementación acotada de sesiones/guards;
 - dominios de despliegue y configuración de proxy confiable;
 - mecanismo exacto del token CSRF;
 - política futura para cerrar sesiones desde otros dispositivos;

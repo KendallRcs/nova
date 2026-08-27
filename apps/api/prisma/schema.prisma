@@ -91,6 +91,7 @@ model Session {
   metadata              Json?
   issuedAt              DateTime      @map("issued_at") @db.Timestamptz(3)
   renewedAt             DateTime      @map("renewed_at") @db.Timestamptz(3)
+  credentialExpiresAt   DateTime      @map("credential_expires_at") @db.Timestamptz(3)
   endedAt               DateTime?     @map("ended_at") @db.Timestamptz(3)
   endReason             String?       @map("end_reason")
   user                  UserAccount   @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Restrict)

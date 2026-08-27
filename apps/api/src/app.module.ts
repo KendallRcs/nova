@@ -5,6 +5,7 @@ import { PrismaModule } from './composition/prisma.module';
 import { validateEnvironment } from './composition/environment';
 import { HealthController } from './health/health.controller';
 import { CatalogModule } from './modules/catalog/catalog.module';
+import { IdentityAccessModule } from './modules/identity-access/identity-access.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { CatalogModule } from './modules/catalog/catalog.module';
     }),
     PrismaModule,
     CatalogModule,
+    IdentityAccessModule,
   ],
   controllers: [HealthController],
 })
