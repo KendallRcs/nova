@@ -14,6 +14,91 @@ enum RecordStatus {
   @@map("record_status")
 }
 
+enum AccountStatus {
+  ACTIVE                   @map("active")
+  INACTIVE                 @map("inactive")
+  PASSWORD_CHANGE_REQUIRED @map("password_change_required")
+
+  @@map("account_status")
+}
+
+enum SessionStatus {
+  ACTIVE  @map("active")
+  CLOSED  @map("closed")
+  REVOKED @map("revoked")
+
+  @@map("session_status")
+}
+
+model AccessProfile {
+  id             String              @id @db.Uuid
+  name           String
+  nameNormalized String              @unique(map: "uq_access_profiles_name_normalized") @map("name_normalized")
+  status         RecordStatus        @default(ACTIVE)
+  createdAt      DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
+  permissions    ProfilePermission[]
+  accounts       UserAccount[]
+
+  @@map("access_profiles")
+}
+
+model Permission {
+  id        String              @id @db.Uuid
+  code      String              @unique(map: "uq_permissions_code")
+  module    String
+  action    String
+  createdAt DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  profiles  ProfilePermission[]
+
+  @@index([module, action], map: "idx_permissions_module_action")
+  @@map("permissions")
+}
+
+model ProfilePermission {
+  profileId    String        @map("profile_id") @db.Uuid
+  permissionId String        @map("permission_id") @db.Uuid
+  profile      AccessProfile @relation(fields: [profileId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  permission   Permission    @relation(fields: [permissionId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@id([profileId, permissionId], map: "pk_profile_permissions")
+  @@index([permissionId], map: "idx_profile_permissions_permission")
+  @@map("profile_permissions")
+}
+
+model UserAccount {
+  id                 String        @id @db.Uuid
+  profileId          String        @map("profile_id") @db.Uuid
+  usernameNormalized String        @unique(map: "uq_user_accounts_username_normalized") @map("username_normalized")
+  credentialHash     String        @map("credential_hash")
+  status             AccountStatus @default(PASSWORD_CHANGE_REQUIRED)
+  securityVersion    Int           @default(1) @map("security_version")
+  createdAt          DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+  profile            AccessProfile @relation(fields: [profileId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  sessions           Session[]
+
+  @@index([profileId, status], map: "idx_user_accounts_profile_status")
+  @@map("user_accounts")
+}
+
+model Session {
+  id                    String        @id @db.Uuid
+  userId                String        @map("user_id") @db.Uuid
+  protectedCredential   String        @unique(map: "uq_sessions_protected_credential") @map("protected_credential")
+  issuedSecurityVersion Int           @map("issued_security_version")
+  status                SessionStatus @default(ACTIVE)
+  metadata              Json?
+  issuedAt              DateTime      @map("issued_at") @db.Timestamptz(3)
+  renewedAt             DateTime      @map("renewed_at") @db.Timestamptz(3)
+  endedAt               DateTime?     @map("ended_at") @db.Timestamptz(3)
+  endReason             String?       @map("end_reason")
+  user                  UserAccount   @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@index([userId, status], map: "idx_sessions_user_status")
+  @@map("sessions")
+}
+
 model Category {
   id             String       @id @db.Uuid
   name           String

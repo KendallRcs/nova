@@ -1,13 +1,9 @@
-import { defineConfig, mergeConfig } from 'vitest/config';
+import { defineConfig } from 'vitest/config';
 
-import baseConfig from './vitest.config.mjs';
-
-export default mergeConfig(
-  baseConfig,
-  defineConfig({
-    test: {
-      include: ['test/contract/**/*.spec.ts'],
-      passWithNoTests: true,
-    },
-  }),
-);
+export default defineConfig({
+  test: {
+    environment: 'node',
+    include: ['test/contract/**/*.spec.ts'],
+    passWithNoTests: true,
+  },
+});

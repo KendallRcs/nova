@@ -118,6 +118,8 @@
 ### User Story PROD-007 — Administrar categorías y etiquetas sin perder historial
 
 - **Estado:** Confirmada
+- **Implementación:** creación y consulta de categorías disponibles implementadas;
+  renombrado, desactivación y etiquetas continúan pendientes.
 - **Como** administrador
 - **quiero** crear, renombrar y desactivar categorías y etiquetas
 - **para** mantener organizada la búsqueda de productos sin romper clasificaciones históricas.
@@ -140,4 +142,3 @@
 - **Entonces:** deja de estar disponible para nuevas asignaciones y permanece visible en el historial existente.
 
 ---
-

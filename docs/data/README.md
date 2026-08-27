@@ -4,6 +4,11 @@
 
 Prisma reflejará el modelo persistente; no definirá el modelo de dominio.
 
+**Implementación:** las migraciones iniciales de categorías e Identidad y Acceso
+fueron aplicadas y verificadas contra PostgreSQL 18.6 el 2026-08-26. El resto del
+mapeo confirmado se incorporará mediante migraciones revisadas por capacidades,
+sin usar `db push`.
+
 ## Orden de trabajo
 
 1. [Fundamentos de datos](foundations.md) — versión inicial confirmada.

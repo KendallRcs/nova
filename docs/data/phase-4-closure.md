@@ -9,8 +9,9 @@ ventas, inventario, costos, compras, adelantos, caja, gastos, acceso e importaci
 inicial. El diseño preserva las fronteras del dominio y define cómo PostgreSQL y
 Prisma las implementarán sin convertirse en dependencias del núcleo hexagonal.
 
-La fase produce diseño y criterios de implementación; todavía no existe un schema
-Prisma ni una base desplegada.
+Al cerrar esta fase todavía no existían un schema Prisma ni una base desplegada.
+La implementación posterior comenzó con la migración de categorías; el estado
+vigente se registra en [Arquitectura de datos](README.md).
 
 ## Fuentes de verdad
 

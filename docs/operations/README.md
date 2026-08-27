@@ -11,6 +11,9 @@
 
 No se necesita Docker para levantar la pantalla inicial ni el endpoint de salud.
 
+La API valida al arrancar `DATABASE_URL`, `PORT` y `NODE_ENV`; una configuración
+ausente o inválida detiene el proceso antes de aceptar solicitudes.
+
 ## Ejecución local actual
 
 Después de seleccionar Node 24.20.0, ejecutar en terminales separadas:
