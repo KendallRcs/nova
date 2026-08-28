@@ -21,6 +21,7 @@ import { ListCategories } from '../../../hexagon/application/list-categories';
 import { InvalidCategoryNameError } from '../../../hexagon/domain/category';
 import { CategoryListResponse, CategoryResponse, CreateCategoryRequest } from './category.dto';
 import { presentCategory } from './category.presenter';
+import { RequirePermission } from '../../../../identity-access/adapters/driving/http/require-permission';
 
 @ApiTags('categories')
 @Controller('categories')
@@ -31,6 +32,7 @@ export class CategoriesController {
   ) {}
 
   @Post()
+  @RequirePermission('catalog:manage')
   @ApiOperation({ operationId: 'createCategory' })
   @ApiCreatedResponse({ type: CategoryResponse })
   @ApiConflictResponse({ description: 'Ya existe una categoría equivalente.' })
@@ -65,6 +67,7 @@ export class CategoriesController {
   }
 
   @Get()
+  @RequirePermission('catalog:read')
   @ApiOperation({ operationId: 'listCategories' })
   @ApiOkResponse({ type: CategoryListResponse })
   async list(): Promise<CategoryListResponse> {

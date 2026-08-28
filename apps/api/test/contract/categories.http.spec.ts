@@ -1,4 +1,6 @@
 import { ValidationPipe, type INestApplication } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { APP_GUARD } from '@nestjs/core';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -14,6 +16,8 @@ import type { CategoryRepository } from '../../src/modules/catalog/hexagon/appli
 import { CreateCategory } from '../../src/modules/catalog/hexagon/application/create-category';
 import { ListCategories } from '../../src/modules/catalog/hexagon/application/list-categories';
 import type { Category } from '../../src/modules/catalog/hexagon/domain/category';
+import { AuthenticateSession } from '../../src/modules/identity-access/hexagon/application/authenticate-session';
+import { PermissionGuard } from '../../src/modules/identity-access/adapters/driving/http/permission.guard';
 
 class InMemoryCategoryRepository implements CategoryRepository {
   readonly categories: Category[] = [];
@@ -55,6 +59,33 @@ describe('Categories HTTP contract', () => {
       providers: [
         { provide: CreateCategory, useValue: createCategory },
         { provide: ListCategories, useValue: listCategories },
+        {
+          provide: AuthenticateSession,
+          useValue: {
+            execute: (secret: string | null) =>
+              Promise.resolve(
+                secret === null
+                  ? { ok: false }
+                  : {
+                      ok: true,
+                      renewedUntil: null,
+                      actor: {
+                        sessionId: 'session-id',
+                        userId: 'user-id',
+                        username: secret,
+                        securityVersion: 1,
+                        permissionCodes:
+                          secret === 'admin-session'
+                            ? ['catalog:read', 'catalog:manage']
+                            : ['catalog:read'],
+                        requiresPasswordChange: false,
+                      },
+                    },
+              ),
+          },
+        },
+        { provide: ConfigService, useValue: { getOrThrow: () => 'test' } },
+        { provide: APP_GUARD, useClass: PermissionGuard },
       ],
     }).compile();
 
@@ -82,6 +113,7 @@ describe('Categories HTTP contract', () => {
   it('creates and lists a category without exposing domain or Prisma models', async () => {
     const created = await request(httpServer)
       .post('/api/v1/categories')
+      .set('Cookie', 'nova-session=admin-session')
       .send({ name: ' Accesorios ', description: 'Complementos' })
       .expect(201);
 
@@ -94,13 +126,17 @@ describe('Categories HTTP contract', () => {
       updatedAt: '2026-08-26T20:00:00.000Z',
     });
 
-    const listed = await request(httpServer).get('/api/v1/categories').expect(200);
+    const listed = await request(httpServer)
+      .get('/api/v1/categories')
+      .set('Cookie', 'nova-session=employee-session')
+      .expect(200);
     expect(listed.body).toEqual({ items: [created.body] });
   });
 
   it('rejects unknown request properties with Problem Details', async () => {
     const response = await request(httpServer)
       .post('/api/v1/categories')
+      .set('Cookie', 'nova-session=admin-session')
       .send({ name: 'Vehículos', unexpected: true })
       .expect(422);
 
@@ -111,5 +147,17 @@ describe('Categories HTTP contract', () => {
       instance: '/api/v1/categories',
     });
     expect(response.headers['content-type']).toContain('application/problem+json');
+  });
+
+  it('enforces authentication and the specific capability on the server', async () => {
+    await request(httpServer).get('/api/v1/categories').expect(401);
+
+    const forbidden = await request(httpServer)
+      .post('/api/v1/categories')
+      .set('Cookie', 'nova-session=employee-session')
+      .send({ name: 'Solo administradores' })
+      .expect(403);
+
+    expect(forbidden.body).toMatchObject({ status: 403, code: 'PERMISSION_DENIED' });
   });
 });

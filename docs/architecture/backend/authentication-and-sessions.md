@@ -223,6 +223,12 @@ La autenticación determina quién es el actor; no autoriza automáticamente cad
 operación. Ocultar un botón en Next.js mejora la experiencia, pero el backend
 comprueba el permiso en cada capacidad.
 
+Los adaptadores HTTP declaran la capacidad requerida mediante metadata y un guard
+global resuelve sesión, renovación y autorización. La decisión pura rechaza tanto
+la ausencia del código como cualquier credencial temporal, aunque el perfil tenga
+asignado ese permiso. La primera aplicación concreta protege
+`GET /categories` con `catalog:read` y `POST /categories` con `catalog:manage`.
+
 ## Pruebas mínimas
 
 - hash y verificación contra vectores/uso real de la librería;

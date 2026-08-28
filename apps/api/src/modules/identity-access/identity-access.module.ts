@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 
 import type { AuthenticationIdentities } from './hexagon/application/authentication-identity';
 import type { AuthenticatedSessions } from './hexagon/application/authenticated-sessions';
@@ -28,6 +29,7 @@ import {
 import { SessionsController } from './adapters/driving/http/sessions.controller';
 import { PasswordController } from './adapters/driving/http/password.controller';
 import { CurrentSessionController } from './adapters/driving/http/current-session.controller';
+import { PermissionGuard } from './adapters/driving/http/permission.guard';
 
 const AUTHENTICATION_IDENTITIES = Symbol('AUTHENTICATION_IDENTITIES');
 const CREDENTIAL_PROTECTOR = Symbol('CREDENTIAL_PROTECTOR');
@@ -45,6 +47,7 @@ const CLOSABLE_SESSIONS = Symbol('CLOSABLE_SESSIONS');
     PrismaAuthenticatedSessions,
     PrismaUserAccountRepository,
     PrismaClosableSessions,
+    { provide: APP_GUARD, useClass: PermissionGuard },
     {
       provide: AUTHENTICATION_IDENTITIES,
       useExisting: PrismaAuthenticationIdentities,
