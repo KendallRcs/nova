@@ -3,6 +3,8 @@ import { Module } from '@nestjs/common';
 import type { AuthenticationIdentities } from './hexagon/application/authentication-identity';
 import type { AuthenticatedSessions } from './hexagon/application/authenticated-sessions';
 import { AuthenticateSession } from './hexagon/application/authenticate-session';
+import type { ClosableSessions } from './hexagon/application/closable-sessions';
+import { CloseCurrentSession } from './hexagon/application/close-current-session';
 import type { CredentialProtector } from './hexagon/application/credential-protector';
 import type {
   SessionCredentialProtector,
@@ -18,12 +20,14 @@ import { PrismaAuthenticationIdentities } from './adapters/driven/prisma/prisma-
 import { PrismaSessionRepository } from './adapters/driven/prisma/prisma-session.repository';
 import { PrismaAuthenticatedSessions } from './adapters/driven/prisma/prisma-authenticated-sessions';
 import { PrismaUserAccountRepository } from './adapters/driven/prisma/prisma-user-account.repository';
+import { PrismaClosableSessions } from './adapters/driven/prisma/prisma-closable-sessions';
 import {
   SystemAuthenticationClock,
   UuidV7AuthenticationIdGenerator,
 } from './adapters/driven/system/system-authentication-dependencies';
 import { SessionsController } from './adapters/driving/http/sessions.controller';
 import { PasswordController } from './adapters/driving/http/password.controller';
+import { CurrentSessionController } from './adapters/driving/http/current-session.controller';
 
 const AUTHENTICATION_IDENTITIES = Symbol('AUTHENTICATION_IDENTITIES');
 const CREDENTIAL_PROTECTOR = Symbol('CREDENTIAL_PROTECTOR');
@@ -31,14 +35,16 @@ const SESSION_REPOSITORY = Symbol('SESSION_REPOSITORY');
 const SESSION_CREDENTIALS = Symbol('SESSION_CREDENTIALS');
 const AUTHENTICATED_SESSIONS = Symbol('AUTHENTICATED_SESSIONS');
 const USER_ACCOUNT_REPOSITORY = Symbol('USER_ACCOUNT_REPOSITORY');
+const CLOSABLE_SESSIONS = Symbol('CLOSABLE_SESSIONS');
 
 @Module({
-  controllers: [SessionsController, PasswordController],
+  controllers: [SessionsController, PasswordController, CurrentSessionController],
   providers: [
     PrismaAuthenticationIdentities,
     PrismaSessionRepository,
     PrismaAuthenticatedSessions,
     PrismaUserAccountRepository,
+    PrismaClosableSessions,
     {
       provide: AUTHENTICATION_IDENTITIES,
       useExisting: PrismaAuthenticationIdentities,
@@ -57,6 +63,7 @@ const USER_ACCOUNT_REPOSITORY = Symbol('USER_ACCOUNT_REPOSITORY');
     },
     { provide: AUTHENTICATED_SESSIONS, useExisting: PrismaAuthenticatedSessions },
     { provide: USER_ACCOUNT_REPOSITORY, useExisting: PrismaUserAccountRepository },
+    { provide: CLOSABLE_SESSIONS, useExisting: PrismaClosableSessions },
     {
       provide: AuthenticateSession,
       inject: [AUTHENTICATED_SESSIONS, SESSION_CREDENTIALS],
@@ -74,6 +81,12 @@ const USER_ACCOUNT_REPOSITORY = Symbol('USER_ACCOUNT_REPOSITORY');
         credentials: CredentialProtector,
       ): EstablishPersonalPassword =>
         new EstablishPersonalPassword(accounts, credentials, new SystemAuthenticationClock()),
+    },
+    {
+      provide: CloseCurrentSession,
+      inject: [CLOSABLE_SESSIONS],
+      useFactory: (sessions: ClosableSessions): CloseCurrentSession =>
+        new CloseCurrentSession(sessions, new SystemAuthenticationClock()),
     },
     {
       provide: StartSession,

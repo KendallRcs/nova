@@ -17,6 +17,7 @@ import { AuthenticateSession } from '../../../hexagon/application/authenticate-s
 import { EstablishPersonalPassword } from '../../../hexagon/application/establish-personal-password';
 import { EstablishPersonalPasswordRequest } from './password.dto';
 import { sessionCookieName } from './session-cookie';
+import { readSessionSecret } from './session-request';
 
 @ApiTags('authentication')
 @Controller('auth/password')
@@ -37,7 +38,7 @@ export class PasswordController {
   ): Promise<void> {
     const environment = this.config.getOrThrow<Environment['NODE_ENV']>('NODE_ENV');
     const authenticated = await this.authenticateSession.execute(
-      readCookie(httpRequest.headers.cookie, sessionCookieName(environment)),
+      readSessionSecret(httpRequest, sessionCookieName(environment)),
     );
     if (!authenticated.ok) throw new UnauthorizedException('La sesión no es válida.');
 
@@ -70,18 +71,4 @@ export class PasswordController {
     });
     response.status(204);
   }
-}
-
-function readCookie(header: string | undefined, name: string): string | null {
-  if (header === undefined) return null;
-  for (const part of header.split(';')) {
-    const separator = part.indexOf('=');
-    if (separator < 0 || part.slice(0, separator).trim() !== name) continue;
-    try {
-      return decodeURIComponent(part.slice(separator + 1));
-    } catch {
-      return null;
-    }
-  }
-  return null;
 }

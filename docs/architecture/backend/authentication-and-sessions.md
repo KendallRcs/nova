@@ -203,6 +203,11 @@ Los nombres definitivos se reflejarán en OpenAPI. Las respuestas nunca exponen
 hashes, secreto de sesión, `securityVersion` interno ni causas específicas del
 fallo de login.
 
+`GET /api/v1/auth/me` devuelve únicamente el actor público y renueva la vigencia
+de la misma cookie cuando entra en la ventana de treinta días. El cierre mediante
+`DELETE /api/v1/auth/sessions/current` es idempotente: cierra la sesión válida si
+existe y siempre elimina la cookie, sin revelar si ya estaba cerrada o vencida.
+
 ## Separación hexagonal
 
 | Responsabilidad | Ubicación |

@@ -46,6 +46,7 @@
 ### User Story AUTH-003 — Mantener una sesión activa en un dispositivo personal
 
 - **Estado:** Confirmada
+- **Trazabilidad de implementación:** consulta del actor actual y renovación de la credencial de sesión implementadas en backend.
 - **Como** administrador o empleado
 - **quiero** conservar mi sesión hasta cerrarla explícitamente
 - **para** utilizar la aplicación sin autenticarme repetidamente.
@@ -61,6 +62,7 @@
 ### User Story AUTH-004 — Cerrar mi propia sesión
 
 - **Estado:** Confirmada
+- **Trazabilidad de implementación:** cierre idempotente de la sesión actual y eliminación de cookie implementados en backend.
 - **Como** administrador o empleado
 - **quiero** cerrar mi sesión
 - **para** impedir que otra persona utilice mi cuenta desde ese dispositivo.
@@ -71,6 +73,11 @@
 - **Dado:** que mantengo una sesión activa
 - **Cuando:** selecciono cerrar sesión
 - **Entonces:** esa sesión deja de permitir acceso y debo autenticarme nuevamente.
+
+- **Escenario:** Repetir el cierre de una sesión
+- **Dado:** que mi sesión ya fue cerrada o su cookie dejó de ser válida
+- **Cuando:** solicito cerrar sesión nuevamente
+- **Entonces:** el sistema elimina cualquier cookie residual sin revelar el estado anterior de la sesión.
 
 ### User Story AUTH-005 — Restablecer la contraseña de un colaborador
 
