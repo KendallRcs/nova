@@ -24,3 +24,7 @@ export function sessionCookieDefinition(
     },
   };
 }
+
+export function sessionCookieName(environment: 'development' | 'test' | 'production'): string {
+  return environment === 'production' ? '__Host-nova-session' : 'nova-session';
+}

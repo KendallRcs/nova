@@ -75,6 +75,7 @@
 ### User Story AUTH-005 — Restablecer la contraseña de un colaborador
 
 - **Estado:** Confirmada
+- **Trazabilidad de implementación:** inicio con credencial temporal y establecimiento obligatorio de contraseña personal implementados en backend; restablecimiento iniciado por un administrador aún pendiente.
 - **Como** administrador
 - **quiero** restablecer el acceso de un colaborador que olvidó su contraseña
 - **para** permitirle recuperar su cuenta sin crear otra identidad.
@@ -91,5 +92,14 @@
 - **Cuando:** inicio sesión con la credencial temporal
 - **Entonces:** debo definir una contraseña personal nueva antes de acceder a las funciones del sistema.
 
----
+- **Escenario:** La nueva contraseña no cumple la política
+- **Dado:** que inicié sesión con una credencial temporal
+- **Cuando:** intento establecer una contraseña de menos de diez caracteres o igual a mi nombre de usuario
+- **Entonces:** el sistema rechaza el cambio y mantiene mi acceso restringido al cambio de contraseña.
 
+- **Escenario:** Contraseña personal establecida
+- **Dado:** que inicié sesión con una credencial temporal
+- **Cuando:** establezco una contraseña personal que cumple la política
+- **Entonces:** las sesiones emitidas con la credencial temporal quedan revocadas y debo iniciar sesión con mi nueva contraseña.
+
+---

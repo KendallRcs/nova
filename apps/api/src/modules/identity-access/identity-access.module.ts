@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 
 import type { AuthenticationIdentities } from './hexagon/application/authentication-identity';
+import type { AuthenticatedSessions } from './hexagon/application/authenticated-sessions';
+import { AuthenticateSession } from './hexagon/application/authenticate-session';
 import type { CredentialProtector } from './hexagon/application/credential-protector';
 import type {
   SessionCredentialProtector,
@@ -8,26 +10,35 @@ import type {
 } from './hexagon/application/session-credentials';
 import type { SessionRepository } from './hexagon/application/session.repository';
 import { StartSession } from './hexagon/application/start-session';
+import { EstablishPersonalPassword } from './hexagon/application/establish-personal-password';
+import type { UserAccountRepository } from './hexagon/application/user-account.repository';
 import { Argon2idCredentialProtector } from './adapters/driven/argon2/argon2id-credential-protector';
 import { NodeSessionCredentials } from './adapters/driven/crypto/node-session-credentials';
 import { PrismaAuthenticationIdentities } from './adapters/driven/prisma/prisma-authentication-identities';
 import { PrismaSessionRepository } from './adapters/driven/prisma/prisma-session.repository';
+import { PrismaAuthenticatedSessions } from './adapters/driven/prisma/prisma-authenticated-sessions';
+import { PrismaUserAccountRepository } from './adapters/driven/prisma/prisma-user-account.repository';
 import {
   SystemAuthenticationClock,
   UuidV7AuthenticationIdGenerator,
 } from './adapters/driven/system/system-authentication-dependencies';
 import { SessionsController } from './adapters/driving/http/sessions.controller';
+import { PasswordController } from './adapters/driving/http/password.controller';
 
 const AUTHENTICATION_IDENTITIES = Symbol('AUTHENTICATION_IDENTITIES');
 const CREDENTIAL_PROTECTOR = Symbol('CREDENTIAL_PROTECTOR');
 const SESSION_REPOSITORY = Symbol('SESSION_REPOSITORY');
 const SESSION_CREDENTIALS = Symbol('SESSION_CREDENTIALS');
+const AUTHENTICATED_SESSIONS = Symbol('AUTHENTICATED_SESSIONS');
+const USER_ACCOUNT_REPOSITORY = Symbol('USER_ACCOUNT_REPOSITORY');
 
 @Module({
-  controllers: [SessionsController],
+  controllers: [SessionsController, PasswordController],
   providers: [
     PrismaAuthenticationIdentities,
     PrismaSessionRepository,
+    PrismaAuthenticatedSessions,
+    PrismaUserAccountRepository,
     {
       provide: AUTHENTICATION_IDENTITIES,
       useExisting: PrismaAuthenticationIdentities,
@@ -43,6 +54,26 @@ const SESSION_CREDENTIALS = Symbol('SESSION_CREDENTIALS');
     {
       provide: SESSION_CREDENTIALS,
       useValue: new NodeSessionCredentials(),
+    },
+    { provide: AUTHENTICATED_SESSIONS, useExisting: PrismaAuthenticatedSessions },
+    { provide: USER_ACCOUNT_REPOSITORY, useExisting: PrismaUserAccountRepository },
+    {
+      provide: AuthenticateSession,
+      inject: [AUTHENTICATED_SESSIONS, SESSION_CREDENTIALS],
+      useFactory: (
+        sessions: AuthenticatedSessions,
+        credentials: SessionCredentialProtector,
+      ): AuthenticateSession =>
+        new AuthenticateSession(sessions, credentials, new SystemAuthenticationClock()),
+    },
+    {
+      provide: EstablishPersonalPassword,
+      inject: [USER_ACCOUNT_REPOSITORY, CREDENTIAL_PROTECTOR],
+      useFactory: (
+        accounts: UserAccountRepository,
+        credentials: CredentialProtector,
+      ): EstablishPersonalPassword =>
+        new EstablishPersonalPassword(accounts, credentials, new SystemAuthenticationClock()),
     },
     {
       provide: StartSession,

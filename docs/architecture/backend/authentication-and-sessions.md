@@ -130,6 +130,10 @@ esa acción para comunicarlo al colaborador.
 - No se permite acceder a ventas, clientes, stock u otros módulos antes del cambio.
 - La nueva contraseña personal reemplaza la temporal y vuelve a revocar cualquier
   credencial técnica emitida durante el proceso.
+- `PUT /api/v1/auth/password` establece exclusivamente la contraseña personal de
+  una cuenta con credencial temporal. Al completarse elimina la cookie actual y
+  exige iniciar sesión nuevamente; el cambio posterior de una contraseña personal
+  se implementará como una capacidad separada que verificará la contraseña vigente.
 
 ### Inicialización del primer administrador
 
