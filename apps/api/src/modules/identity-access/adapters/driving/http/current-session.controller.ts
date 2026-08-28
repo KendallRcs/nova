@@ -9,6 +9,8 @@ import { CloseCurrentSession } from '../../../hexagon/application/close-current-
 import { CurrentActorResponse } from './current-session.dto';
 import { sessionCookieDefinition, sessionCookieName } from './session-cookie';
 import { readSessionSecret } from './session-request';
+import { csrfCookieName } from '../../../../../composition/csrf.guard';
+import { CsrfTokens } from '../../../../../composition/csrf-tokens';
 
 @ApiTags('authentication')
 @Controller('auth')
@@ -17,6 +19,7 @@ export class CurrentSessionController {
     private readonly authenticateSession: AuthenticateSession,
     private readonly closeCurrentSession: CloseCurrentSession,
     private readonly config: ConfigService<Environment, true>,
+    private readonly csrfTokens: CsrfTokens,
   ) {}
 
   @Get('me')
@@ -34,6 +37,13 @@ export class CurrentSessionController {
     if (result.renewedUntil !== null && secret !== null) {
       const cookie = sessionCookieDefinition(environment, result.renewedUntil);
       response.cookie(cookie.name, secret, cookie.options);
+      response.cookie(csrfCookieName(environment), this.csrfTokens.issue(secret), {
+        expires: result.renewedUntil,
+        httpOnly: false,
+        path: '/',
+        sameSite: 'strict',
+        secure: environment === 'production',
+      });
     }
     return {
       userId: result.actor.userId,
@@ -58,6 +68,12 @@ export class CurrentSessionController {
 
     response.clearCookie(sessionCookieName(environment), {
       httpOnly: true,
+      path: '/',
+      sameSite: 'strict',
+      secure: environment === 'production',
+    });
+    response.clearCookie(csrfCookieName(environment), {
+      httpOnly: false,
       path: '/',
       sameSite: 'strict',
       secure: environment === 'production',

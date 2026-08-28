@@ -7,6 +7,8 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { validationProblem } from '../../src/composition/http-validation';
 import { ProblemDetailsFilter } from '../../src/composition/problem-details.filter';
+import { CsrfGuard } from '../../src/composition/csrf.guard';
+import { CsrfTokens } from '../../src/composition/csrf-tokens';
 import { CategoriesController } from '../../src/modules/catalog/adapters/driving/http/categories.controller';
 import type {
   Clock,
@@ -43,8 +45,18 @@ class InMemoryCategoryRepository implements CategoryRepository {
 describe('Categories HTTP contract', () => {
   let app: INestApplication;
   let httpServer: Parameters<typeof request>[0];
+  let csrfTokens: CsrfTokens;
 
   beforeAll(async () => {
+    const config = {
+      getOrThrow: (key: string) =>
+        key === 'NODE_ENV'
+          ? 'test'
+          : key === 'FRONTEND_ORIGIN'
+            ? 'http://localhost:3000'
+            : '12345678901234567890123456789012',
+    };
+    csrfTokens = new CsrfTokens(config as never);
     const repository = new InMemoryCategoryRepository();
     const idGenerator: IdGenerator = {
       generate: () => '0198f9c2-7e00-7000-8000-000000000001',
@@ -84,7 +96,9 @@ describe('Categories HTTP contract', () => {
               ),
           },
         },
-        { provide: ConfigService, useValue: { getOrThrow: () => 'test' } },
+        { provide: ConfigService, useValue: config },
+        { provide: CsrfTokens, useValue: csrfTokens },
+        { provide: APP_GUARD, useClass: CsrfGuard },
         { provide: APP_GUARD, useClass: PermissionGuard },
       ],
     }).compile();
@@ -113,7 +127,12 @@ describe('Categories HTTP contract', () => {
   it('creates and lists a category without exposing domain or Prisma models', async () => {
     const created = await request(httpServer)
       .post('/api/v1/categories')
-      .set('Cookie', 'nova-session=admin-session')
+      .set('Origin', 'http://localhost:3000')
+      .set('X-CSRF-Token', csrfTokens.issue('admin-session'))
+      .set('Cookie', [
+        'nova-session=admin-session',
+        `nova-csrf=${csrfTokens.issue('admin-session')}`,
+      ])
       .send({ name: ' Accesorios ', description: 'Complementos' })
       .expect(201);
 
@@ -136,7 +155,12 @@ describe('Categories HTTP contract', () => {
   it('rejects unknown request properties with Problem Details', async () => {
     const response = await request(httpServer)
       .post('/api/v1/categories')
-      .set('Cookie', 'nova-session=admin-session')
+      .set('Origin', 'http://localhost:3000')
+      .set('X-CSRF-Token', csrfTokens.issue('admin-session'))
+      .set('Cookie', [
+        'nova-session=admin-session',
+        `nova-csrf=${csrfTokens.issue('admin-session')}`,
+      ])
       .send({ name: 'Vehículos', unexpected: true })
       .expect(422);
 
@@ -154,10 +178,33 @@ describe('Categories HTTP contract', () => {
 
     const forbidden = await request(httpServer)
       .post('/api/v1/categories')
-      .set('Cookie', 'nova-session=employee-session')
+      .set('Origin', 'http://localhost:3000')
+      .set('X-CSRF-Token', csrfTokens.issue('employee-session'))
+      .set('Cookie', [
+        'nova-session=employee-session',
+        `nova-csrf=${csrfTokens.issue('employee-session')}`,
+      ])
       .send({ name: 'Solo administradores' })
       .expect(403);
 
     expect(forbidden.body).toMatchObject({ status: 403, code: 'PERMISSION_DENIED' });
+  });
+
+  it('rejects a mutable request with an invalid origin or CSRF token', async () => {
+    await request(httpServer)
+      .post('/api/v1/categories')
+      .set('Origin', 'https://attacker.example')
+      .set('Cookie', 'nova-session=admin-session')
+      .send({ name: 'Ataque' })
+      .expect(403);
+
+    const rejected = await request(httpServer)
+      .post('/api/v1/categories')
+      .set('Origin', 'http://localhost:3000')
+      .set('X-CSRF-Token', 'modified')
+      .set('Cookie', ['nova-session=admin-session', 'nova-csrf=modified'])
+      .send({ name: 'Ataque' })
+      .expect(403);
+    expect(rejected.body).toMatchObject({ code: 'CSRF_REJECTED' });
   });
 });

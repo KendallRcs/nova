@@ -6,6 +6,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { validationProblem } from '../../src/composition/http-validation';
 import { ProblemDetailsFilter } from '../../src/composition/problem-details.filter';
+import { CsrfTokens } from '../../src/composition/csrf-tokens';
 import { PasswordController } from '../../src/modules/identity-access/adapters/driving/http/password.controller';
 import { CurrentSessionController } from '../../src/modules/identity-access/adapters/driving/http/current-session.controller';
 import { AuthenticateSession } from '../../src/modules/identity-access/hexagon/application/authenticate-session';
@@ -48,6 +49,7 @@ describe('Password HTTP contract', () => {
         },
         { provide: CloseCurrentSession, useValue: { execute: () => Promise.resolve() } },
         { provide: ConfigService, useValue: { getOrThrow: () => 'test' } },
+        { provide: CsrfTokens, useValue: { issue: () => 'csrf-token' } },
       ],
     }).compile();
 

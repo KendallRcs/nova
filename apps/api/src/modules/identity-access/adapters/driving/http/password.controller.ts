@@ -18,6 +18,7 @@ import { EstablishPersonalPassword } from '../../../hexagon/application/establis
 import { EstablishPersonalPasswordRequest } from './password.dto';
 import { sessionCookieName } from './session-cookie';
 import { readSessionSecret } from './session-request';
+import { csrfCookieName } from '../../../../../composition/csrf.guard';
 
 @ApiTags('authentication')
 @Controller('auth/password')
@@ -65,6 +66,12 @@ export class PasswordController {
 
     response.clearCookie(sessionCookieName(environment), {
       httpOnly: true,
+      path: '/',
+      sameSite: 'strict',
+      secure: environment === 'production',
+    });
+    response.clearCookie(csrfCookieName(environment), {
+      httpOnly: false,
       path: '/',
       sameSite: 'strict',
       secure: environment === 'production',

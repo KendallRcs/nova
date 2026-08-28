@@ -31,6 +31,7 @@ async function bootstrap() {
   SwaggerModule.setup('docs', app, openApiDocument);
 
   const config = app.get(ConfigService);
+  app.enableCors({ origin: config.getOrThrow<string>('FRONTEND_ORIGIN'), credentials: true });
   await app.listen(config.getOrThrow<number>('PORT'));
 }
 

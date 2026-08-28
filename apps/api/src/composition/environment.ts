@@ -2,6 +2,8 @@ export interface Environment {
   DATABASE_URL: string;
   NODE_ENV: 'development' | 'test' | 'production';
   PORT: number;
+  FRONTEND_ORIGIN: string;
+  CSRF_SECRET: string;
 }
 
 export class InvalidEnvironmentError extends Error {
@@ -15,12 +17,35 @@ export function validateEnvironment(values: Record<string, unknown>): Environmen
   const databaseUrl = requirePostgresUrl(values.DATABASE_URL);
   const port = parsePort(values.PORT);
   const nodeEnvironment = parseNodeEnvironment(values.NODE_ENV);
+  const frontendOrigin = requireOrigin(values.FRONTEND_ORIGIN);
+  const csrfSecret = requireSecret(values.CSRF_SECRET);
 
   return {
     DATABASE_URL: databaseUrl,
     NODE_ENV: nodeEnvironment,
     PORT: port,
+    FRONTEND_ORIGIN: frontendOrigin,
+    CSRF_SECRET: csrfSecret,
   };
+}
+
+function requireOrigin(value: unknown): string {
+  if (typeof value !== 'string')
+    throw new InvalidEnvironmentError('FRONTEND_ORIGIN es obligatoria.');
+  try {
+    const url = new URL(value);
+    if (url.origin !== value || !['http:', 'https:'].includes(url.protocol)) throw new Error();
+    return value;
+  } catch {
+    throw new InvalidEnvironmentError('FRONTEND_ORIGIN debe ser un origen HTTP(S) exacto.');
+  }
+}
+
+function requireSecret(value: unknown): string {
+  if (typeof value !== 'string' || Buffer.byteLength(value, 'utf8') < 32) {
+    throw new InvalidEnvironmentError('CSRF_SECRET debe contener al menos 32 bytes.');
+  }
+  return value;
 }
 
 function requirePostgresUrl(value: unknown): string {

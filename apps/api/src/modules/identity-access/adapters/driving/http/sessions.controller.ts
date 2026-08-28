@@ -9,6 +9,9 @@ import {
 import type { Request, Response } from 'express';
 
 import type { Environment } from '../../../../../composition/environment';
+import { CsrfTokenExempt } from '../../../../../composition/csrf.guard';
+import { CsrfTokens } from '../../../../../composition/csrf-tokens';
+import { csrfCookieName } from '../../../../../composition/csrf.guard';
 import { StartSession } from '../../../hexagon/application/start-session';
 import { StartSessionRequest, StartSessionResponse } from './session.dto';
 import { sessionCookieDefinition } from './session-cookie';
@@ -19,9 +22,11 @@ export class SessionsController {
   constructor(
     private readonly startSession: StartSession,
     private readonly config: ConfigService<Environment, true>,
+    private readonly csrfTokens: CsrfTokens,
   ) {}
 
   @Post()
+  @CsrfTokenExempt()
   @ApiOperation({ operationId: 'startSession' })
   @ApiCreatedResponse({ type: StartSessionResponse })
   @ApiUnauthorizedResponse({ description: 'Usuario o contraseña incorrectos.' })
@@ -51,6 +56,17 @@ export class SessionsController {
       result.credentialExpiresAt,
     );
     response.cookie(cookie.name, result.sessionSecret, cookie.options);
+    response.cookie(
+      csrfCookieName(this.config.getOrThrow<Environment['NODE_ENV']>('NODE_ENV')),
+      this.csrfTokens.issue(result.sessionSecret),
+      {
+        httpOnly: false,
+        path: '/',
+        sameSite: 'strict',
+        secure: this.config.getOrThrow<Environment['NODE_ENV']>('NODE_ENV') === 'production',
+        expires: result.credentialExpiresAt,
+      },
+    );
 
     return { actor: result.actor };
   }

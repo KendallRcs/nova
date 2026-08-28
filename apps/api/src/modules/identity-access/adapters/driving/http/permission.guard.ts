@@ -10,6 +10,8 @@ import { Reflector } from '@nestjs/core';
 import type { Request, Response } from 'express';
 
 import type { Environment } from '../../../../../composition/environment';
+import { csrfCookieName } from '../../../../../composition/csrf.guard';
+import { CsrfTokens } from '../../../../../composition/csrf-tokens';
 import {
   AuthenticateSession,
   type AuthenticatedActor,
@@ -29,6 +31,7 @@ export class PermissionGuard implements CanActivate {
     private readonly reflector: Reflector,
     private readonly authenticateSession: AuthenticateSession,
     private readonly config: ConfigService<Environment, true>,
+    private readonly csrfTokens: CsrfTokens,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -67,6 +70,13 @@ export class PermissionGuard implements CanActivate {
     if (authenticated.renewedUntil !== null && secret !== null) {
       const cookie = sessionCookieDefinition(environment, authenticated.renewedUntil);
       response.cookie(cookie.name, secret, cookie.options);
+      response.cookie(csrfCookieName(environment), this.csrfTokens.issue(secret), {
+        expires: authenticated.renewedUntil,
+        httpOnly: false,
+        path: '/',
+        sameSite: 'strict',
+        secure: environment === 'production',
+      });
     }
     return true;
   }

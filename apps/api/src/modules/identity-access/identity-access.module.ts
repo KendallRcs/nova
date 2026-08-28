@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
+import { CsrfTokens } from '../../composition/csrf-tokens';
 
 import type { AuthenticationIdentities } from './hexagon/application/authentication-identity';
 import type { AuthenticatedSessions } from './hexagon/application/authenticated-sessions';
@@ -47,6 +48,7 @@ const CLOSABLE_SESSIONS = Symbol('CLOSABLE_SESSIONS');
     PrismaAuthenticatedSessions,
     PrismaUserAccountRepository,
     PrismaClosableSessions,
+    CsrfTokens,
     { provide: APP_GUARD, useClass: PermissionGuard },
     {
       provide: AUTHENTICATION_IDENTITIES,

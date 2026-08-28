@@ -7,11 +7,15 @@ describe('validateEnvironment', () => {
     expect(
       validateEnvironment({
         DATABASE_URL: 'postgresql://nova:secret@localhost:5432/nova',
+        FRONTEND_ORIGIN: 'http://localhost:3000',
+        CSRF_SECRET: '12345678901234567890123456789012',
       }),
     ).toEqual({
       DATABASE_URL: 'postgresql://nova:secret@localhost:5432/nova',
       NODE_ENV: 'development',
       PORT: 3001,
+      FRONTEND_ORIGIN: 'http://localhost:3000',
+      CSRF_SECRET: '12345678901234567890123456789012',
     });
   });
 

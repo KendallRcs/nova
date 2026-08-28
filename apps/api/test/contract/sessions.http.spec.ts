@@ -6,6 +6,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { validationProblem } from '../../src/composition/http-validation';
 import { ProblemDetailsFilter } from '../../src/composition/problem-details.filter';
+import { CsrfTokens } from '../../src/composition/csrf-tokens';
 import { SessionsController } from '../../src/modules/identity-access/adapters/driving/http/sessions.controller';
 import { StartSession } from '../../src/modules/identity-access/hexagon/application/start-session';
 
@@ -38,6 +39,7 @@ describe('Sessions HTTP contract', () => {
       providers: [
         { provide: StartSession, useValue: startSession },
         { provide: ConfigService, useValue: config },
+        { provide: CsrfTokens, useValue: { issue: () => 'csrf-token' } },
       ],
     }).compile();
 
