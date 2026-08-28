@@ -12,6 +12,7 @@
     "dev:web": "pnpm --filter @nova/web dev",
     "db:generate": "pnpm --filter @nova/api db:generate",
     "db:validate": "pnpm --filter @nova/api db:validate",
+    "admin:initialize": "pnpm --filter @nova/api admin:initialize",
     "build": "pnpm -r --if-present build",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

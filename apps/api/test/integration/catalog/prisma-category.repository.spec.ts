@@ -10,8 +10,8 @@ import { CategoryNameAlreadyExistsError } from '../../../src/modules/catalog/hex
 import { Category } from '../../../src/modules/catalog/hexagon/domain/category';
 
 describe('PrismaCategoryRepository', () => {
-  let container: StartedPostgreSqlContainer;
-  let prisma: PrismaService;
+  let container: StartedPostgreSqlContainer | undefined;
+  let prisma: PrismaService | undefined;
   let repository: PrismaCategoryRepository;
 
   beforeAll(async () => {
@@ -29,12 +29,12 @@ describe('PrismaCategoryRepository', () => {
   }, 120_000);
 
   beforeEach(async () => {
-    await prisma.category.deleteMany();
+    await prisma?.category.deleteMany();
   });
 
   afterAll(async () => {
-    await prisma.$disconnect();
-    await container.stop();
+    await prisma?.$disconnect();
+    await container?.stop();
   });
 
   it('persists and restores a category with PostgreSQL types', async () => {

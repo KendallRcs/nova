@@ -351,6 +351,12 @@ La cuenta administradora inicial se crea mediante un comando seguro o variable d
 entorno durante despliegue, nunca con una contraseña conocida dentro del repositorio.
 La importación Excel de productos es un caso de uso del negocio, no una seed.
 
+El comando confirmado es `pnpm admin:initialize`. Es idempotente, serializa
+ejecuciones concurrentes mediante un bloqueo asesor transaccional y no modifica la
+instalación cuando ya existe cualquier cuenta. Usuario y contraseña temporal se
+entregan únicamente mediante `NOVA_INITIAL_ADMIN_USERNAME` y
+`NOVA_INITIAL_ADMIN_PASSWORD` en el entorno de ejecución.
+
 ## Mapeadores y repositorios
 
 Cada agregado persistido tiene mapeadores explícitos en su adaptador:

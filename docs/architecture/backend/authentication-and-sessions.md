@@ -131,6 +131,19 @@ esa acción para comunicarlo al colaborador.
 - La nueva contraseña personal reemplaza la temporal y vuelve a revocar cualquier
   credencial técnica emitida durante el proceso.
 
+### Inicialización del primer administrador
+
+La primera cuenta se crea una sola vez con `pnpm admin:initialize`. El comando
+recibe `NOVA_INITIAL_ADMIN_USERNAME` y `NOVA_INITIAL_ADMIN_PASSWORD` desde el
+entorno, protege la contraseña antes de persistirla y nunca imprime su valor. La
+cuenta comienza con credencial temporal y debe establecer una contraseña personal.
+
+La operación usa una transacción y un bloqueo asesor de PostgreSQL para que dos
+ejecuciones concurrentes no creen dos administradores. Si ya existe cualquier
+cuenta, termina sin modificar datos. El perfil Administrador utiliza un UUID
+estable; su catálogo de permisos se completa mediante la semilla técnica
+versionada, no mediante privilegios implícitos en el código.
+
 ## Protección frente a intentos abusivos
 
 No se bloquea la cuenta por cantidad de intentos fallidos. El endpoint de login
