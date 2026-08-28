@@ -5,7 +5,9 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { PrismaService } from '../../../src/composition/prisma.service';
 import { PrismaInitialAccessSetup } from '../../../src/modules/identity-access/adapters/driven/prisma/prisma-initial-access-setup';
-import { ADMINISTRATOR_PROFILE_ID } from '../../../src/modules/identity-access/hexagon/application/initialize-first-administrator';
+import { PrismaAccessPolicyCatalog } from '../../../src/modules/identity-access/adapters/driven/prisma/prisma-access-policy-catalog';
+import { SynchronizeAccessPolicy } from '../../../src/modules/identity-access/hexagon/application/synchronize-access-policy';
+import { ADMINISTRATOR_PROFILE_ID } from '../../../src/modules/identity-access/hexagon/domain/access-policy';
 import { UserAccount } from '../../../src/modules/identity-access/hexagon/domain/user-account';
 
 describe('PrismaInitialAccessSetup', () => {
@@ -33,15 +35,28 @@ describe('PrismaInitialAccessSetup', () => {
   });
 
   it('creates exactly one administrator when initialization runs concurrently', async () => {
+    if (prisma === undefined) {
+      throw new Error('Prisma no fue inicializado por la prueba.');
+    }
+    const database = prisma;
+    const policy = new SynchronizeAccessPolicy(new PrismaAccessPolicyCatalog(database));
+    await policy.execute();
+    await policy.execute();
+
     const outcomes = await Promise.all([
       setup.initializeAdministrator(createAccount('0198f9c2-7e00-7000-8000-000000000011')),
       setup.initializeAdministrator(createAccount('0198f9c2-7e00-7000-8000-000000000012')),
     ]);
 
     expect(outcomes.sort()).toEqual(['already-initialized', 'created']);
-    expect(await prisma?.userAccount.count()).toBe(1);
+    expect(await database.userAccount.count()).toBe(1);
+    expect(await database.permission.count()).toBe(28);
+    expect(await database.accessProfile.count()).toBe(2);
     expect(
-      await prisma?.accessProfile.findUnique({ where: { id: ADMINISTRATOR_PROFILE_ID } }),
+      await database.profilePermission.count({ where: { profileId: ADMINISTRATOR_PROFILE_ID } }),
+    ).toBe(28);
+    expect(
+      await database.accessProfile.findUnique({ where: { id: ADMINISTRATOR_PROFILE_ID } }),
     ).toMatchObject({
       name: 'Administrador',
       nameNormalized: 'administrador',

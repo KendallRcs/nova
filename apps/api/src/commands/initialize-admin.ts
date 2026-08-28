@@ -5,11 +5,13 @@ import { config } from 'dotenv';
 import { PrismaService } from '../composition/prisma.service';
 import { Argon2idCredentialProtector } from '../modules/identity-access/adapters/driven/argon2/argon2id-credential-protector';
 import { PrismaInitialAccessSetup } from '../modules/identity-access/adapters/driven/prisma/prisma-initial-access-setup';
+import { PrismaAccessPolicyCatalog } from '../modules/identity-access/adapters/driven/prisma/prisma-access-policy-catalog';
 import {
   SystemAuthenticationClock,
   UuidV7AuthenticationIdGenerator,
 } from '../modules/identity-access/adapters/driven/system/system-authentication-dependencies';
 import { InitializeFirstAdministrator } from '../modules/identity-access/hexagon/application/initialize-first-administrator';
+import { SynchronizeAccessPolicy } from '../modules/identity-access/hexagon/application/synchronize-access-policy';
 
 config({ path: resolve(process.cwd(), '../../.env') });
 config({ path: resolve(process.cwd(), '.env') });
@@ -21,6 +23,7 @@ async function main(): Promise<void> {
   const prisma = new PrismaService(databaseUrl);
 
   try {
+    await new SynchronizeAccessPolicy(new PrismaAccessPolicyCatalog(prisma)).execute();
     const initialize = new InitializeFirstAdministrator(
       new PrismaInitialAccessSetup(prisma),
       new Argon2idCredentialProtector(),

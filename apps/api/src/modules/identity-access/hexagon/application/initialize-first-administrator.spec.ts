@@ -1,12 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 import type { UserAccount } from '../domain/user-account';
+import { ADMINISTRATOR_PROFILE_ID } from '../domain/access-policy';
 import type { CredentialProtector } from './credential-protector';
 import type { InitialAccessSetup, InitialAccessSetupResult } from './initial-access-setup';
-import {
-  ADMINISTRATOR_PROFILE_ID,
-  InitializeFirstAdministrator,
-} from './initialize-first-administrator';
+import { InitializeFirstAdministrator } from './initialize-first-administrator';
 
 class FakeInitialAccessSetup implements InitialAccessSetup {
   account: UserAccount | null = null;

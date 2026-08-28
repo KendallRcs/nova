@@ -1,11 +1,10 @@
 import { validatePersonalPassword } from '../domain/password-policy';
 import { UserAccount } from '../domain/user-account';
 import { normalizeUsername } from '../domain/username';
+import { ADMINISTRATOR_PROFILE_ID } from '../domain/access-policy';
 import type { AuthenticationClock, AuthenticationIdGenerator } from './authentication-dependencies';
 import type { CredentialProtector } from './credential-protector';
 import type { InitialAccessSetup, InitialAccessSetupResult } from './initial-access-setup';
-
-export const ADMINISTRATOR_PROFILE_ID = '0198f9c2-7e00-7000-8000-000000000010';
 
 export type InitializeFirstAdministratorResult =
   | { ok: true; outcome: InitialAccessSetupResult; usernameNormalized: string }

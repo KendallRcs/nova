@@ -93,6 +93,31 @@ Los casos de uso verifican permisos en el backend aunque la interfaz oculte la a
 
 La estructura utiliza `PerfilId` y permisos tipados para permitir perfiles personalizados en el futuro. El MVP no ofrece crear, editar ni eliminar perfiles; Administrador y Empleado son perfiles del sistema sembrados y versionados con la aplicación.
 
+### Catálogo inicial de capacidades
+
+Los códigos son contratos estables del backend y no nombres de rutas o botones.
+La semilla versionada sincroniza las asignaciones exactas: Administrador recibe
+todas las capacidades y Empleado únicamente las indicadas como operativas.
+
+| Módulo | Capacidades versionadas | Empleado |
+| --- | --- | --- |
+| Catálogo | `catalog:read`, `catalog:manage`, `catalog:approve-price-exception` | `catalog:read` |
+| Clientes | `customers:read`, `customers:write-basic`, `customers:merge` | lectura y datos básicos |
+| Inventario | `inventory:read`, `inventory:transfer`, `inventory:write-off`, `inventory:adjust`, `inventory:release-reservation`, `inventory:inspect-return` | `inventory:read` |
+| Ventas | `sales:create`, `sales:read-own`, `sales:read-any`, `sales:update-own-draft`, `sales:adjust-confirmed`, `sales:finalize-with-balance`, `sales:cancel` | crear, consultar propias y editar borradores propios |
+| Pagos | `payments:create-own`, `payments:create-any`, `payments:correct` | `payments:create-own` |
+| Compras | `purchases:manage` | ninguna |
+| Gastos | `expenses:manage` | ninguna |
+| Devoluciones | `returns:approve` | ninguna |
+| Dashboards | `dashboards:financial` | ninguna |
+| Importación inicial | `imports:initial-products` | ninguna |
+| Usuarios | `users:manage` | ninguna |
+
+Reservar unidades forma parte de `sales:create`, porque la reserva nace como una
+modalidad de entrega de una venta y no como una operación independiente del
+empleado. Liberarla fuera del flujo normal requiere
+`inventory:release-reservation` y queda restringido al administrador.
+
 ## Eventos de Identidad y Acceso
 
 | Evento | Hecho representado |

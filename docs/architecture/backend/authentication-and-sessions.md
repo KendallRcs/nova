@@ -144,6 +144,11 @@ cuenta, termina sin modificar datos. El perfil Administrador utiliza un UUID
 estable; su catálogo de permisos se completa mediante la semilla técnica
 versionada, no mediante privilegios implícitos en el código.
 
+Antes de crear la cuenta, el mismo comando sincroniza idempotentemente los
+perfiles Administrador y Empleado, el catálogo de permisos y sus relaciones. Así,
+el primer inicio no depende de ejecutar manualmente otra semilla y volver a correr
+el comando actualiza la política versionada sin crear cuentas adicionales.
+
 ## Protección frente a intentos abusivos
 
 No se bloquea la cuenta por cantidad de intentos fallidos. El endpoint de login
