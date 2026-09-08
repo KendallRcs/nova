@@ -8,6 +8,7 @@ import { validationProblem } from '../../src/composition/http-validation';
 import { ProblemDetailsFilter } from '../../src/composition/problem-details.filter';
 import { CsrfTokens } from '../../src/composition/csrf-tokens';
 import { SessionsController } from '../../src/modules/identity-access/adapters/driving/http/sessions.controller';
+import { LoginRateLimiter } from '../../src/modules/identity-access/adapters/driving/http/login-rate-limiter';
 import { StartSession } from '../../src/modules/identity-access/hexagon/application/start-session';
 
 describe('Sessions HTTP contract', () => {
@@ -40,6 +41,16 @@ describe('Sessions HTTP contract', () => {
         { provide: StartSession, useValue: startSession },
         { provide: ConfigService, useValue: config },
         { provide: CsrfTokens, useValue: { issue: () => 'csrf-token' } },
+        {
+          provide: LoginRateLimiter,
+          useValue: {
+            consume: (_ip: string, username: string) =>
+              username === 'limitado'
+                ? { allowed: false, retryAfterSeconds: 42 }
+                : { allowed: true },
+            recordSuccess: () => undefined,
+          },
+        },
       ],
     }).compile();
 
@@ -103,6 +114,20 @@ describe('Sessions HTTP contract', () => {
       status: 401,
       code: 'INVALID_CREDENTIALS',
       detail: 'El usuario o la contraseña son incorrectos.',
+    });
+  });
+
+  it('returns a retry delay when login attempts exceed the technical quota', async () => {
+    const response = await request(httpServer)
+      .post('/api/v1/auth/sessions')
+      .send({ username: 'limitado', password: 'cualquier valor' })
+      .expect(429);
+
+    expect(response.headers['retry-after']).toBe('42');
+    expect(response.body).toMatchObject({
+      status: 429,
+      code: 'LOGIN_RATE_LIMIT_EXCEEDED',
+      detail: 'Espera antes de volver a intentarlo.',
     });
   });
 });

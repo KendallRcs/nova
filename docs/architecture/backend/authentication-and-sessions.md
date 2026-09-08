@@ -163,14 +163,21 @@ normalizado, más una cuota global defensiva.
 - Un límite excedido devuelve `429` y `Retry-After`.
 - Los contadores expiran automáticamente y no crean un estado de “cuenta
   bloqueada” ni una acción administrativa de desbloqueo.
-- Los límites exactos serán configurables y se fijarán con pruebas para no afectar
-  al local cuando varias cuentas compartan la misma conexión.
+- La ventana inicial es de cinco minutos: admite cinco intentos por combinación
+  IP/usuario normalizado, treinta por IP y trescientos para toda la instancia. Se
+  configuran mediante `LOGIN_RATE_LIMIT_WINDOW_SECONDS`,
+  `LOGIN_RATE_LIMIT_PAIR_MAX`, `LOGIN_RATE_LIMIT_IP_MAX` y
+  `LOGIN_RATE_LIMIT_GLOBAL_MAX`.
+- Un login válido limpia el contador de su combinación IP/usuario, pero no las
+  cuotas defensivas de IP e instancia.
 - Los intentos exitosos e inválidos generan telemetría técnica sin registrar
   contraseñas ni secretos.
 
-Para el MVP, un limitador en memoria solo sería correcto con una única instancia
-del API. Si el despliegue escala horizontalmente, el contador deberá moverse a un
-almacén compartido; esta condición quedará documentada en Operaciones.
+Para el MVP, el adaptador mantiene los contadores en memoria y solo es correcto
+con una única instancia del API. Reiniciar el proceso elimina los contadores, lo
+que es aceptable porque no son estado de negocio. Si el despliegue escala
+horizontalmente, se sustituirá por un adaptador con almacén compartido sin cambiar
+el núcleo de Identidad y Acceso.
 
 ## CSRF, CORS y métodos HTTP
 
@@ -243,7 +250,6 @@ asignado ese permiso. La primera aplicación concreta protege
 
 ## Decisiones aún diferidas
 
-- valores exactos y almacén del rate limiter;
 - librería o implementación acotada de sesiones/guards;
 - dominios de despliegue y configuración de proxy confiable;
 - mecanismo exacto del token CSRF;

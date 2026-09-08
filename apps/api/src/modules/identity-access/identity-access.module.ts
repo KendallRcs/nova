@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { CsrfTokens } from '../../composition/csrf-tokens';
 
@@ -31,6 +32,8 @@ import { SessionsController } from './adapters/driving/http/sessions.controller'
 import { PasswordController } from './adapters/driving/http/password.controller';
 import { CurrentSessionController } from './adapters/driving/http/current-session.controller';
 import { PermissionGuard } from './adapters/driving/http/permission.guard';
+import { LoginRateLimiter } from './adapters/driving/http/login-rate-limiter';
+import type { Environment } from '../../composition/environment';
 
 const AUTHENTICATION_IDENTITIES = Symbol('AUTHENTICATION_IDENTITIES');
 const CREDENTIAL_PROTECTOR = Symbol('CREDENTIAL_PROTECTOR');
@@ -49,6 +52,17 @@ const CLOSABLE_SESSIONS = Symbol('CLOSABLE_SESSIONS');
     PrismaUserAccountRepository,
     PrismaClosableSessions,
     CsrfTokens,
+    {
+      provide: LoginRateLimiter,
+      inject: [ConfigService],
+      useFactory: (config: ConfigService<Environment, true>): LoginRateLimiter =>
+        new LoginRateLimiter({
+          windowSeconds: config.getOrThrow('LOGIN_RATE_LIMIT_WINDOW_SECONDS'),
+          pairMaxAttempts: config.getOrThrow('LOGIN_RATE_LIMIT_PAIR_MAX'),
+          ipMaxAttempts: config.getOrThrow('LOGIN_RATE_LIMIT_IP_MAX'),
+          globalMaxAttempts: config.getOrThrow('LOGIN_RATE_LIMIT_GLOBAL_MAX'),
+        }),
+    },
     { provide: APP_GUARD, useClass: PermissionGuard },
     {
       provide: AUTHENTICATION_IDENTITIES,

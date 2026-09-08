@@ -4,6 +4,10 @@ export interface Environment {
   PORT: number;
   FRONTEND_ORIGIN: string;
   CSRF_SECRET: string;
+  LOGIN_RATE_LIMIT_WINDOW_SECONDS: number;
+  LOGIN_RATE_LIMIT_PAIR_MAX: number;
+  LOGIN_RATE_LIMIT_IP_MAX: number;
+  LOGIN_RATE_LIMIT_GLOBAL_MAX: number;
 }
 
 export class InvalidEnvironmentError extends Error {
@@ -26,7 +30,35 @@ export function validateEnvironment(values: Record<string, unknown>): Environmen
     PORT: port,
     FRONTEND_ORIGIN: frontendOrigin,
     CSRF_SECRET: csrfSecret,
+    LOGIN_RATE_LIMIT_WINDOW_SECONDS: parsePositiveInteger(
+      values.LOGIN_RATE_LIMIT_WINDOW_SECONDS,
+      300,
+      'LOGIN_RATE_LIMIT_WINDOW_SECONDS',
+    ),
+    LOGIN_RATE_LIMIT_PAIR_MAX: parsePositiveInteger(
+      values.LOGIN_RATE_LIMIT_PAIR_MAX,
+      5,
+      'LOGIN_RATE_LIMIT_PAIR_MAX',
+    ),
+    LOGIN_RATE_LIMIT_IP_MAX: parsePositiveInteger(
+      values.LOGIN_RATE_LIMIT_IP_MAX,
+      30,
+      'LOGIN_RATE_LIMIT_IP_MAX',
+    ),
+    LOGIN_RATE_LIMIT_GLOBAL_MAX: parsePositiveInteger(
+      values.LOGIN_RATE_LIMIT_GLOBAL_MAX,
+      300,
+      'LOGIN_RATE_LIMIT_GLOBAL_MAX',
+    ),
   };
+}
+
+function parsePositiveInteger(value: unknown, fallback: number, name: string): number {
+  const parsed = value === undefined ? fallback : Number(value);
+  if (!Number.isSafeInteger(parsed) || parsed < 1) {
+    throw new InvalidEnvironmentError(`${name} debe ser un entero positivo.`);
+  }
+  return parsed;
 }
 
 function requireOrigin(value: unknown): string {

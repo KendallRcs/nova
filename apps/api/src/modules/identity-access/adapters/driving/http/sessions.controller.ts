@@ -1,9 +1,19 @@
-import { Body, Controller, Post, Req, Res, UnauthorizedException } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  HttpException,
+  HttpStatus,
+  Post,
+  Req,
+  Res,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   ApiCreatedResponse,
   ApiOperation,
   ApiTags,
+  ApiTooManyRequestsResponse,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
@@ -13,6 +23,7 @@ import { CsrfTokenExempt } from '../../../../../composition/csrf.guard';
 import { CsrfTokens } from '../../../../../composition/csrf-tokens';
 import { csrfCookieName } from '../../../../../composition/csrf.guard';
 import { StartSession } from '../../../hexagon/application/start-session';
+import { LoginRateLimiter } from './login-rate-limiter';
 import { StartSessionRequest, StartSessionResponse } from './session.dto';
 import { sessionCookieDefinition } from './session-cookie';
 
@@ -23,6 +34,7 @@ export class SessionsController {
     private readonly startSession: StartSession,
     private readonly config: ConfigService<Environment, true>,
     private readonly csrfTokens: CsrfTokens,
+    private readonly loginRateLimiter: LoginRateLimiter,
   ) {}
 
   @Post()
@@ -30,11 +42,28 @@ export class SessionsController {
   @ApiOperation({ operationId: 'startSession' })
   @ApiCreatedResponse({ type: StartSessionResponse })
   @ApiUnauthorizedResponse({ description: 'Usuario o contraseña incorrectos.' })
+  @ApiTooManyRequestsResponse({ description: 'Demasiados intentos de inicio de sesión.' })
   async create(
     @Body() request: StartSessionRequest,
     @Req() httpRequest: Request,
     @Res({ passthrough: true }) response: Response,
   ): Promise<StartSessionResponse> {
+    const ip = httpRequest.ip ?? 'unknown';
+    const rateLimit = this.loginRateLimiter.consume(ip, request.username);
+    if (!rateLimit.allowed) {
+      response.setHeader('Retry-After', String(rateLimit.retryAfterSeconds));
+      throw new HttpException(
+        {
+          type: 'https://nova.example/problems/login-rate-limit-exceeded',
+          title: 'Demasiados intentos de inicio de sesión',
+          status: 429,
+          detail: 'Espera antes de volver a intentarlo.',
+          code: 'LOGIN_RATE_LIMIT_EXCEEDED',
+        },
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+
     const result = await this.startSession.execute({
       username: request.username,
       password: request.password,
@@ -50,6 +79,8 @@ export class SessionsController {
         code: 'INVALID_CREDENTIALS',
       });
     }
+
+    this.loginRateLimiter.recordSuccess(ip, request.username);
 
     const cookie = sessionCookieDefinition(
       this.config.getOrThrow('NODE_ENV'),
