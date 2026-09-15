@@ -101,6 +101,8 @@ POST   /api/v1/products
 PUT    /api/v1/products/{productId}
 POST   /api/v1/products/{productId}/deactivation
 GET    /api/v1/products/{productId}
+GET    /api/v1/inventory/locations
+POST   /api/v1/inventory/transfers
 POST   /api/v1/sales
 POST   /api/v1/sales/{saleId}/payments
 POST   /api/v1/sales/{saleId}/cancellations

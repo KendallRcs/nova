@@ -111,6 +111,23 @@ export class ProductClassificationResponse {
   name!: string;
 }
 
+export class ProductStockResponse {
+  @ApiProperty({ format: 'uuid' })
+  locationId!: string;
+  @ApiProperty()
+  locationCode!: string;
+  @ApiProperty()
+  locationName!: string;
+  @ApiProperty()
+  physicalQuantity!: number;
+  @ApiProperty()
+  reservedQuantity!: number;
+  @ApiProperty()
+  reviewQuantity!: number;
+  @ApiProperty()
+  availableQuantity!: number;
+}
+
 export class ProductCatalogResponse {
   @ApiProperty({ format: 'uuid' })
   id!: string;
@@ -130,6 +147,8 @@ export class ProductCatalogResponse {
   suggestedPriceCents!: number | null;
   @ApiProperty({ nullable: true, type: Number })
   maximumPriceCents!: number | null;
+  @ApiProperty({ type: [ProductStockResponse] })
+  stock!: ProductStockResponse[];
   @ApiProperty()
   isActive!: boolean;
   @ApiProperty({ format: 'date-time' })

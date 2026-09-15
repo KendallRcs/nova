@@ -9,6 +9,7 @@ import { validateEnvironment } from './composition/environment';
 import { HealthController } from './health/health.controller';
 import { CatalogModule } from './modules/catalog/catalog.module';
 import { IdentityAccessModule } from './modules/identity-access/identity-access.module';
+import { InventoryModule } from './modules/inventory/inventory.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { IdentityAccessModule } from './modules/identity-access/identity-access.
     PrismaModule,
     CatalogModule,
     IdentityAccessModule,
+    InventoryModule,
   ],
   controllers: [HealthController],
   providers: [CsrfTokens, { provide: APP_GUARD, useClass: CsrfGuard }],

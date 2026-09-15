@@ -8,7 +8,9 @@ import { PrismaCategoryRepository } from '../../../src/modules/catalog/adapters/
 import { PrismaProductCatalog } from '../../../src/modules/catalog/adapters/driven/prisma/prisma-product-catalog';
 import { PrismaProductRepository } from '../../../src/modules/catalog/adapters/driven/prisma/prisma-product.repository';
 import { PrismaTagRepository } from '../../../src/modules/catalog/adapters/driven/prisma/prisma-tag.repository';
+import { PrismaInventoryTransferBook } from '../../../src/modules/inventory/adapters/driven/prisma/prisma-inventory-transfer-book';
 import { UuidV7IdGenerator } from '../../../src/modules/catalog/adapters/driven/system/uuid-v7-id-generator';
+import { AccountStatus } from '../../../src/generated/prisma/client';
 import { CategoryNameAlreadyExistsError } from '../../../src/modules/catalog/hexagon/application/category.repository';
 import { Category } from '../../../src/modules/catalog/hexagon/domain/category';
 import { ProductCodeAlreadyExistsError } from '../../../src/modules/catalog/hexagon/application/product.repository';
@@ -23,6 +25,7 @@ describe('PrismaCategoryRepository', () => {
   let tags: PrismaTagRepository;
   let products: PrismaProductRepository;
   let productCatalog: PrismaProductCatalog;
+  let inventoryTransfers: PrismaInventoryTransferBook;
 
   beforeAll(async () => {
     container = await new PostgreSqlContainer('postgres:18.6').start();
@@ -39,14 +42,22 @@ describe('PrismaCategoryRepository', () => {
     tags = new PrismaTagRepository(prisma);
     products = new PrismaProductRepository(prisma);
     productCatalog = new PrismaProductCatalog(prisma);
+    inventoryTransfers = new PrismaInventoryTransferBook(prisma);
   }, 120_000);
 
   beforeEach(async () => {
     await prisma?.productImage.deleteMany();
     await prisma?.productTag.deleteMany();
+    await prisma?.inventoryMovement.deleteMany();
+    await prisma?.inventoryTransfer.deleteMany();
+    await prisma?.inventoryPosition.deleteMany();
     await prisma?.product.deleteMany();
     await prisma?.category.deleteMany();
     await prisma?.tag.deleteMany();
+    await prisma?.session.deleteMany();
+    await prisma?.userAccount.deleteMany();
+    await prisma?.profilePermission.deleteMany();
+    await prisma?.accessProfile.deleteMany();
   });
 
   afterAll(async () => {
@@ -144,6 +155,136 @@ describe('PrismaCategoryRepository', () => {
       nextProductId: null,
     });
   });
+
+  it('transfers available stock atomically and replays the same operation once', async () => {
+    if (prisma === undefined) throw new Error('Prisma was not initialized.');
+    const category = createCategory('Juguetes');
+    await repository.save(category);
+    const product = createProduct(category.toPrimitives().id, undefined, 'MUN-001');
+    await products.save(product);
+    const actorId = await createActor(prisma);
+    const [store, warehouse] = await Promise.all([
+      prisma.location.findUniqueOrThrow({ where: { code: 'STORE' } }),
+      prisma.location.findUniqueOrThrow({ where: { code: 'WAREHOUSE' } }),
+    ]);
+    await prisma.inventoryPosition.create({
+      data: {
+        id: new UuidV7IdGenerator().generate(),
+        productId: product.toPrimitives().id,
+        locationId: store.id,
+        physicalQuantity: 5,
+        createdAt: new Date('2026-09-15T16:00:00.000Z'),
+        updatedAt: new Date('2026-09-15T16:00:00.000Z'),
+      },
+    });
+    const command = {
+      transferId: '0199ef04-1b00-7000-8000-000000000010',
+      operationId: '0199ef04-1b00-7000-8000-000000000020',
+      productId: product.toPrimitives().id,
+      originLocationId: store.id,
+      destinationLocationId: warehouse.id,
+      quantity: 2,
+      actorId,
+      effectiveAt: new Date('2026-09-15T17:00:00.000Z'),
+    };
+
+    await expect(inventoryTransfers.transfer(command)).resolves.toMatchObject({
+      ok: true,
+      replayed: false,
+      transfer: {
+        origin: { physicalQuantity: 3, availableQuantity: 3 },
+        destination: { physicalQuantity: 2, availableQuantity: 2 },
+      },
+    });
+    await expect(
+      inventoryTransfers.transfer({ ...command, transferId: new UuidV7IdGenerator().generate() }),
+    ).resolves.toMatchObject({ ok: true, replayed: true });
+    await expect(prisma.inventoryMovement.count()).resolves.toBe(2);
+    await expect(prisma.inventoryTransfer.count()).resolves.toBe(1);
+  });
+
+  it('prevents two concurrent transfers from consuming the same available units', async () => {
+    if (prisma === undefined) throw new Error('Prisma was not initialized.');
+    const category = createCategory('Juguetes');
+    await repository.save(category);
+    const product = createProduct(category.toPrimitives().id, undefined, 'MUN-001');
+    await products.save(product);
+    const actorId = await createActor(prisma);
+    const [store, warehouse] = await Promise.all([
+      prisma.location.findUniqueOrThrow({ where: { code: 'STORE' } }),
+      prisma.location.findUniqueOrThrow({ where: { code: 'WAREHOUSE' } }),
+    ]);
+    await prisma.inventoryPosition.create({
+      data: {
+        id: new UuidV7IdGenerator().generate(),
+        productId: product.toPrimitives().id,
+        locationId: store.id,
+        physicalQuantity: 5,
+        createdAt: new Date('2026-09-15T16:00:00.000Z'),
+        updatedAt: new Date('2026-09-15T16:00:00.000Z'),
+      },
+    });
+    const base = {
+      productId: product.toPrimitives().id,
+      originLocationId: store.id,
+      destinationLocationId: warehouse.id,
+      quantity: 4,
+      actorId,
+      effectiveAt: new Date('2026-09-15T17:00:00.000Z'),
+    };
+
+    const results = await Promise.all([
+      inventoryTransfers.transfer({
+        ...base,
+        transferId: '0199ef04-1b00-7000-8000-000000000011',
+        operationId: '0199ef04-1b00-7000-8000-000000000021',
+      }),
+      inventoryTransfers.transfer({
+        ...base,
+        transferId: '0199ef04-1b00-7000-8000-000000000012',
+        operationId: '0199ef04-1b00-7000-8000-000000000022',
+      }),
+    ]);
+
+    expect(results.filter((result) => result.ok)).toHaveLength(1);
+    await expect(
+      prisma.inventoryPosition.findMany({
+        where: { productId: product.toPrimitives().id },
+        orderBy: { locationId: 'asc' },
+        select: { physicalQuantity: true },
+      }),
+    ).resolves.toEqual([{ physicalQuantity: 1 }, { physicalQuantity: 4 }]);
+    await expect(prisma.inventoryTransfer.count()).resolves.toBe(1);
+    await expect(prisma.inventoryMovement.count()).resolves.toBe(2);
+  });
+
+  it('rolls back even lazily created positions when a transfer is rejected', async () => {
+    if (prisma === undefined) throw new Error('Prisma was not initialized.');
+    const category = createCategory('Juguetes');
+    await repository.save(category);
+    const product = createProduct(category.toPrimitives().id, undefined, 'MUN-001');
+    await products.save(product);
+    const [store, warehouse] = await Promise.all([
+      prisma.location.findUniqueOrThrow({ where: { code: 'STORE' } }),
+      prisma.location.findUniqueOrThrow({ where: { code: 'WAREHOUSE' } }),
+    ]);
+
+    await expect(
+      inventoryTransfers.transfer({
+        transferId: '0199ef04-1b00-7000-8000-000000000013',
+        operationId: '0199ef04-1b00-7000-8000-000000000023',
+        productId: product.toPrimitives().id,
+        originLocationId: store.id,
+        destinationLocationId: warehouse.id,
+        quantity: 1,
+        actorId: '0199ef04-1b00-7000-8000-000000000030',
+        effectiveAt: new Date('2026-09-15T17:00:00.000Z'),
+      }),
+    ).resolves.toEqual({ ok: false, reason: 'insufficient-stock', availableQuantity: 0 });
+    await expect(prisma.inventoryPosition.count()).resolves.toBe(0);
+    await expect(prisma.inventoryMovement.count()).resolves.toBe(0);
+    await expect(prisma.inventoryTransfer.count()).resolves.toBe(0);
+  });
 });
 
 function createCategory(name: string): Category {
@@ -168,4 +309,30 @@ function createProduct(categoryId: string, tagId: string | undefined, code: stri
     maximumPriceCents: 3_000,
     now: new Date('2026-09-15T16:00:00.000Z'),
   });
+}
+
+async function createActor(prisma: PrismaService): Promise<string> {
+  const profileId = new UuidV7IdGenerator().generate();
+  const actorId = new UuidV7IdGenerator().generate();
+  await prisma.accessProfile.create({
+    data: {
+      id: profileId,
+      name: 'Administrador de prueba',
+      nameNormalized: 'administrador de prueba',
+      createdAt: new Date('2026-09-15T16:00:00.000Z'),
+      updatedAt: new Date('2026-09-15T16:00:00.000Z'),
+    },
+  });
+  await prisma.userAccount.create({
+    data: {
+      id: actorId,
+      profileId,
+      usernameNormalized: 'admin-inventory-test',
+      credentialHash: 'test-only-hash',
+      status: AccountStatus.ACTIVE,
+      createdAt: new Date('2026-09-15T16:00:00.000Z'),
+      updatedAt: new Date('2026-09-15T16:00:00.000Z'),
+    },
+  });
+  return actorId;
 }

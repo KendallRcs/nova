@@ -99,6 +99,7 @@ export class ProductsController {
       items: page.items.map((item) => ({
         ...item,
         tags: [...item.tags],
+        stock: [...item.stock],
         createdAt: item.createdAt.toISOString(),
         updatedAt: item.updatedAt.toISOString(),
       })),

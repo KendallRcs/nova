@@ -30,6 +30,30 @@ enum SessionStatus {
   @@map("session_status")
 }
 
+enum LocationType {
+  STORE     @map("store")
+  WAREHOUSE @map("warehouse")
+
+  @@map("location_type")
+}
+
+enum InventoryMovementType {
+  OPENING          @map("opening")
+  PURCHASE_IN      @map("purchase_in")
+  RESERVATION      @map("reservation")
+  RELEASE          @map("release")
+  DELIVERY         @map("delivery")
+  RETURN_REVIEW    @map("return_review")
+  RETURN_AVAILABLE @map("return_available")
+  TRANSFER_OUT     @map("transfer_out")
+  TRANSFER_IN      @map("transfer_in")
+  WRITE_OFF        @map("write_off")
+  ADJUSTMENT_IN    @map("adjustment_in")
+  ADJUSTMENT_OUT   @map("adjustment_out")
+
+  @@map("inventory_movement_type")
+}
+
 model AccessProfile {
   id             String              @id @db.Uuid
   name           String
@@ -67,16 +91,18 @@ model ProfilePermission {
 }
 
 model UserAccount {
-  id                 String        @id @db.Uuid
-  profileId          String        @map("profile_id") @db.Uuid
-  usernameNormalized String        @unique(map: "uq_user_accounts_username_normalized") @map("username_normalized")
-  credentialHash     String        @map("credential_hash")
-  status             AccountStatus @default(PASSWORD_CHANGE_REQUIRED)
-  securityVersion    Int           @default(1) @map("security_version")
-  createdAt          DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt          DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
-  profile            AccessProfile @relation(fields: [profileId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  id                 String              @id @db.Uuid
+  profileId          String              @map("profile_id") @db.Uuid
+  usernameNormalized String              @unique(map: "uq_user_accounts_username_normalized") @map("username_normalized")
+  credentialHash     String              @map("credential_hash")
+  status             AccountStatus       @default(PASSWORD_CHANGE_REQUIRED)
+  securityVersion    Int                 @default(1) @map("security_version")
+  createdAt          DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
+  profile            AccessProfile       @relation(fields: [profileId], references: [id], onDelete: Restrict, onUpdate: Restrict)
   sessions           Session[]
+  inventoryTransfers InventoryTransfer[]
+  inventoryMovements InventoryMovement[]
 
   @@index([profileId, status], map: "idx_user_accounts_profile_status")
   @@map("user_accounts")
@@ -128,22 +154,25 @@ model Tag {
 }
 
 model Product {
-  id                  String         @id @db.Uuid
-  categoryId          String         @map("category_id") @db.Uuid
+  id                  String              @id @db.Uuid
+  categoryId          String              @map("category_id") @db.Uuid
   code                String
-  codeNormalized      String         @unique(map: "uq_products_code_normalized") @map("code_normalized")
+  codeNormalized      String              @unique(map: "uq_products_code_normalized") @map("code_normalized")
   name                String
-  searchName          String         @map("search_name")
+  searchName          String              @map("search_name")
   description         String?
-  minimumPriceCents   BigInt         @map("minimum_price_cents")
-  suggestedPriceCents BigInt?        @map("suggested_price_cents")
-  maximumPriceCents   BigInt?        @map("maximum_price_cents")
-  status              RecordStatus   @default(ACTIVE)
-  createdAt           DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt           DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
-  category            Category       @relation(fields: [categoryId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_products_category")
+  minimumPriceCents   BigInt              @map("minimum_price_cents")
+  suggestedPriceCents BigInt?             @map("suggested_price_cents")
+  maximumPriceCents   BigInt?             @map("maximum_price_cents")
+  status              RecordStatus        @default(ACTIVE)
+  createdAt           DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt           DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
+  category            Category            @relation(fields: [categoryId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_products_category")
   tags                ProductTag[]
   images              ProductImage[]
+  inventoryPositions  InventoryPosition[]
+  inventoryTransfers  InventoryTransfer[]
+  inventoryMovements  InventoryMovement[]
 
   @@index([categoryId, status], map: "idx_products_category_status")
   @@index([searchName, id], map: "idx_products_search_name_id")
@@ -171,4 +200,86 @@ model ProductImage {
 
   @@unique([productId, position], map: "uq_product_images_product_position")
   @@map("product_images")
+}
+
+model Location {
+  id                 String              @id @db.Uuid
+  code               String              @unique(map: "uq_locations_code")
+  name               String
+  type               LocationType
+  status             RecordStatus        @default(ACTIVE)
+  createdAt          DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
+  inventoryPositions InventoryPosition[]
+  inventoryMovements InventoryMovement[]
+  outgoingTransfers  InventoryTransfer[] @relation("TransferOrigin")
+  incomingTransfers  InventoryTransfer[] @relation("TransferDestination")
+
+  @@index([status, name], map: "idx_locations_status_name")
+  @@map("locations")
+}
+
+model InventoryPosition {
+  id               String   @id @db.Uuid
+  productId        String   @map("product_id") @db.Uuid
+  locationId       String   @map("location_id") @db.Uuid
+  physicalQuantity Int      @default(0) @map("physical_quantity")
+  reservedQuantity Int      @default(0) @map("reserved_quantity")
+  reviewQuantity   Int      @default(0) @map("review_quantity")
+  version          Int      @default(1)
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  product          Product  @relation(fields: [productId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_inventory_positions_product")
+  location         Location @relation(fields: [locationId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_inventory_positions_location")
+
+  @@unique([productId, locationId], map: "uq_inventory_positions_product_location")
+  @@index([locationId, productId], map: "idx_inventory_positions_location_product")
+  @@map("inventory_positions")
+}
+
+model InventoryTransfer {
+  id                    String              @id @db.Uuid
+  operationId           String              @unique(map: "uq_inventory_transfers_operation") @map("operation_id") @db.Uuid
+  productId             String              @map("product_id") @db.Uuid
+  originLocationId      String              @map("origin_location_id") @db.Uuid
+  destinationLocationId String              @map("destination_location_id") @db.Uuid
+  quantity              Int
+  transferredBy         String              @map("transferred_by") @db.Uuid
+  effectiveAt           DateTime            @map("effective_at") @db.Timestamptz(3)
+  product               Product             @relation(fields: [productId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_inventory_transfers_product")
+  originLocation        Location            @relation("TransferOrigin", fields: [originLocationId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_inventory_transfers_origin")
+  destinationLocation   Location            @relation("TransferDestination", fields: [destinationLocationId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_inventory_transfers_destination")
+  actor                 UserAccount         @relation(fields: [transferredBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_inventory_transfers_actor")
+  movements             InventoryMovement[]
+
+  @@index([productId, effectiveAt(sort: Desc), id(sort: Desc)], map: "idx_inventory_transfers_product_date")
+  @@map("inventory_transfers")
+}
+
+model InventoryMovement {
+  id                        String                @id @db.Uuid
+  productId                 String                @map("product_id") @db.Uuid
+  locationId                String                @map("location_id") @db.Uuid
+  type                      InventoryMovementType
+  physicalDelta             Int                   @map("physical_delta")
+  reservedDelta             Int                   @map("reserved_delta")
+  reviewDelta               Int                   @map("review_delta")
+  previousPhysicalQuantity  Int                   @map("previous_physical_quantity")
+  resultingPhysicalQuantity Int                   @map("resulting_physical_quantity")
+  previousReservedQuantity  Int                   @map("previous_reserved_quantity")
+  resultingReservedQuantity Int                   @map("resulting_reserved_quantity")
+  previousReviewQuantity    Int                   @map("previous_review_quantity")
+  resultingReviewQuantity   Int                   @map("resulting_review_quantity")
+  actorId                   String                @map("actor_id") @db.Uuid
+  effectiveAt               DateTime              @map("effective_at") @db.Timestamptz(3)
+  reason                    String?
+  transferId                String?               @map("transfer_id") @db.Uuid
+  product                   Product               @relation(fields: [productId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_inventory_movements_product")
+  location                  Location              @relation(fields: [locationId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_inventory_movements_location")
+  actor                     UserAccount           @relation(fields: [actorId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_inventory_movements_actor")
+  transfer                  InventoryTransfer?    @relation(fields: [transferId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_inventory_movements_transfer")
+
+  @@index([productId, locationId, effectiveAt(sort: Desc), id(sort: Desc)], map: "idx_inventory_movements_product_location_date")
+  @@index([transferId], map: "idx_inventory_movements_transfer")
+  @@map("inventory_movements")
 }

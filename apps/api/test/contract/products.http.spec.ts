@@ -67,6 +67,17 @@ describe('Products HTTP contract', () => {
                     minimumPriceCents: 2_000,
                     suggestedPriceCents: 2_500,
                     maximumPriceCents: 3_000,
+                    stock: [
+                      {
+                        locationId: '0199ef04-1b00-7000-8000-000000000001',
+                        locationCode: 'STORE',
+                        locationName: 'Tienda',
+                        physicalQuantity: 0,
+                        reservedQuantity: 0,
+                        reviewQuantity: 0,
+                        availableQuantity: 0,
+                      },
+                    ],
                     isActive: true,
                     createdAt: now,
                     updatedAt: now,

@@ -6,6 +6,8 @@
 ### User Story INV-001 — Consultar existencias por ubicación y disponibilidad
 
 - **Estado:** Confirmada
+- **Trazabilidad de implementación:** backend completo para listar las ubicaciones y
+  mostrar por producto las cantidades físicas, reservadas, en revisión y disponibles.
 - **Como** empleado
 - **quiero** consultar el inventario de tienda y almacén
 - **para** saber cuántas unidades pueden ofrecerse realmente.
@@ -20,6 +22,9 @@
 ### User Story INV-002 — Trasladar inventario entre ubicaciones
 
 - **Estado:** Confirmada
+- **Trazabilidad de implementación:** backend completo con operación idempotente,
+  bloqueo ordenado de ambas posiciones, actualización atómica y dos movimientos
+  históricos emparejados con responsable y fecha.
 - **Como** administrador
 - **quiero** trasladar unidades entre tienda y almacén
 - **para** reflejar dónde se encuentra físicamente la mercancía.
@@ -39,6 +44,8 @@
 ### User Story INV-003 — Dar de baja mercancía no vendible
 
 - **Estado:** Confirmada
+- **Trazabilidad de implementación:** pendiente de la posición global de costo para
+  confirmar en una sola transacción la salida física y la pérdida económica.
 - **Como** administrador
 - **quiero** dar de baja unidades dañadas, perdidas o no vendibles
 - **para** mantener el inventario real y conocer la pérdida asociada.
@@ -59,6 +66,8 @@
 ### User Story INV-004 — Ajustar una diferencia de conteo físico
 
 - **Estado:** Confirmada
+- **Trazabilidad de implementación:** pendiente de la posición global de costo para
+  reconciliar simultáneamente cantidades y valor cuando corresponda.
 - **Como** administrador
 - **quiero** registrar una diferencia encontrada durante un conteo
 - **para** reconciliar el sistema con la existencia física sin inventar una causa.
@@ -119,4 +128,3 @@
 - **Entonces:** la unidad se incorpora al stock disponible de la ubicación elegida.
 
 ---
-

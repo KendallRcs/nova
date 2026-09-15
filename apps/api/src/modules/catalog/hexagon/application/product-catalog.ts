@@ -8,6 +8,15 @@ export interface ProductCatalogItem {
   readonly minimumPriceCents: number;
   readonly suggestedPriceCents: number | null;
   readonly maximumPriceCents: number | null;
+  readonly stock: readonly {
+    readonly locationId: string;
+    readonly locationCode: string;
+    readonly locationName: string;
+    readonly physicalQuantity: number;
+    readonly reservedQuantity: number;
+    readonly reviewQuantity: number;
+    readonly availableQuantity: number;
+  }[];
   readonly isActive: boolean;
   readonly createdAt: Date;
   readonly updatedAt: Date;
