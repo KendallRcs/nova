@@ -123,6 +123,11 @@ Nova no tendrá recuperación automática por correo en el MVP. Un administrador
 crea o restablece una credencial temporal y su valor se muestra solamente durante
 esa acción para comunicarlo al colaborador.
 
+En un restablecimiento, el backend genera 144 bits aleatorios mediante el generador
+criptográfico del sistema y los representa con Base64 URL-safe. El endpoint devuelve
+el valor plano una sola vez; ni consultas posteriores ni la persistencia permiten
+recuperarlo.
+
 - En base de datos solo queda su hash Argon2id.
 - Restablecer incrementa `securityVersion` y revoca sesiones anteriores.
 - El login con credencial temporal solo habilita consultar la identidad actual,
@@ -214,6 +219,12 @@ fallo de login.
 de la misma cookie cuando entra en la ventana de treinta días. El cierre mediante
 `DELETE /api/v1/auth/sessions/current` es idempotente: cierra la sesión válida si
 existe y siempre elimina la cookie, sin revelar si ya estaba cerrada o vencida.
+
+`POST /api/v1/users/{userId}/password-reset` exige `users:manage`. Solo admite una
+cuenta activa o que ya requiera cambio de contraseña; una cuenta inactiva debe
+reactivarse mediante su capacidad administrativa explícita. La actualización de
+credencial, el incremento de `securityVersion` y la revocación de sesiones ocurren
+en una única transacción y usan control optimista para no sobrescribir otro cambio.
 
 ## Separación hexagonal
 

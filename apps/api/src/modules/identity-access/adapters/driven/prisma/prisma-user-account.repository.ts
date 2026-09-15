@@ -58,4 +58,33 @@ export class PrismaUserAccountRepository implements UserAccountRepository {
       return true;
     });
   }
+
+  async saveTemporaryCredentialAndRevokeSessions(
+    account: UserAccount,
+    changedAt: Date,
+  ): Promise<boolean> {
+    const values = account.toPrimitives();
+    return this.prisma.$transaction(async (transaction) => {
+      const updated = await transaction.userAccount.updateMany({
+        where: {
+          id: values.id,
+          status: { not: AccountStatus.INACTIVE },
+          securityVersion: values.securityVersion - 1,
+        },
+        data: {
+          credentialHash: values.credentialHash,
+          status: AccountStatus.PASSWORD_CHANGE_REQUIRED,
+          securityVersion: values.securityVersion,
+          updatedAt: values.updatedAt,
+        },
+      });
+      if (updated.count === 0) return false;
+
+      await transaction.session.updateMany({
+        where: { userId: values.id, status: SessionStatus.ACTIVE },
+        data: { status: SessionStatus.REVOKED, endedAt: changedAt, endReason: 'password-reset' },
+      });
+      return true;
+    });
+  }
 }

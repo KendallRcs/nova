@@ -82,7 +82,9 @@
 ### User Story AUTH-005 — Restablecer la contraseña de un colaborador
 
 - **Estado:** Confirmada
-- **Trazabilidad de implementación:** inicio con credencial temporal y establecimiento obligatorio de contraseña personal implementados en backend; restablecimiento iniciado por un administrador aún pendiente.
+- **Trazabilidad de implementación:** flujo backend completo: restablecimiento administrativo,
+  revocación transaccional de sesiones, inicio con credencial temporal y establecimiento
+  obligatorio de contraseña personal.
 - **Como** administrador
 - **quiero** restablecer el acceso de un colaborador que olvidó su contraseña
 - **para** permitirle recuperar su cuenta sin crear otra identidad.

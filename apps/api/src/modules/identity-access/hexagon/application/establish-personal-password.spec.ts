@@ -17,6 +17,10 @@ class FakeAccounts implements UserAccountRepository {
     this.saved = account;
     return Promise.resolve(true);
   }
+
+  saveTemporaryCredentialAndRevokeSessions(): Promise<boolean> {
+    return Promise.resolve(false);
+  }
 }
 
 describe('EstablishPersonalPassword', () => {

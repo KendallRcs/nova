@@ -52,6 +52,19 @@ export class UserAccount {
     };
   }
 
+  resetTemporaryCredential(credentialHash: string, now: Date): boolean {
+    if (this.properties.status === 'inactive') return false;
+
+    this.properties = {
+      ...this.properties,
+      credentialHash,
+      status: 'password-change-required',
+      securityVersion: this.properties.securityVersion + 1,
+      updatedAt: now,
+    };
+    return true;
+  }
+
   deactivate(now: Date): void {
     if (this.properties.status === 'inactive') {
       return;

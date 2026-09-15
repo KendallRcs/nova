@@ -15,10 +15,13 @@ import type {
 } from './hexagon/application/session-credentials';
 import type { SessionRepository } from './hexagon/application/session.repository';
 import { StartSession } from './hexagon/application/start-session';
+import { ResetCollaboratorPassword } from './hexagon/application/reset-collaborator-password';
+import type { TemporaryCredentialGenerator } from './hexagon/application/temporary-credential-generator';
 import { EstablishPersonalPassword } from './hexagon/application/establish-personal-password';
 import type { UserAccountRepository } from './hexagon/application/user-account.repository';
 import { Argon2idCredentialProtector } from './adapters/driven/argon2/argon2id-credential-protector';
 import { NodeSessionCredentials } from './adapters/driven/crypto/node-session-credentials';
+import { NodeTemporaryCredentialGenerator } from './adapters/driven/crypto/node-temporary-credential-generator';
 import { PrismaAuthenticationIdentities } from './adapters/driven/prisma/prisma-authentication-identities';
 import { PrismaSessionRepository } from './adapters/driven/prisma/prisma-session.repository';
 import { PrismaAuthenticatedSessions } from './adapters/driven/prisma/prisma-authenticated-sessions';
@@ -33,6 +36,7 @@ import { PasswordController } from './adapters/driving/http/password.controller'
 import { CurrentSessionController } from './adapters/driving/http/current-session.controller';
 import { PermissionGuard } from './adapters/driving/http/permission.guard';
 import { LoginRateLimiter } from './adapters/driving/http/login-rate-limiter';
+import { UsersController } from './adapters/driving/http/users.controller';
 import type { Environment } from '../../composition/environment';
 
 const AUTHENTICATION_IDENTITIES = Symbol('AUTHENTICATION_IDENTITIES');
@@ -42,9 +46,10 @@ const SESSION_CREDENTIALS = Symbol('SESSION_CREDENTIALS');
 const AUTHENTICATED_SESSIONS = Symbol('AUTHENTICATED_SESSIONS');
 const USER_ACCOUNT_REPOSITORY = Symbol('USER_ACCOUNT_REPOSITORY');
 const CLOSABLE_SESSIONS = Symbol('CLOSABLE_SESSIONS');
+const TEMPORARY_CREDENTIAL_GENERATOR = Symbol('TEMPORARY_CREDENTIAL_GENERATOR');
 
 @Module({
-  controllers: [SessionsController, PasswordController, CurrentSessionController],
+  controllers: [SessionsController, PasswordController, CurrentSessionController, UsersController],
   providers: [
     PrismaAuthenticationIdentities,
     PrismaSessionRepository,
@@ -84,6 +89,10 @@ const CLOSABLE_SESSIONS = Symbol('CLOSABLE_SESSIONS');
     { provide: USER_ACCOUNT_REPOSITORY, useExisting: PrismaUserAccountRepository },
     { provide: CLOSABLE_SESSIONS, useExisting: PrismaClosableSessions },
     {
+      provide: TEMPORARY_CREDENTIAL_GENERATOR,
+      useValue: new NodeTemporaryCredentialGenerator(),
+    },
+    {
       provide: AuthenticateSession,
       inject: [AUTHENTICATED_SESSIONS, SESSION_CREDENTIALS],
       useFactory: (
@@ -106,6 +115,21 @@ const CLOSABLE_SESSIONS = Symbol('CLOSABLE_SESSIONS');
       inject: [CLOSABLE_SESSIONS],
       useFactory: (sessions: ClosableSessions): CloseCurrentSession =>
         new CloseCurrentSession(sessions, new SystemAuthenticationClock()),
+    },
+    {
+      provide: ResetCollaboratorPassword,
+      inject: [USER_ACCOUNT_REPOSITORY, CREDENTIAL_PROTECTOR, TEMPORARY_CREDENTIAL_GENERATOR],
+      useFactory: (
+        accounts: UserAccountRepository,
+        credentials: CredentialProtector,
+        temporaryCredentials: TemporaryCredentialGenerator,
+      ): ResetCollaboratorPassword =>
+        new ResetCollaboratorPassword(
+          accounts,
+          credentials,
+          temporaryCredentials,
+          new SystemAuthenticationClock(),
+        ),
     },
     {
       provide: StartSession,
