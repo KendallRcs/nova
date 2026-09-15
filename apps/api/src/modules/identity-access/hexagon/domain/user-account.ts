@@ -42,6 +42,10 @@ export class UserAccount {
     return this.properties.status === 'password-change-required';
   }
 
+  isInactive(): boolean {
+    return this.properties.status === 'inactive';
+  }
+
   establishPersonalCredential(credentialHash: string, now: Date): void {
     this.properties = {
       ...this.properties,
@@ -76,6 +80,19 @@ export class UserAccount {
       securityVersion: this.properties.securityVersion + 1,
       updatedAt: now,
     };
+  }
+
+  reactivateWithTemporaryCredential(credentialHash: string, now: Date): boolean {
+    if (this.properties.status !== 'inactive') return false;
+
+    this.properties = {
+      ...this.properties,
+      credentialHash,
+      status: 'password-change-required',
+      securityVersion: this.properties.securityVersion + 1,
+      updatedAt: now,
+    };
+    return true;
   }
 
   toPrimitives(): UserAccountProperties {

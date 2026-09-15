@@ -6,6 +6,9 @@
 ### User Story IAM-001 — Administrar cuentas de colaboradores
 
 - **Estado:** Confirmada
+- **Trazabilidad de implementación:** backend completo para crear y listar cuentas,
+  desactivarlas con revocación de sesiones y reactivarlas mediante una credencial
+  temporal nueva.
 - **Como** administrador
 - **quiero** crear, activar y desactivar cuentas
 - **para** controlar quién utiliza el sistema sin perder la autoría histórica.
@@ -21,6 +24,11 @@
 - **Dado:** que un colaborador tiene una o más sesiones activas
 - **Cuando:** desactivo su cuenta
 - **Entonces:** todas sus sesiones quedan revocadas sin alterar la autoría de sus operaciones históricas.
+
+- **Escenario:** Reactivación segura de una cuenta
+- **Dado:** que una cuenta de colaborador está inactiva
+- **Cuando:** la reactivo
+- **Entonces:** recibe una credencial temporal nueva sin restaurar sus sesiones anteriores.
 
 ### User Story IAM-002 — Aplicar permisos de los roles iniciales
 

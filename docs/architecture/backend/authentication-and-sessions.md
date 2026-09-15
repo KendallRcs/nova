@@ -207,6 +207,10 @@ POST   /api/v1/auth/sessions             iniciar sesión
 DELETE /api/v1/auth/sessions/current     cerrar la sesión actual
 GET    /api/v1/auth/me                   obtener actor y capacidades actuales
 PUT    /api/v1/auth/password             establecer/cambiar contraseña propia
+POST   /api/v1/users                     crear una cuenta
+GET    /api/v1/users                     listar cuentas
+POST   /api/v1/users/{userId}/deactivation desactivar y revocar sesiones
+POST   /api/v1/users/{userId}/reactivation reactivar con credencial temporal
 POST   /api/v1/users/{userId}/password-reset  restablecimiento administrativo
 POST   /api/v1/users/{userId}/session-revocations revocar todas sus sesiones
 ```
@@ -225,6 +229,14 @@ cuenta activa o que ya requiera cambio de contraseña; una cuenta inactiva debe
 reactivarse mediante su capacidad administrativa explícita. La actualización de
 credencial, el incremento de `securityVersion` y la revocación de sesiones ocurren
 en una única transacción y usan control optimista para no sobrescribir otro cambio.
+
+Todas las operaciones de `/users` exigen `users:manage`. La creación admite solo
+los perfiles iniciales Administrador y Empleado, normaliza el nombre único y
+devuelve una credencial temporal generada. Desactivar es idempotente y revoca las
+sesiones activas en la misma transacción. Reactivar exige una cuenta inactiva,
+genera otra credencial temporal y nunca vuelve a activar sesiones antiguas.
+La revocación administrativa de sesiones es idempotente, no desactiva la cuenta
+ni cambia su contraseña, y marca únicamente las sesiones que todavía están activas.
 
 ## Separación hexagonal
 

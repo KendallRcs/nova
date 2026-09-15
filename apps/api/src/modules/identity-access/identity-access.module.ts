@@ -16,9 +16,19 @@ import type {
 import type { SessionRepository } from './hexagon/application/session.repository';
 import { StartSession } from './hexagon/application/start-session';
 import { ResetCollaboratorPassword } from './hexagon/application/reset-collaborator-password';
+import { CreateCollaboratorAccount } from './hexagon/application/create-collaborator-account';
+import {
+  DeactivateCollaboratorAccount,
+  ReactivateCollaboratorAccount,
+} from './hexagon/application/change-collaborator-account-status';
 import type { TemporaryCredentialGenerator } from './hexagon/application/temporary-credential-generator';
+import {
+  ListCollaboratorAccounts,
+  type UserAccountDirectory,
+} from './hexagon/application/user-account-directory';
 import { EstablishPersonalPassword } from './hexagon/application/establish-personal-password';
 import type { UserAccountRepository } from './hexagon/application/user-account.repository';
+import type { UserAccountAdministration } from './hexagon/application/user-account-administration';
 import { Argon2idCredentialProtector } from './adapters/driven/argon2/argon2id-credential-protector';
 import { NodeSessionCredentials } from './adapters/driven/crypto/node-session-credentials';
 import { NodeTemporaryCredentialGenerator } from './adapters/driven/crypto/node-temporary-credential-generator';
@@ -27,6 +37,7 @@ import { PrismaSessionRepository } from './adapters/driven/prisma/prisma-session
 import { PrismaAuthenticatedSessions } from './adapters/driven/prisma/prisma-authenticated-sessions';
 import { PrismaUserAccountRepository } from './adapters/driven/prisma/prisma-user-account.repository';
 import { PrismaClosableSessions } from './adapters/driven/prisma/prisma-closable-sessions';
+import { PrismaRevocableSessions } from './adapters/driven/prisma/prisma-revocable-sessions';
 import {
   SystemAuthenticationClock,
   UuidV7AuthenticationIdGenerator,
@@ -38,6 +49,10 @@ import { PermissionGuard } from './adapters/driving/http/permission.guard';
 import { LoginRateLimiter } from './adapters/driving/http/login-rate-limiter';
 import { UsersController } from './adapters/driving/http/users.controller';
 import type { Environment } from '../../composition/environment';
+import {
+  RevokeCollaboratorSessions,
+  type RevocableSessions,
+} from './hexagon/application/revocable-sessions';
 
 const AUTHENTICATION_IDENTITIES = Symbol('AUTHENTICATION_IDENTITIES');
 const CREDENTIAL_PROTECTOR = Symbol('CREDENTIAL_PROTECTOR');
@@ -47,6 +62,9 @@ const AUTHENTICATED_SESSIONS = Symbol('AUTHENTICATED_SESSIONS');
 const USER_ACCOUNT_REPOSITORY = Symbol('USER_ACCOUNT_REPOSITORY');
 const CLOSABLE_SESSIONS = Symbol('CLOSABLE_SESSIONS');
 const TEMPORARY_CREDENTIAL_GENERATOR = Symbol('TEMPORARY_CREDENTIAL_GENERATOR');
+const USER_ACCOUNT_DIRECTORY = Symbol('USER_ACCOUNT_DIRECTORY');
+const USER_ACCOUNT_ADMINISTRATION = Symbol('USER_ACCOUNT_ADMINISTRATION');
+const REVOCABLE_SESSIONS = Symbol('REVOCABLE_SESSIONS');
 
 @Module({
   controllers: [SessionsController, PasswordController, CurrentSessionController, UsersController],
@@ -56,6 +74,7 @@ const TEMPORARY_CREDENTIAL_GENERATOR = Symbol('TEMPORARY_CREDENTIAL_GENERATOR');
     PrismaAuthenticatedSessions,
     PrismaUserAccountRepository,
     PrismaClosableSessions,
+    PrismaRevocableSessions,
     CsrfTokens,
     {
       provide: LoginRateLimiter,
@@ -87,10 +106,62 @@ const TEMPORARY_CREDENTIAL_GENERATOR = Symbol('TEMPORARY_CREDENTIAL_GENERATOR');
     },
     { provide: AUTHENTICATED_SESSIONS, useExisting: PrismaAuthenticatedSessions },
     { provide: USER_ACCOUNT_REPOSITORY, useExisting: PrismaUserAccountRepository },
+    { provide: USER_ACCOUNT_DIRECTORY, useExisting: PrismaUserAccountRepository },
+    { provide: USER_ACCOUNT_ADMINISTRATION, useExisting: PrismaUserAccountRepository },
     { provide: CLOSABLE_SESSIONS, useExisting: PrismaClosableSessions },
+    { provide: REVOCABLE_SESSIONS, useExisting: PrismaRevocableSessions },
     {
       provide: TEMPORARY_CREDENTIAL_GENERATOR,
       useValue: new NodeTemporaryCredentialGenerator(),
+    },
+    {
+      provide: CreateCollaboratorAccount,
+      inject: [USER_ACCOUNT_ADMINISTRATION, CREDENTIAL_PROTECTOR, TEMPORARY_CREDENTIAL_GENERATOR],
+      useFactory: (
+        accounts: UserAccountAdministration,
+        credentials: CredentialProtector,
+        temporaryCredentials: TemporaryCredentialGenerator,
+      ): CreateCollaboratorAccount =>
+        new CreateCollaboratorAccount(
+          accounts,
+          credentials,
+          temporaryCredentials,
+          new UuidV7AuthenticationIdGenerator(),
+          new SystemAuthenticationClock(),
+        ),
+    },
+    {
+      provide: ListCollaboratorAccounts,
+      inject: [USER_ACCOUNT_DIRECTORY],
+      useFactory: (directory: UserAccountDirectory): ListCollaboratorAccounts =>
+        new ListCollaboratorAccounts(directory),
+    },
+    {
+      provide: DeactivateCollaboratorAccount,
+      inject: [USER_ACCOUNT_ADMINISTRATION],
+      useFactory: (accounts: UserAccountAdministration): DeactivateCollaboratorAccount =>
+        new DeactivateCollaboratorAccount(accounts, new SystemAuthenticationClock()),
+    },
+    {
+      provide: ReactivateCollaboratorAccount,
+      inject: [USER_ACCOUNT_ADMINISTRATION, CREDENTIAL_PROTECTOR, TEMPORARY_CREDENTIAL_GENERATOR],
+      useFactory: (
+        accounts: UserAccountAdministration,
+        credentials: CredentialProtector,
+        temporaryCredentials: TemporaryCredentialGenerator,
+      ): ReactivateCollaboratorAccount =>
+        new ReactivateCollaboratorAccount(
+          accounts,
+          credentials,
+          temporaryCredentials,
+          new SystemAuthenticationClock(),
+        ),
+    },
+    {
+      provide: RevokeCollaboratorSessions,
+      inject: [REVOCABLE_SESSIONS],
+      useFactory: (sessions: RevocableSessions): RevokeCollaboratorSessions =>
+        new RevokeCollaboratorSessions(sessions, new SystemAuthenticationClock()),
     },
     {
       provide: AuthenticateSession,
