@@ -17,6 +17,10 @@ import type {
 import type { CategoryRepository } from '../../src/modules/catalog/hexagon/application/category.repository';
 import { CreateCategory } from '../../src/modules/catalog/hexagon/application/create-category';
 import { ListCategories } from '../../src/modules/catalog/hexagon/application/list-categories';
+import {
+  DeactivateCategory,
+  RenameCategory,
+} from '../../src/modules/catalog/hexagon/application/manage-category';
 import type { Category } from '../../src/modules/catalog/hexagon/domain/category';
 import { AuthenticateSession } from '../../src/modules/identity-access/hexagon/application/authenticate-session';
 import { PermissionGuard } from '../../src/modules/identity-access/adapters/driving/http/permission.guard';
@@ -32,13 +36,25 @@ class InMemoryCategoryRepository implements CategoryRepository {
     );
   }
 
+  findById(id: string): Promise<Category | null> {
+    return Promise.resolve(
+      this.categories.find((category) => category.toPrimitives().id === id) ?? null,
+    );
+  }
+
   listActive(): Promise<Category[]> {
-    return Promise.resolve([...this.categories]);
+    return Promise.resolve(
+      this.categories.filter((category) => category.toPrimitives().status === 'active'),
+    );
   }
 
   save(category: Category): Promise<void> {
     this.categories.push(category);
     return Promise.resolve();
+  }
+
+  update(): Promise<boolean> {
+    return Promise.resolve(true);
   }
 }
 
@@ -66,11 +82,15 @@ describe('Categories HTTP contract', () => {
     };
     const createCategory = new CreateCategory(repository, idGenerator, clock);
     const listCategories = new ListCategories(repository);
+    const renameCategory = new RenameCategory(repository, clock);
+    const deactivateCategory = new DeactivateCategory(repository, clock);
     const module = await Test.createTestingModule({
       controllers: [CategoriesController],
       providers: [
         { provide: CreateCategory, useValue: createCategory },
         { provide: ListCategories, useValue: listCategories },
+        { provide: RenameCategory, useValue: renameCategory },
+        { provide: DeactivateCategory, useValue: deactivateCategory },
         {
           provide: AuthenticateSession,
           useValue: {
@@ -171,6 +191,31 @@ describe('Categories HTTP contract', () => {
       instance: '/api/v1/categories',
     });
     expect(response.headers['content-type']).toContain('application/problem+json');
+  });
+
+  it('renames and deactivates a category without deleting it', async () => {
+    const categoryId = '0198f9c2-7e00-7000-8000-000000000001';
+    const cookie = ['nova-session=admin-session', `nova-csrf=${csrfTokens.issue('admin-session')}`];
+    const renamed = await request(httpServer)
+      .patch(`/api/v1/categories/${categoryId}`)
+      .set('Origin', 'http://localhost:3000')
+      .set('X-CSRF-Token', csrfTokens.issue('admin-session'))
+      .set('Cookie', cookie)
+      .send({ name: 'Complementos' })
+      .expect(200);
+    expect(renamed.body).toMatchObject({ id: categoryId, name: 'Complementos' });
+
+    await request(httpServer)
+      .post(`/api/v1/categories/${categoryId}/deactivation`)
+      .set('Origin', 'http://localhost:3000')
+      .set('X-CSRF-Token', csrfTokens.issue('admin-session'))
+      .set('Cookie', cookie)
+      .expect(201);
+    await request(httpServer)
+      .get('/api/v1/categories')
+      .set('Cookie', 'nova-session=employee-session')
+      .expect(200)
+      .expect({ items: [] });
   });
 
   it('enforces authentication and the specific capability on the server', async () => {

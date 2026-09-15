@@ -13,6 +13,18 @@ export class CreateCategoryRequest {
   description?: string;
 }
 
+export class RenameCategoryRequest {
+  @ApiProperty({ example: 'Accesorios para cabello' })
+  @IsString()
+  @IsNotEmpty()
+  name!: string;
+
+  @ApiPropertyOptional({ nullable: true, type: String })
+  @IsOptional()
+  @IsString()
+  description?: string | null;
+}
+
 export class CategoryResponse {
   @ApiProperty({ format: 'uuid' })
   id!: string;

@@ -20,6 +20,11 @@ export class PrismaCategoryRepository implements CategoryRepository {
     return row === null ? null : toDomain(row);
   }
 
+  async findById(id: string): Promise<Category | null> {
+    const row = await this.prisma.category.findUnique({ where: { id } });
+    return row === null ? null : toDomain(row);
+  }
+
   async listActive(): Promise<Category[]> {
     const rows = await this.prisma.category.findMany({
       where: { status: RecordStatus.ACTIVE },
@@ -49,6 +54,28 @@ export class PrismaCategoryRepository implements CategoryRepository {
         throw new CategoryNameAlreadyExistsError();
       }
 
+      throw error;
+    }
+  }
+
+  async update(category: Category): Promise<boolean> {
+    const values = category.toPrimitives();
+    try {
+      const updated = await this.prisma.category.updateMany({
+        where: { id: values.id },
+        data: {
+          name: values.name,
+          nameNormalized: values.nameNormalized,
+          description: values.description,
+          status: values.status === 'active' ? RecordStatus.ACTIVE : RecordStatus.INACTIVE,
+          updatedAt: values.updatedAt,
+        },
+      });
+      return updated.count === 1;
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        throw new CategoryNameAlreadyExistsError();
+      }
       throw error;
     }
   }

@@ -18,7 +18,7 @@ export interface CategoryProperties {
 }
 
 export class Category {
-  private constructor(private readonly properties: CategoryProperties) {}
+  private constructor(private properties: CategoryProperties) {}
 
   static create(input: {
     id: string;
@@ -45,6 +45,26 @@ export class Category {
 
   static restore(properties: CategoryProperties): Category {
     return new Category({ ...properties });
+  }
+
+  rename(input: { name: string; description?: string | null; now: Date }): void {
+    const name = normalizeDisplayName(input.name);
+    if (name.length === 0) throw new InvalidCategoryNameError();
+    this.properties = {
+      ...this.properties,
+      name,
+      nameNormalized: normalizeCategoryName(name),
+      description:
+        input.description === undefined
+          ? this.properties.description
+          : normalizeDescription(input.description),
+      updatedAt: input.now,
+    };
+  }
+
+  deactivate(now: Date): void {
+    if (this.properties.status === 'inactive') return;
+    this.properties = { ...this.properties, status: 'inactive', updatedAt: now };
   }
 
   toPrimitives(): CategoryProperties {

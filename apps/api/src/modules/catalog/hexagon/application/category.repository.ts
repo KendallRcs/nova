@@ -9,6 +9,8 @@ export class CategoryNameAlreadyExistsError extends Error {
 
 export interface CategoryRepository {
   findByNormalizedName(nameNormalized: string): Promise<Category | null>;
+  findById(id: string): Promise<Category | null>;
   listActive(): Promise<Category[]>;
   save(category: Category): Promise<void>;
+  update(category: Category): Promise<boolean>;
 }

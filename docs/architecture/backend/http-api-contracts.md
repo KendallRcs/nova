@@ -90,6 +90,12 @@ a un agregado:
 ```text
 GET    /api/v1/categories
 POST   /api/v1/categories
+PATCH  /api/v1/categories/{categoryId}
+POST   /api/v1/categories/{categoryId}/deactivation
+GET    /api/v1/tags
+POST   /api/v1/tags
+PATCH  /api/v1/tags/{tagId}
+POST   /api/v1/tags/{tagId}/deactivation
 GET    /api/v1/products/{productId}
 POST   /api/v1/sales
 POST   /api/v1/sales/{saleId}/payments

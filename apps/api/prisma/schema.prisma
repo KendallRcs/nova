@@ -112,3 +112,15 @@ model Category {
   @@index([status, nameNormalized], map: "idx_categories_status_name")
   @@map("categories")
 }
+
+model Tag {
+  id             String       @id @db.Uuid
+  name           String
+  nameNormalized String       @unique(map: "uq_tags_name_normalized") @map("name_normalized")
+  status         RecordStatus @default(ACTIVE)
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([status, nameNormalized], map: "idx_tags_status_name")
+  @@map("tags")
+}

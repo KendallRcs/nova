@@ -16,6 +16,12 @@ class InMemoryCategoryRepository implements CategoryRepository {
     );
   }
 
+  findById(id: string): Promise<Category | null> {
+    return Promise.resolve(
+      this.categories.find((category) => category.toPrimitives().id === id) ?? null,
+    );
+  }
+
   listActive(): Promise<Category[]> {
     return Promise.resolve(
       this.categories.filter((category) => category.toPrimitives().status === 'active'),
@@ -25,6 +31,10 @@ class InMemoryCategoryRepository implements CategoryRepository {
   save(category: Category): Promise<void> {
     this.categories.push(category);
     return Promise.resolve();
+  }
+
+  update(): Promise<boolean> {
+    return Promise.resolve(true);
   }
 }
 

@@ -49,6 +49,14 @@ el servicio sin eliminar los datos:
 docker compose --env-file .env.example -f infra/compose.yaml stop postgres
 ```
 
+Prisma carga `DATABASE_URL` desde el `.env` de la raíz del monorepo aunque pnpm
+ejecute su comando dentro de `apps/api`. Las migraciones de desarrollo se aplican
+desde la raíz con:
+
+```bash
+pnpm --filter @nova/api db:migrate:dev
+```
+
 No se ejecuta `down --volumes` como operación cotidiana porque elimina el volumen
 local. pgAdmin, Mailpit, Nginx, Cloudinary, CI/CD, observabilidad, copias de
 seguridad y despliegue al VPS continúan pendientes y no deben instalarse
