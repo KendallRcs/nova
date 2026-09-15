@@ -96,6 +96,10 @@ GET    /api/v1/tags
 POST   /api/v1/tags
 PATCH  /api/v1/tags/{tagId}
 POST   /api/v1/tags/{tagId}/deactivation
+GET    /api/v1/products?query=&categoryId=&tagId=&cursor=
+POST   /api/v1/products
+PUT    /api/v1/products/{productId}
+POST   /api/v1/products/{productId}/deactivation
 GET    /api/v1/products/{productId}
 POST   /api/v1/sales
 POST   /api/v1/sales/{saleId}/payments

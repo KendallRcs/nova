@@ -108,6 +108,7 @@ model Category {
   status         RecordStatus @default(ACTIVE)
   createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt      DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+  products       Product[]
 
   @@index([status, nameNormalized], map: "idx_categories_status_name")
   @@map("categories")
@@ -120,7 +121,54 @@ model Tag {
   status         RecordStatus @default(ACTIVE)
   createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt      DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+  products       ProductTag[]
 
   @@index([status, nameNormalized], map: "idx_tags_status_name")
   @@map("tags")
+}
+
+model Product {
+  id                  String         @id @db.Uuid
+  categoryId          String         @map("category_id") @db.Uuid
+  code                String
+  codeNormalized      String         @unique(map: "uq_products_code_normalized") @map("code_normalized")
+  name                String
+  searchName          String         @map("search_name")
+  description         String?
+  minimumPriceCents   BigInt         @map("minimum_price_cents")
+  suggestedPriceCents BigInt?        @map("suggested_price_cents")
+  maximumPriceCents   BigInt?        @map("maximum_price_cents")
+  status              RecordStatus   @default(ACTIVE)
+  createdAt           DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt           DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
+  category            Category       @relation(fields: [categoryId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_products_category")
+  tags                ProductTag[]
+  images              ProductImage[]
+
+  @@index([categoryId, status], map: "idx_products_category_status")
+  @@index([searchName, id], map: "idx_products_search_name_id")
+  @@map("products")
+}
+
+model ProductTag {
+  productId String  @map("product_id") @db.Uuid
+  tagId     String  @map("tag_id") @db.Uuid
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "fk_product_tags_product")
+  tag       Tag     @relation(fields: [tagId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_product_tags_tag")
+
+  @@id([productId, tagId], map: "pk_product_tags")
+  @@index([tagId, productId], map: "idx_product_tags_tag_product")
+  @@map("product_tags")
+}
+
+model ProductImage {
+  id         String  @id @db.Uuid
+  productId  String  @map("product_id") @db.Uuid
+  storageKey String  @unique(map: "uq_product_images_storage_key") @map("storage_key")
+  position   Int
+  metadata   Json?
+  product    Product @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "fk_product_images_product")
+
+  @@unique([productId, position], map: "uq_product_images_product_position")
+  @@map("product_images")
 }

@@ -1,0 +1,76 @@
+import { Injectable } from '@nestjs/common';
+
+import { PrismaService } from '../../../../../composition/prisma.service';
+import { Prisma, RecordStatus } from '../../../../../generated/prisma/client';
+import type {
+  ProductCatalog,
+  ProductCatalogItem,
+  ProductCatalogPage,
+} from '../../../hexagon/application/product-catalog';
+import { normalizeProductCode, normalizeProductSearchName } from '../../../hexagon/domain/product';
+import { safeNumber } from './prisma-product.repository';
+
+@Injectable()
+export class PrismaProductCatalog implements ProductCatalog {
+  constructor(private readonly prisma: PrismaService) {}
+
+  async search(input: Parameters<ProductCatalog['search']>[0]): Promise<ProductCatalogPage> {
+    const query = input.query?.trim();
+    const where: Prisma.ProductWhereInput = {
+      status: RecordStatus.ACTIVE,
+      ...(input.categoryId === undefined ? {} : { categoryId: input.categoryId }),
+      ...(input.tagId === undefined ? {} : { tags: { some: { tagId: input.tagId } } }),
+      ...(query === undefined || query.length === 0
+        ? {}
+        : {
+            OR: [
+              { codeNormalized: { contains: normalizeProductCode(query) } },
+              { searchName: { contains: normalizeProductSearchName(query) } },
+            ],
+          }),
+    };
+    const rows = await this.prisma.product.findMany({
+      where,
+      orderBy: [{ searchName: 'asc' }, { id: 'asc' }],
+      take: input.limit + 1,
+      ...(input.afterProductId === undefined
+        ? {}
+        : { cursor: { id: input.afterProductId }, skip: 1 }),
+      include: {
+        category: { select: { id: true, name: true } },
+        tags: { include: { tag: { select: { id: true, name: true } } } },
+      },
+    });
+    const hasNextPage = rows.length > input.limit;
+    const page = rows.slice(0, input.limit);
+    return {
+      items: page.map(toItem),
+      nextProductId: hasNextPage ? (page.at(-1)?.id ?? null) : null,
+    };
+  }
+}
+
+type CatalogRow = Prisma.ProductGetPayload<{
+  include: {
+    category: { select: { id: true; name: true } };
+    tags: { include: { tag: { select: { id: true; name: true } } } };
+  };
+}>;
+
+function toItem(row: CatalogRow): ProductCatalogItem {
+  return {
+    id: row.id,
+    code: row.code,
+    name: row.name,
+    description: row.description,
+    category: row.category,
+    tags: row.tags.map(({ tag }) => tag),
+    minimumPriceCents: safeNumber(row.minimumPriceCents),
+    suggestedPriceCents:
+      row.suggestedPriceCents === null ? null : safeNumber(row.suggestedPriceCents),
+    maximumPriceCents: row.maximumPriceCents === null ? null : safeNumber(row.maximumPriceCents),
+    isActive: row.status === RecordStatus.ACTIVE,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+  };
+}

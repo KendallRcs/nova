@@ -6,6 +6,9 @@
 ### User Story PROD-001 — Consultar un producto y sus precios autorizados
 
 - **Estado:** Confirmada
+- **Trazabilidad de implementación:** búsqueda backend por código o nombre, filtros y
+  precios de venta completos; la disponibilidad por ubicación se incorporará con
+  el módulo de inventario.
 - **Como** empleado
 - **quiero** buscar un producto por código o nombre
 - **para** informar su disponibilidad y utilizar un precio de venta autorizado.
@@ -20,6 +23,9 @@
 ### User Story PROD-002 — Administrar el catálogo de productos
 
 - **Estado:** Confirmada
+- **Trazabilidad de implementación:** backend completo para crear y actualizar los
+  datos comerciales, categoría, etiquetas y rango de precios. Las imágenes se
+  siguen mediante PROD-005 y el stock mediante las historias de inventario.
 - **Como** administrador
 - **quiero** crear y actualizar productos
 - **para** mantener vigente el catálogo utilizado por ventas e inventario.
@@ -46,6 +52,8 @@
 ### User Story PROD-003 — Desactivar un producto con historial
 
 - **Estado:** Confirmada
+- **Trazabilidad de implementación:** backend completo; la desactivación es lógica,
+  idempotente y excluye el producto de nuevas búsquedas sin borrarlo.
 - **Como** administrador
 - **quiero** desactivar un producto que ya no se comercializa
 - **para** impedir nuevas operaciones sin destruir su historial.
@@ -80,6 +88,8 @@
 ### User Story PROD-005 — Asociar imágenes a un producto
 
 - **Estado:** Confirmada
+- **Trazabilidad de implementación:** persistencia preparada con un máximo de dos
+  posiciones por producto; carga, almacenamiento y consulta de archivos pendientes.
 - **Como** administrador
 - **quiero** asociar hasta dos imágenes opcionales a un producto
 - **para** reconocer visualmente la mercancía sin depender únicamente del código o nombre.
@@ -104,6 +114,8 @@
 ### User Story PROD-006 — Organizar productos mediante categorías y etiquetas
 
 - **Estado:** Confirmada
+- **Trazabilidad de implementación:** backend completo para asignar una categoría,
+  etiquetas opcionales y filtrar el catálogo activo por ambas clasificaciones.
 - **Como** empleado
 - **quiero** filtrar productos por categoría y etiquetas
 - **para** encontrarlos aunque no recuerde su código o nombre exacto.
