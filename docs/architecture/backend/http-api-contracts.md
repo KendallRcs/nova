@@ -105,6 +105,9 @@ GET    /api/v1/inventory/locations
 POST   /api/v1/inventory/transfers
 POST   /api/v1/inventory/write-offs
 POST   /api/v1/inventory/count-adjustments
+GET    /api/v1/customers?query=
+POST   /api/v1/customers
+PUT    /api/v1/customers/{customerId}
 POST   /api/v1/sales
 POST   /api/v1/sales/{saleId}/payments
 POST   /api/v1/sales/{saleId}/cancellations

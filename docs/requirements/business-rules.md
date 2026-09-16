@@ -60,3 +60,4 @@
 55. Una baja de inventario exige una razón y una categoría entre dañado, perdido, defectuoso u otro; solo consume unidades disponibles.
 56. Un ajuste positivo usa el costo promedio vigente de las unidades actuales; si no existe costo anterior, el administrador debe indicar el costo unitario.
 57. Bajas y ajustes actualizan existencia, valoración y movimientos de auditoría en una única transacción idempotente.
+58. Los celulares peruanos de nueve dígitos se normalizan al formato internacional `+51`; DNI y dirección del cliente son opcionales y un DNI presente contiene ocho dígitos.

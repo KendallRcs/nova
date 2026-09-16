@@ -8,6 +8,9 @@ import { PrismaCategoryRepository } from '../../../src/modules/catalog/adapters/
 import { PrismaProductCatalog } from '../../../src/modules/catalog/adapters/driven/prisma/prisma-product-catalog';
 import { PrismaProductRepository } from '../../../src/modules/catalog/adapters/driven/prisma/prisma-product.repository';
 import { PrismaTagRepository } from '../../../src/modules/catalog/adapters/driven/prisma/prisma-tag.repository';
+import { PrismaCustomerRepository } from '../../../src/modules/customers/adapters/driven/prisma/prisma-customer.repository';
+import { CustomerPhoneAlreadyExistsError } from '../../../src/modules/customers/hexagon/application/customer.repository';
+import { Customer } from '../../../src/modules/customers/hexagon/domain/customer';
 import { PrismaInventoryTransferBook } from '../../../src/modules/inventory/adapters/driven/prisma/prisma-inventory-transfer-book';
 import { PrismaInventoryAdministrationBook } from '../../../src/modules/inventory/adapters/driven/prisma/prisma-inventory-administration-book';
 import { UuidV7IdGenerator } from '../../../src/modules/catalog/adapters/driven/system/uuid-v7-id-generator';
@@ -28,6 +31,7 @@ describe('PrismaCategoryRepository', () => {
   let productCatalog: PrismaProductCatalog;
   let inventoryTransfers: PrismaInventoryTransferBook;
   let inventoryAdministration: PrismaInventoryAdministrationBook;
+  let customers: PrismaCustomerRepository;
 
   beforeAll(async () => {
     container = await new PostgreSqlContainer('postgres:18.6').start();
@@ -46,6 +50,7 @@ describe('PrismaCategoryRepository', () => {
     productCatalog = new PrismaProductCatalog(prisma);
     inventoryTransfers = new PrismaInventoryTransferBook(prisma);
     inventoryAdministration = new PrismaInventoryAdministrationBook(prisma);
+    customers = new PrismaCustomerRepository(prisma);
   }, 120_000);
 
   beforeEach(async () => {
@@ -59,6 +64,7 @@ describe('PrismaCategoryRepository', () => {
     await prisma?.product.deleteMany();
     await prisma?.category.deleteMany();
     await prisma?.tag.deleteMany();
+    await prisma?.customer.deleteMany();
     await prisma?.session.deleteMany();
     await prisma?.userAccount.deleteMany();
     await prisma?.profilePermission.deleteMany();
@@ -77,6 +83,30 @@ describe('PrismaCategoryRepository', () => {
 
     const restored = await repository.findByNormalizedName('accesorios');
     expect(restored?.toPrimitives()).toEqual(category.toPrimitives());
+  });
+
+  it('persists customers and enforces canonical phone uniqueness', async () => {
+    const first = Customer.register({
+      id: new UuidV7IdGenerator().generate(),
+      name: 'María Pérez',
+      phone: '987654321',
+      now: new Date('2026-09-15T18:00:00.000Z'),
+    });
+    await customers.save(first);
+    expect((await customers.findCanonicalByPhone('+51987654321'))?.toPrimitives()).toEqual(
+      first.toPrimitives(),
+    );
+    await expect(
+      customers.save(
+        Customer.register({
+          id: new UuidV7IdGenerator().generate(),
+          name: 'Duplicada',
+          phone: '+51 987 654 321',
+          now: new Date('2026-09-15T18:01:00.000Z'),
+        }),
+      ),
+    ).rejects.toBeInstanceOf(CustomerPhoneAlreadyExistsError);
+    await expect(customers.search('María', 50)).resolves.toHaveLength(1);
   });
 
   it('translates the unique database constraint into an application conflict', async () => {

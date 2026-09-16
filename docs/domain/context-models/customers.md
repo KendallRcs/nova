@@ -23,7 +23,11 @@ Clientes es autoridad sobre la identidad y datos personales utilizados para reco
 - `Direccion`: descripción opcional e inmutable.
 - `ClienteId`: identidad opaca e inmutable.
 
-Los límites exactos de formato y longitud se definirán en la arquitectura de datos sin cambiar el significado del dominio.
+Los celulares peruanos locales de nueve dígitos se normalizan a E.164 con el
+prefijo `+51`; también se aceptan variantes equivalentes con espacios, guiones o
+prefijo internacional. Otros números deben llegar en formato internacional E.164.
+Un DNI presente contiene exactamente ocho dígitos. Nombre y dirección se limpian
+de espacios exteriores y repetidos.
 
 ### Comportamientos
 

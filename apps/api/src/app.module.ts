@@ -10,6 +10,7 @@ import { HealthController } from './health/health.controller';
 import { CatalogModule } from './modules/catalog/catalog.module';
 import { IdentityAccessModule } from './modules/identity-access/identity-access.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
+import { CustomersModule } from './modules/customers/customers.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { InventoryModule } from './modules/inventory/inventory.module';
     CatalogModule,
     IdentityAccessModule,
     InventoryModule,
+    CustomersModule,
   ],
   controllers: [HealthController],
   providers: [CsrfTokens, { provide: APP_GUARD, useClass: CsrfGuard }],

@@ -30,6 +30,13 @@ enum SessionStatus {
   @@map("session_status")
 }
 
+enum CustomerStatus {
+  ACTIVE @map("active")
+  MERGED @map("merged")
+
+  @@map("customer_status")
+}
+
 enum LocationType {
   STORE     @map("store")
   WAREHOUSE @map("warehouse")
@@ -155,6 +162,26 @@ model Session {
 
   @@index([userId, status], map: "idx_sessions_user_status")
   @@map("sessions")
+}
+
+model Customer {
+  id                   String         @id @db.Uuid
+  name                 String
+  nameNormalized       String         @map("name_normalized")
+  phoneNormalized      String         @map("phone_normalized")
+  dni                  String?
+  address              String?
+  status               CustomerStatus @default(ACTIVE)
+  mergedIntoCustomerId String?        @map("merged_into_customer_id") @db.Uuid
+  version              Int            @default(1)
+  createdAt            DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt            DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
+  mergedInto           Customer?      @relation("CustomerMerges", fields: [mergedIntoCustomerId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_customers_merged_into")
+  mergedCustomers      Customer[]     @relation("CustomerMerges")
+
+  @@index([nameNormalized, id], map: "idx_customers_search_name")
+  @@index([mergedIntoCustomerId], map: "idx_customers_merged_into")
+  @@map("customers")
 }
 
 model Category {

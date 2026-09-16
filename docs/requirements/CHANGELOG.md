@@ -20,3 +20,4 @@
 | 2026-08-26 | PROD-007 inició implementación: creación y consulta de categorías atraviesan dominio, aplicación, Prisma y HTTP; renombrado, desactivación y etiquetas permanecen pendientes. |
 | 2026-09-15 | INV-001 e INV-002 completaron su backend: consulta de disponibilidad por ubicación y traslados atómicos, auditables e idempotentes. |
 | 2026-09-15 | INV-003 e INV-004 completaron su backend: bajas categorizadas y ajustes de conteo actualizan stock y costo promedio de forma atómica, auditable e idempotente. |
+| 2026-09-15 | CUS-001 y CUS-002 completaron su backend de identidad: registro, búsqueda y actualización con teléfono canónico único, datos opcionales y versión optimista. |
