@@ -9,6 +9,10 @@ import { ProblemDetailsFilter } from '../../src/composition/problem-details.filt
 import { InventoryController } from '../../src/modules/inventory/adapters/driving/http/inventory.controller';
 import type { AuthenticatedRequest } from '../../src/modules/identity-access/adapters/driving/http/permission.guard';
 import { ListInventoryLocations } from '../../src/modules/inventory/hexagon/application/inventory-catalog';
+import {
+  AdjustInventoryCount,
+  WriteOffInventory,
+} from '../../src/modules/inventory/hexagon/application/administer-inventory';
 import { TransferInventory } from '../../src/modules/inventory/hexagon/application/transfer-inventory';
 
 const STORE_ID = '0199ef04-1b00-7000-8000-000000000001';
@@ -56,6 +60,14 @@ describe('Inventory HTTP contract', () => {
               }),
           },
         },
+        {
+          provide: WriteOffInventory,
+          useValue: { execute: administrationResult('write-off', -2, -500) },
+        },
+        {
+          provide: AdjustInventoryCount,
+          useValue: { execute: administrationResult('adjustment-in', 2, 500) },
+        },
       ],
     }).compile();
     app = module.createNestApplication();
@@ -66,7 +78,12 @@ describe('Inventory HTTP contract', () => {
         userId: ACTOR_ID,
         username: 'admin',
         securityVersion: 1,
-        permissionCodes: ['inventory:read', 'inventory:transfer'],
+        permissionCodes: [
+          'inventory:read',
+          'inventory:transfer',
+          'inventory:write-off',
+          'inventory:adjust',
+        ],
         requiresPasswordChange: false,
       };
       next();
@@ -122,7 +139,90 @@ describe('Inventory HTTP contract', () => {
       replayed: false,
     });
   });
+
+  it('writes off stock with an explicit category and reason', async () => {
+    const response = await request(httpServer)
+      .post('/api/v1/inventory/write-offs')
+      .set('Idempotency-Key', '0199ef04-1b00-7000-8000-000000000021')
+      .send({
+        productId: PRODUCT_ID,
+        locationId: STORE_ID,
+        quantity: 2,
+        category: 'damaged',
+        reason: 'Empaque destruido',
+      })
+      .expect(201);
+    expect(response.body).toMatchObject({
+      type: 'write-off',
+      physicalDelta: -2,
+      valueDeltaCents: -500,
+      category: 'damaged',
+      replayed: false,
+    });
+  });
+
+  it('adjusts a physical count using the observed stock version', async () => {
+    const response = await request(httpServer)
+      .post('/api/v1/inventory/count-adjustments')
+      .set('Idempotency-Key', '0199ef04-1b00-7000-8000-000000000022')
+      .send({
+        productId: PRODUCT_ID,
+        locationId: STORE_ID,
+        observedPhysicalQuantity: 7,
+        expectedPositionVersion: 3,
+        declaredUnitCostCents: 250,
+        reason: 'Conteo físico',
+      })
+      .expect(201);
+    expect(response.body).toMatchObject({
+      type: 'adjustment-in',
+      physicalDelta: 2,
+      valueDeltaCents: 500,
+      declaredUnitCostCents: 250,
+      replayed: false,
+    });
+  });
 });
+
+function administrationResult(
+  type: 'write-off' | 'adjustment-in',
+  physicalDelta: number,
+  valueDeltaCents: number,
+) {
+  return (command: {
+    operationId: string;
+    productId: string;
+    locationId: string;
+    actorId: string;
+    reason: string;
+    category?: 'damaged';
+    declaredUnitCostCents?: number | null;
+  }) =>
+    Promise.resolve({
+      ok: true as const,
+      replayed: false,
+      movement: {
+        movementId: '0199ef04-1b00-7000-8000-000000000030',
+        operationId: command.operationId,
+        productId: command.productId,
+        locationId: command.locationId,
+        type,
+        physicalDelta,
+        valueDeltaCents,
+        physicalQuantity: 7,
+        reservedQuantity: 0,
+        reviewQuantity: 0,
+        availableQuantity: 7,
+        availableCostQuantity: 7,
+        availableCostValueCents: 1750,
+        actorId: command.actorId,
+        effectiveAt: new Date('2026-09-15T17:00:00.000Z'),
+        reason: command.reason,
+        category: command.category ?? null,
+        declaredUnitCostCents: command.declaredUnitCostCents ?? null,
+      },
+    });
+}
 
 function balance(locationId: string, quantity: number) {
   return {

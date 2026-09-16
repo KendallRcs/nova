@@ -54,6 +54,36 @@ enum InventoryMovementType {
   @@map("inventory_movement_type")
 }
 
+enum InventoryAdministrativeCategory {
+  DAMAGED   @map("damaged")
+  LOST      @map("lost")
+  DEFECTIVE @map("defective")
+  OTHER     @map("other")
+
+  @@map("inventory_administrative_category")
+}
+
+enum CostingPolicy {
+  MOVING_AVERAGE_V1 @map("moving_average_v1")
+
+  @@map("costing_policy")
+}
+
+enum CostMovementType {
+  OPENING          @map("opening")
+  PURCHASE_IN      @map("purchase_in")
+  SALE_ALLOCATION  @map("sale_allocation")
+  RESERVATION      @map("reservation")
+  RELEASE          @map("release")
+  RETURN_REVIEW    @map("return_review")
+  RETURN_AVAILABLE @map("return_available")
+  WRITE_OFF        @map("write_off")
+  ADJUSTMENT_IN    @map("adjustment_in")
+  ADJUSTMENT_OUT   @map("adjustment_out")
+
+  @@map("cost_movement_type")
+}
+
 model AccessProfile {
   id             String              @id @db.Uuid
   name           String
@@ -103,6 +133,7 @@ model UserAccount {
   sessions           Session[]
   inventoryTransfers InventoryTransfer[]
   inventoryMovements InventoryMovement[]
+  costMovements      CostMovement[]
 
   @@index([profileId, status], map: "idx_user_accounts_profile_status")
   @@map("user_accounts")
@@ -154,25 +185,27 @@ model Tag {
 }
 
 model Product {
-  id                  String              @id @db.Uuid
-  categoryId          String              @map("category_id") @db.Uuid
+  id                  String               @id @db.Uuid
+  categoryId          String               @map("category_id") @db.Uuid
   code                String
-  codeNormalized      String              @unique(map: "uq_products_code_normalized") @map("code_normalized")
+  codeNormalized      String               @unique(map: "uq_products_code_normalized") @map("code_normalized")
   name                String
-  searchName          String              @map("search_name")
+  searchName          String               @map("search_name")
   description         String?
-  minimumPriceCents   BigInt              @map("minimum_price_cents")
-  suggestedPriceCents BigInt?             @map("suggested_price_cents")
-  maximumPriceCents   BigInt?             @map("maximum_price_cents")
-  status              RecordStatus        @default(ACTIVE)
-  createdAt           DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt           DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
-  category            Category            @relation(fields: [categoryId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_products_category")
+  minimumPriceCents   BigInt               @map("minimum_price_cents")
+  suggestedPriceCents BigInt?              @map("suggested_price_cents")
+  maximumPriceCents   BigInt?              @map("maximum_price_cents")
+  status              RecordStatus         @default(ACTIVE)
+  createdAt           DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt           DateTime             @updatedAt @map("updated_at") @db.Timestamptz(3)
+  category            Category             @relation(fields: [categoryId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_products_category")
   tags                ProductTag[]
   images              ProductImage[]
   inventoryPositions  InventoryPosition[]
   inventoryTransfers  InventoryTransfer[]
   inventoryMovements  InventoryMovement[]
+  costPosition        ProductCostPosition?
+  costMovements       CostMovement[]
 
   @@index([categoryId, status], map: "idx_products_category_status")
   @@index([searchName, id], map: "idx_products_search_name_id")
@@ -257,29 +290,83 @@ model InventoryTransfer {
 }
 
 model InventoryMovement {
-  id                        String                @id @db.Uuid
-  productId                 String                @map("product_id") @db.Uuid
-  locationId                String                @map("location_id") @db.Uuid
+  id                        String                           @id @db.Uuid
+  productId                 String                           @map("product_id") @db.Uuid
+  locationId                String                           @map("location_id") @db.Uuid
   type                      InventoryMovementType
-  physicalDelta             Int                   @map("physical_delta")
-  reservedDelta             Int                   @map("reserved_delta")
-  reviewDelta               Int                   @map("review_delta")
-  previousPhysicalQuantity  Int                   @map("previous_physical_quantity")
-  resultingPhysicalQuantity Int                   @map("resulting_physical_quantity")
-  previousReservedQuantity  Int                   @map("previous_reserved_quantity")
-  resultingReservedQuantity Int                   @map("resulting_reserved_quantity")
-  previousReviewQuantity    Int                   @map("previous_review_quantity")
-  resultingReviewQuantity   Int                   @map("resulting_review_quantity")
-  actorId                   String                @map("actor_id") @db.Uuid
-  effectiveAt               DateTime              @map("effective_at") @db.Timestamptz(3)
+  physicalDelta             Int                              @map("physical_delta")
+  reservedDelta             Int                              @map("reserved_delta")
+  reviewDelta               Int                              @map("review_delta")
+  previousPhysicalQuantity  Int                              @map("previous_physical_quantity")
+  resultingPhysicalQuantity Int                              @map("resulting_physical_quantity")
+  previousReservedQuantity  Int                              @map("previous_reserved_quantity")
+  resultingReservedQuantity Int                              @map("resulting_reserved_quantity")
+  previousReviewQuantity    Int                              @map("previous_review_quantity")
+  resultingReviewQuantity   Int                              @map("resulting_review_quantity")
+  actorId                   String                           @map("actor_id") @db.Uuid
+  effectiveAt               DateTime                         @map("effective_at") @db.Timestamptz(3)
   reason                    String?
-  transferId                String?               @map("transfer_id") @db.Uuid
-  product                   Product               @relation(fields: [productId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_inventory_movements_product")
-  location                  Location              @relation(fields: [locationId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_inventory_movements_location")
-  actor                     UserAccount           @relation(fields: [actorId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_inventory_movements_actor")
-  transfer                  InventoryTransfer?    @relation(fields: [transferId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_inventory_movements_transfer")
+  transferId                String?                          @map("transfer_id") @db.Uuid
+  operationId               String?                          @unique(map: "uq_inventory_movements_operation") @map("operation_id") @db.Uuid
+  expectedPositionVersion   Int?                             @map("expected_position_version")
+  administrativeCategory    InventoryAdministrativeCategory? @map("administrative_category")
+  product                   Product                          @relation(fields: [productId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_inventory_movements_product")
+  location                  Location                         @relation(fields: [locationId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_inventory_movements_location")
+  actor                     UserAccount                      @relation(fields: [actorId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_inventory_movements_actor")
+  transfer                  InventoryTransfer?               @relation(fields: [transferId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_inventory_movements_transfer")
+  costMovement              CostMovement?
 
   @@index([productId, locationId, effectiveAt(sort: Desc), id(sort: Desc)], map: "idx_inventory_movements_product_location_date")
   @@index([transferId], map: "idx_inventory_movements_transfer")
   @@map("inventory_movements")
+}
+
+model ProductCostPosition {
+  id                  String        @id @db.Uuid
+  productId           String        @unique(map: "uq_product_cost_positions_product") @map("product_id") @db.Uuid
+  availableQuantity   Int           @default(0) @map("available_quantity")
+  availableValueCents BigInt        @default(0) @map("available_value_cents")
+  reservedQuantity    Int           @default(0) @map("reserved_quantity")
+  reservedValueCents  BigInt        @default(0) @map("reserved_value_cents")
+  reviewQuantity      Int           @default(0) @map("review_quantity")
+  reviewValueCents    BigInt        @default(0) @map("review_value_cents")
+  version             Int           @default(1)
+  policy              CostingPolicy @default(MOVING_AVERAGE_V1)
+  createdAt           DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt           DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+  product             Product       @relation(fields: [productId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_product_cost_positions_product")
+
+  @@map("product_cost_positions")
+}
+
+model CostMovement {
+  id                           String            @id @db.Uuid
+  productId                    String            @map("product_id") @db.Uuid
+  type                         CostMovementType
+  quantityDelta                Int               @map("quantity_delta")
+  valueDeltaCents              BigInt            @map("value_delta_cents")
+  previousAvailableQuantity    Int               @map("previous_available_quantity")
+  resultingAvailableQuantity   Int               @map("resulting_available_quantity")
+  previousAvailableValueCents  BigInt            @map("previous_available_value_cents")
+  resultingAvailableValueCents BigInt            @map("resulting_available_value_cents")
+  previousReservedQuantity     Int               @map("previous_reserved_quantity")
+  resultingReservedQuantity    Int               @map("resulting_reserved_quantity")
+  previousReservedValueCents   BigInt            @map("previous_reserved_value_cents")
+  resultingReservedValueCents  BigInt            @map("resulting_reserved_value_cents")
+  previousReviewQuantity       Int               @map("previous_review_quantity")
+  resultingReviewQuantity      Int               @map("resulting_review_quantity")
+  previousReviewValueCents     BigInt            @map("previous_review_value_cents")
+  resultingReviewValueCents    BigInt            @map("resulting_review_value_cents")
+  declaredUnitCostCents        BigInt?           @map("declared_unit_cost_cents")
+  policy                       CostingPolicy
+  actorId                      String            @map("actor_id") @db.Uuid
+  effectiveAt                  DateTime          @map("effective_at") @db.Timestamptz(3)
+  reason                       String
+  inventoryMovementId          String            @unique(map: "uq_cost_movements_inventory_movement") @map("inventory_movement_id") @db.Uuid
+  product                      Product           @relation(fields: [productId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_cost_movements_product")
+  actor                        UserAccount       @relation(fields: [actorId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_cost_movements_actor")
+  inventoryMovement            InventoryMovement @relation(fields: [inventoryMovementId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_cost_movements_inventory_movement")
+
+  @@index([productId, effectiveAt(sort: Desc), id(sort: Desc)], map: "idx_cost_movements_product_date")
+  @@map("cost_movements")
 }

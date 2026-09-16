@@ -16,6 +16,7 @@ export interface ProductCatalogItem {
     readonly reservedQuantity: number;
     readonly reviewQuantity: number;
     readonly availableQuantity: number;
+    readonly version: number;
   }[];
   readonly isActive: boolean;
   readonly createdAt: Date;

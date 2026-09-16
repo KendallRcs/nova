@@ -38,6 +38,39 @@ describe('InventoryPosition', () => {
     expect(origin.snapshot()).toMatchObject({ physicalQuantity: 10, availableQuantity: 5 });
     expect(destination.snapshot()).toMatchObject({ physicalQuantity: 0 });
   });
+
+  it('writes off only available units', () => {
+    const inventory = position('store', 10, 3, 2);
+
+    expect(inventory.writeOffAvailable(5, now)).toMatchObject({ ok: true });
+    expect(inventory.snapshot()).toMatchObject({
+      physicalQuantity: 5,
+      reservedQuantity: 3,
+      reviewQuantity: 2,
+      availableQuantity: 0,
+      version: 2,
+    });
+    expect(inventory.writeOffAvailable(1, now)).toEqual({
+      ok: false,
+      reason: 'insufficient-stock',
+      availableQuantity: 0,
+    });
+  });
+
+  it('adjusts a count without consuming protected units', () => {
+    const inventory = position('store', 10, 3, 2);
+
+    expect(inventory.adjustToPhysicalCount(4, now)).toEqual({
+      ok: false,
+      reason: 'protected-stock',
+      minimumPhysicalQuantity: 5,
+    });
+    expect(inventory.adjustToPhysicalCount(7, now)).toMatchObject({
+      ok: true,
+      difference: -3,
+    });
+    expect(inventory.snapshot()).toMatchObject({ physicalQuantity: 7, availableQuantity: 2 });
+  });
 });
 
 function position(

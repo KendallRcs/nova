@@ -9,6 +9,7 @@ import { PrismaProductCatalog } from '../../../src/modules/catalog/adapters/driv
 import { PrismaProductRepository } from '../../../src/modules/catalog/adapters/driven/prisma/prisma-product.repository';
 import { PrismaTagRepository } from '../../../src/modules/catalog/adapters/driven/prisma/prisma-tag.repository';
 import { PrismaInventoryTransferBook } from '../../../src/modules/inventory/adapters/driven/prisma/prisma-inventory-transfer-book';
+import { PrismaInventoryAdministrationBook } from '../../../src/modules/inventory/adapters/driven/prisma/prisma-inventory-administration-book';
 import { UuidV7IdGenerator } from '../../../src/modules/catalog/adapters/driven/system/uuid-v7-id-generator';
 import { AccountStatus } from '../../../src/generated/prisma/client';
 import { CategoryNameAlreadyExistsError } from '../../../src/modules/catalog/hexagon/application/category.repository';
@@ -26,6 +27,7 @@ describe('PrismaCategoryRepository', () => {
   let products: PrismaProductRepository;
   let productCatalog: PrismaProductCatalog;
   let inventoryTransfers: PrismaInventoryTransferBook;
+  let inventoryAdministration: PrismaInventoryAdministrationBook;
 
   beforeAll(async () => {
     container = await new PostgreSqlContainer('postgres:18.6').start();
@@ -43,14 +45,17 @@ describe('PrismaCategoryRepository', () => {
     products = new PrismaProductRepository(prisma);
     productCatalog = new PrismaProductCatalog(prisma);
     inventoryTransfers = new PrismaInventoryTransferBook(prisma);
+    inventoryAdministration = new PrismaInventoryAdministrationBook(prisma);
   }, 120_000);
 
   beforeEach(async () => {
     await prisma?.productImage.deleteMany();
     await prisma?.productTag.deleteMany();
+    await prisma?.costMovement.deleteMany();
     await prisma?.inventoryMovement.deleteMany();
     await prisma?.inventoryTransfer.deleteMany();
     await prisma?.inventoryPosition.deleteMany();
+    await prisma?.productCostPosition.deleteMany();
     await prisma?.product.deleteMany();
     await prisma?.category.deleteMany();
     await prisma?.tag.deleteMany();
@@ -284,6 +289,124 @@ describe('PrismaCategoryRepository', () => {
     await expect(prisma.inventoryPosition.count()).resolves.toBe(0);
     await expect(prisma.inventoryMovement.count()).resolves.toBe(0);
     await expect(prisma.inventoryTransfer.count()).resolves.toBe(0);
+  });
+
+  it('writes off physical stock and moving-average cost atomically and idempotently', async () => {
+    if (prisma === undefined) throw new Error('Prisma was not initialized.');
+    const category = createCategory('Juguetes');
+    await repository.save(category);
+    const product = createProduct(category.toPrimitives().id, undefined, 'MUN-001');
+    await products.save(product);
+    const actorId = await createActor(prisma);
+    const store = await prisma.location.findUniqueOrThrow({ where: { code: 'STORE' } });
+    const warehouse = await prisma.location.findUniqueOrThrow({ where: { code: 'WAREHOUSE' } });
+    const now = new Date('2026-09-15T17:00:00.000Z');
+    await prisma.inventoryPosition.createMany({
+      data: [
+        {
+          id: new UuidV7IdGenerator().generate(),
+          productId: product.toPrimitives().id,
+          locationId: store.id,
+          physicalQuantity: 5,
+          createdAt: now,
+          updatedAt: now,
+        },
+        {
+          id: new UuidV7IdGenerator().generate(),
+          productId: product.toPrimitives().id,
+          locationId: warehouse.id,
+          physicalQuantity: 2,
+          createdAt: now,
+          updatedAt: now,
+        },
+      ],
+    });
+    await prisma.productCostPosition.create({
+      data: {
+        id: new UuidV7IdGenerator().generate(),
+        productId: product.toPrimitives().id,
+        availableQuantity: 7,
+        availableValueCents: 703,
+        createdAt: now,
+        updatedAt: now,
+      },
+    });
+    const command = {
+      kind: 'write-off' as const,
+      movementId: '0199ef04-1b00-7000-8000-000000000040',
+      costMovementId: '0199ef04-1b00-7000-8000-000000000041',
+      operationId: '0199ef04-1b00-7000-8000-000000000042',
+      productId: product.toPrimitives().id,
+      locationId: store.id,
+      quantity: 2,
+      category: 'damaged' as const,
+      reason: 'Producto roto',
+      actorId,
+      effectiveAt: now,
+    };
+
+    await expect(inventoryAdministration.execute(command)).resolves.toMatchObject({
+      ok: true,
+      replayed: false,
+      movement: {
+        physicalQuantity: 3,
+        availableCostQuantity: 5,
+        availableCostValueCents: 503,
+        valueDeltaCents: -200,
+      },
+    });
+    await expect(
+      inventoryAdministration.execute({
+        ...command,
+        movementId: '0199ef04-1b00-7000-8000-000000000043',
+        costMovementId: '0199ef04-1b00-7000-8000-000000000044',
+      }),
+    ).resolves.toMatchObject({ ok: true, replayed: true });
+    await expect(prisma.inventoryMovement.count()).resolves.toBe(1);
+    await expect(prisma.costMovement.count()).resolves.toBe(1);
+  });
+
+  it('requires a unit cost for the first positive count adjustment', async () => {
+    if (prisma === undefined) throw new Error('Prisma was not initialized.');
+    const category = createCategory('Juguetes');
+    await repository.save(category);
+    const product = createProduct(category.toPrimitives().id, undefined, 'MUN-001');
+    await products.save(product);
+    const actorId = await createActor(prisma);
+    const store = await prisma.location.findUniqueOrThrow({ where: { code: 'STORE' } });
+    const base = {
+      kind: 'count-adjustment' as const,
+      productId: product.toPrimitives().id,
+      locationId: store.id,
+      observedPhysicalQuantity: 2,
+      expectedPositionVersion: 0,
+      reason: 'Conteo inicial',
+      actorId,
+      effectiveAt: new Date('2026-09-15T17:00:00.000Z'),
+    };
+
+    await expect(
+      inventoryAdministration.execute({
+        ...base,
+        movementId: '0199ef04-1b00-7000-8000-000000000050',
+        costMovementId: '0199ef04-1b00-7000-8000-000000000051',
+        operationId: '0199ef04-1b00-7000-8000-000000000052',
+        declaredUnitCostCents: null,
+      }),
+    ).resolves.toEqual({ ok: false, reason: 'unit-cost-required' });
+    await expect(prisma.inventoryPosition.count()).resolves.toBe(0);
+    await expect(
+      inventoryAdministration.execute({
+        ...base,
+        movementId: '0199ef04-1b00-7000-8000-000000000053',
+        costMovementId: '0199ef04-1b00-7000-8000-000000000054',
+        operationId: '0199ef04-1b00-7000-8000-000000000055',
+        declaredUnitCostCents: 150,
+      }),
+    ).resolves.toMatchObject({
+      ok: true,
+      movement: { physicalQuantity: 2, availableCostQuantity: 2, availableCostValueCents: 300 },
+    });
   });
 });
 

@@ -44,8 +44,9 @@
 ### User Story INV-003 — Dar de baja mercancía no vendible
 
 - **Estado:** Confirmada
-- **Trazabilidad de implementación:** pendiente de la posición global de costo para
-  confirmar en una sola transacción la salida física y la pérdida económica.
+- **Trazabilidad de implementación:** backend completo con categorías cerradas,
+  razón obligatoria, consumo exclusivo de disponibilidad y registro atómico del
+  movimiento físico y su pérdida al costo promedio vigente.
 - **Como** administrador
 - **quiero** dar de baja unidades dañadas, perdidas o no vendibles
 - **para** mantener el inventario real y conocer la pérdida asociada.
@@ -66,8 +67,8 @@
 ### User Story INV-004 — Ajustar una diferencia de conteo físico
 
 - **Estado:** Confirmada
-- **Trazabilidad de implementación:** pendiente de la posición global de costo para
-  reconciliar simultáneamente cantidades y valor cuando corresponda.
+- **Trazabilidad de implementación:** backend completo con versión optimista,
+  razón obligatoria y reconciliación atómica de cantidades y valor.
 - **Como** administrador
 - **quiero** registrar una diferencia encontrada durante un conteo
 - **para** reconciliar el sistema con la existencia física sin inventar una causa.
@@ -79,6 +80,21 @@
 - **Y dado:** que escribí la razón del ajuste
 - **Cuando:** confirmo la cantidad física encontrada
 - **Entonces:** el sistema registra la diferencia como ajuste auditable y actualiza la existencia de esa ubicación.
+
+- **Escenario:** Ajuste positivo con costo vigente
+- **Dado:** que el producto conserva unidades valorizadas
+- **Cuando:** el conteo incorpora unidades adicionales
+- **Entonces:** las unidades se valorizan usando el costo promedio de las unidades actuales.
+
+- **Escenario:** Ajuste positivo sin costo anterior
+- **Dado:** que el producto no conserva unidades ni costo vigente
+- **Cuando:** intento confirmar un conteo positivo
+- **Entonces:** debo indicar un costo unitario para valorizar las unidades incorporadas.
+
+- **Escenario:** Conteo basado en una versión obsoleta
+- **Dado:** que el inventario cambió después de que consulté su versión
+- **Cuando:** intento confirmar el ajuste
+- **Entonces:** el sistema rechaza la operación y solicita actualizar la información.
 
 ### User Story INV-005 — Reservar unidades sin retirarlas físicamente
 

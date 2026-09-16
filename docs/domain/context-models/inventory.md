@@ -140,9 +140,17 @@ Los eventos describen hechos ya persistidos. `ReservarInventario` o `TrasladarIn
 
 ## Costos y pérdidas
 
-Inventario conserva referencias de costo necesarias en movimientos, pero no fija todavía el método para atribuir costos cuando existen compras a precios diferentes. FIFO, promedio ponderado u otra política se decidirá antes del modelo de datos.
+La posición global de costo por producto aplica promedio ponderado móvil conforme
+al ADR-0005. Conserva separadas las cantidades y valores disponibles, reservados y
+en revisión; el redondeo residual permanece en la posición hasta salir la última
+unidad. Esta frontera permite incorporar FIFO en el futuro mediante otra política
+sin cambiar los comandos de Inventario.
 
-Una baja debe recibir el costo atribuible calculado por la política vigente para que Analítica reconozca la pérdida. El agregado no consulta Prisma ni calcula costos leyendo compras directamente.
+Una baja consume costo disponible y existencia disponible en una misma transacción
+para que Analítica reconozca la pérdida. Un ajuste negativo se comporta igual sobre
+la diferencia. Un ajuste positivo usa el promedio vigente de las unidades actuales;
+si no existe una posición valorizada previa, exige al administrador un costo unitario.
+El dominio no consulta Prisma ni calcula costos leyendo compras directamente.
 
 ## Carga inicial
 

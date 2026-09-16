@@ -29,6 +29,31 @@ export type TransferPositionResult =
       readonly availableQuantity?: number;
     };
 
+export type WriteOffPositionResult =
+  | {
+      readonly ok: true;
+      readonly before: InventoryPositionSnapshot;
+      readonly after: InventoryPositionSnapshot;
+    }
+  | {
+      readonly ok: false;
+      readonly reason: 'invalid-quantity' | 'insufficient-stock';
+      readonly availableQuantity?: number;
+    };
+
+export type AdjustPositionResult =
+  | {
+      readonly ok: true;
+      readonly before: InventoryPositionSnapshot;
+      readonly after: InventoryPositionSnapshot;
+      readonly difference: number;
+    }
+  | {
+      readonly ok: false;
+      readonly reason: 'invalid-count' | 'protected-stock' | 'no-difference';
+      readonly minimumPhysicalQuantity?: number;
+    };
+
 export class InventoryPosition {
   private constructor(private properties: InventoryPositionProperties) {}
 
@@ -108,6 +133,47 @@ export class InventoryPosition {
       destinationBefore,
       destinationAfter: destination.snapshot(),
     };
+  }
+
+  writeOffAvailable(quantity: number, now: Date): WriteOffPositionResult {
+    const before = this.snapshot();
+    if (!Number.isSafeInteger(quantity) || quantity <= 0) {
+      return { ok: false, reason: 'invalid-quantity' };
+    }
+    if (before.availableQuantity < quantity) {
+      return {
+        ok: false,
+        reason: 'insufficient-stock',
+        availableQuantity: before.availableQuantity,
+      };
+    }
+    this.properties = {
+      ...this.properties,
+      physicalQuantity: before.physicalQuantity - quantity,
+      version: before.version + 1,
+      updatedAt: now,
+    };
+    return { ok: true, before, after: this.snapshot() };
+  }
+
+  adjustToPhysicalCount(observedPhysicalQuantity: number, now: Date): AdjustPositionResult {
+    const before = this.snapshot();
+    if (!Number.isSafeInteger(observedPhysicalQuantity) || observedPhysicalQuantity < 0) {
+      return { ok: false, reason: 'invalid-count' };
+    }
+    const minimumPhysicalQuantity = before.reservedQuantity + before.reviewQuantity;
+    if (observedPhysicalQuantity < minimumPhysicalQuantity) {
+      return { ok: false, reason: 'protected-stock', minimumPhysicalQuantity };
+    }
+    const difference = observedPhysicalQuantity - before.physicalQuantity;
+    if (difference === 0) return { ok: false, reason: 'no-difference' };
+    this.properties = {
+      ...this.properties,
+      physicalQuantity: observedPhysicalQuantity,
+      version: before.version + 1,
+      updatedAt: now,
+    };
+    return { ok: true, before, after: this.snapshot(), difference };
   }
 }
 

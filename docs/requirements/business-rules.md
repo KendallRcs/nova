@@ -57,3 +57,6 @@
 52. Los acuerdos con clientes de confianza se modelan como acuerdos informales de pago dentro de ventas con saldo pendiente.
 53. Nova no genera ni administra pagarés o títulos valores con efectos legales.
 54. Cada pago pertenece exactamente a una venta; no existen pagos generales de cliente pendientes de distribución ni pagos repartidos entre varias ventas.
+55. Una baja de inventario exige una razón y una categoría entre dañado, perdido, defectuoso u otro; solo consume unidades disponibles.
+56. Un ajuste positivo usa el costo promedio vigente de las unidades actuales; si no existe costo anterior, el administrador debe indicar el costo unitario.
+57. Bajas y ajustes actualizan existencia, valoración y movimientos de auditoría en una única transacción idempotente.

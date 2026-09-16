@@ -94,6 +94,7 @@ function toItem(
         reservedQuantity,
         reviewQuantity,
         availableQuantity: physicalQuantity - reservedQuantity - reviewQuantity,
+        version: position?.version ?? 0,
       };
     }),
     isActive: row.status === RecordStatus.ACTIVE,

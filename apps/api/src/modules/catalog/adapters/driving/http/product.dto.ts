@@ -126,6 +126,8 @@ export class ProductStockResponse {
   reviewQuantity!: number;
   @ApiProperty()
   availableQuantity!: number;
+  @ApiProperty({ description: 'Versión requerida al registrar un ajuste de conteo.' })
+  version!: number;
 }
 
 export class ProductCatalogResponse {

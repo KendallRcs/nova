@@ -19,3 +19,4 @@
 | 2026-08-16 | Se confirmó que cada pago pertenece a una sola venta y se preparó el mapa inicial de bounded contexts. |
 | 2026-08-26 | PROD-007 inició implementación: creación y consulta de categorías atraviesan dominio, aplicación, Prisma y HTTP; renombrado, desactivación y etiquetas permanecen pendientes. |
 | 2026-09-15 | INV-001 e INV-002 completaron su backend: consulta de disponibilidad por ubicación y traslados atómicos, auditables e idempotentes. |
+| 2026-09-15 | INV-003 e INV-004 completaron su backend: bajas categorizadas y ajustes de conteo actualizan stock y costo promedio de forma atómica, auditable e idempotente. |

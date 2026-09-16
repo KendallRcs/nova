@@ -103,11 +103,18 @@ POST   /api/v1/products/{productId}/deactivation
 GET    /api/v1/products/{productId}
 GET    /api/v1/inventory/locations
 POST   /api/v1/inventory/transfers
+POST   /api/v1/inventory/write-offs
+POST   /api/v1/inventory/count-adjustments
 POST   /api/v1/sales
 POST   /api/v1/sales/{saleId}/payments
 POST   /api/v1/sales/{saleId}/cancellations
 POST   /api/v1/returns
 ```
+
+Las bajas y ajustes requieren `Idempotency-Key`. El ajuste envía además
+`expectedPositionVersion`, obtenido del campo `version` del stock por ubicación;
+una versión desactualizada produce `409 Conflict`. El costo unitario declarado es
+opcional salvo al aumentar un producto que no tiene costo vigente.
 
 Esto no confirma aún el inventario completo de endpoints. Cada módulo definirá sus
 operaciones a partir de capacidades e historias, no mediante la exposición
