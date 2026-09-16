@@ -46,6 +46,15 @@ enum SaleLifecycleStatus {
   @@map("sale_lifecycle_status")
 }
 
+enum InventoryReservationStatus {
+  ACTIVE             @map("active")
+  PARTIALLY_CONSUMED @map("partially_consumed")
+  CONSUMED           @map("consumed")
+  RELEASED           @map("released")
+
+  @@map("inventory_reservation_status")
+}
+
 enum LocationType {
   STORE     @map("store")
   WAREHOUSE @map("warehouse")
@@ -153,6 +162,7 @@ model UserAccount {
   customerMerges     CustomerMerge[]
   createdSales       Sale[]
   approvedSaleLines  SaleLine[]          @relation("SaleLinePriceApprover")
+  confirmedSales     Sale[]              @relation("SaleConfirmer")
 
   @@index([profileId, status], map: "idx_user_accounts_profile_status")
   @@map("user_accounts")
@@ -300,41 +310,46 @@ model ProductImage {
 }
 
 model Location {
-  id                 String              @id @db.Uuid
-  code               String              @unique(map: "uq_locations_code")
-  name               String
-  type               LocationType
-  status             RecordStatus        @default(ACTIVE)
-  createdAt          DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt          DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
-  inventoryPositions InventoryPosition[]
-  inventoryMovements InventoryMovement[]
-  outgoingTransfers  InventoryTransfer[] @relation("TransferOrigin")
-  incomingTransfers  InventoryTransfer[] @relation("TransferDestination")
-  saleLines          SaleLine[]
+  id                    String                 @id @db.Uuid
+  code                  String                 @unique(map: "uq_locations_code")
+  name                  String
+  type                  LocationType
+  status                RecordStatus           @default(ACTIVE)
+  createdAt             DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt             DateTime               @updatedAt @map("updated_at") @db.Timestamptz(3)
+  inventoryPositions    InventoryPosition[]
+  inventoryMovements    InventoryMovement[]
+  outgoingTransfers     InventoryTransfer[]    @relation("TransferOrigin")
+  incomingTransfers     InventoryTransfer[]    @relation("TransferDestination")
+  saleLines             SaleLine[]
+  inventoryReservations InventoryReservation[]
 
   @@index([status, name], map: "idx_locations_status_name")
   @@map("locations")
 }
 
 model Sale {
-  id                   String              @id @db.Uuid
-  createdBy            String              @map("created_by") @db.Uuid
-  customerId           String?             @map("customer_id") @db.Uuid
-  lifecycleStatus      SaleLifecycleStatus @default(DRAFT) @map("lifecycle_status")
-  originalTotalCents   BigInt              @default(0) @map("original_total_cents")
-  currentTotalCents    BigInt              @default(0) @map("current_total_cents")
-  dueDate              DateTime?           @map("due_date") @db.Date
-  paymentAgreementNote String?             @map("payment_agreement_note")
-  version              Int                 @default(1)
-  confirmedAt          DateTime?           @map("confirmed_at") @db.Timestamptz(3)
-  finalizedAt          DateTime?           @map("finalized_at") @db.Timestamptz(3)
-  cancelledAt          DateTime?           @map("cancelled_at") @db.Timestamptz(3)
-  createdAt            DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt            DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
-  creator              UserAccount         @relation(fields: [createdBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_sales_creator")
-  customer             Customer?           @relation(fields: [customerId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_sales_customer")
-  lines                SaleLine[]
+  id                      String              @id @db.Uuid
+  createdBy               String              @map("created_by") @db.Uuid
+  customerId              String?             @map("customer_id") @db.Uuid
+  lifecycleStatus         SaleLifecycleStatus @default(DRAFT) @map("lifecycle_status")
+  originalTotalCents      BigInt              @default(0) @map("original_total_cents")
+  currentTotalCents       BigInt              @default(0) @map("current_total_cents")
+  dueDate                 DateTime?           @map("due_date") @db.Date
+  paymentAgreementNote    String?             @map("payment_agreement_note")
+  version                 Int                 @default(1)
+  confirmedAt             DateTime?           @map("confirmed_at") @db.Timestamptz(3)
+  confirmationOperationId String?             @unique(map: "uq_sales_confirmation_operation") @map("confirmation_operation_id") @db.Uuid
+  confirmationFingerprint String?             @map("confirmation_fingerprint")
+  confirmedBy             String?             @map("confirmed_by") @db.Uuid
+  finalizedAt             DateTime?           @map("finalized_at") @db.Timestamptz(3)
+  cancelledAt             DateTime?           @map("cancelled_at") @db.Timestamptz(3)
+  createdAt               DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt               DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
+  creator                 UserAccount         @relation(fields: [createdBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_sales_creator")
+  customer                Customer?           @relation(fields: [customerId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_sales_customer")
+  confirmer               UserAccount?        @relation("SaleConfirmer", fields: [confirmedBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_sales_confirmer")
+  lines                   SaleLine[]
 
   @@index([createdBy, lifecycleStatus, updatedAt(sort: Desc), id(sort: Desc)], map: "idx_sales_creator_status_date")
   @@index([customerId, confirmedAt(sort: Desc), id(sort: Desc)], map: "idx_sales_customer_date")
@@ -343,30 +358,33 @@ model Sale {
 }
 
 model SaleLine {
-  id                          String         @id @db.Uuid
-  saleId                      String         @map("sale_id") @db.Uuid
-  productId                   String         @map("product_id") @db.Uuid
-  locationId                  String         @map("location_id") @db.Uuid
+  id                          String                 @id @db.Uuid
+  saleId                      String                 @map("sale_id") @db.Uuid
+  productId                   String                 @map("product_id") @db.Uuid
+  locationId                  String                 @map("location_id") @db.Uuid
   quantity                    Int
-  deliveryQuantity            Int            @default(0) @map("delivery_quantity")
-  reservationQuantity         Int            @default(0) @map("reservation_quantity")
-  agreedUnitPriceCents        BigInt         @map("agreed_unit_price_cents")
-  originalSubtotalCents       BigInt         @map("original_subtotal_cents")
-  snapshotCode                String?        @map("snapshot_code")
-  snapshotName                String?        @map("snapshot_name")
-  snapshotMinimumPriceCents   BigInt?        @map("snapshot_minimum_price_cents")
-  snapshotSuggestedPriceCents BigInt?        @map("snapshot_suggested_price_cents")
-  snapshotMaximumPriceCents   BigInt?        @map("snapshot_maximum_price_cents")
-  priceExceptionReason        String?        @map("price_exception_reason")
-  priceApprovedBy             String?        @map("price_approved_by") @db.Uuid
-  allocatedCostCents          BigInt?        @map("allocated_cost_cents")
-  costingPolicy               CostingPolicy? @map("costing_policy")
-  createdAt                   DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt                   DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
-  sale                        Sale           @relation(fields: [saleId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "fk_sale_lines_sale")
-  product                     Product        @relation(fields: [productId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_sale_lines_product")
-  location                    Location       @relation(fields: [locationId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_sale_lines_location")
-  priceApprover               UserAccount?   @relation("SaleLinePriceApprover", fields: [priceApprovedBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_sale_lines_price_approver")
+  deliveryQuantity            Int                    @default(0) @map("delivery_quantity")
+  reservationQuantity         Int                    @default(0) @map("reservation_quantity")
+  agreedUnitPriceCents        BigInt                 @map("agreed_unit_price_cents")
+  originalSubtotalCents       BigInt                 @map("original_subtotal_cents")
+  snapshotCode                String?                @map("snapshot_code")
+  snapshotName                String?                @map("snapshot_name")
+  snapshotMinimumPriceCents   BigInt?                @map("snapshot_minimum_price_cents")
+  snapshotSuggestedPriceCents BigInt?                @map("snapshot_suggested_price_cents")
+  snapshotMaximumPriceCents   BigInt?                @map("snapshot_maximum_price_cents")
+  priceExceptionReason        String?                @map("price_exception_reason")
+  priceApprovedBy             String?                @map("price_approved_by") @db.Uuid
+  allocatedCostCents          BigInt?                @map("allocated_cost_cents")
+  costingPolicy               CostingPolicy?         @map("costing_policy")
+  createdAt                   DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt                   DateTime               @updatedAt @map("updated_at") @db.Timestamptz(3)
+  sale                        Sale                   @relation(fields: [saleId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "fk_sale_lines_sale")
+  product                     Product                @relation(fields: [productId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_sale_lines_product")
+  location                    Location               @relation(fields: [locationId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_sale_lines_location")
+  priceApprover               UserAccount?           @relation("SaleLinePriceApprover", fields: [priceApprovedBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_sale_lines_price_approver")
+  inventoryReservations       InventoryReservation[]
+  inventoryMovements          InventoryMovement[]
+  costAllocations             SaleCostAllocation[]
 
   @@unique([saleId, productId], map: "uq_sale_lines_sale_product")
   @@index([productId, saleId], map: "idx_sale_lines_product_sale")
@@ -429,6 +447,7 @@ model InventoryMovement {
   effectiveAt               DateTime                         @map("effective_at") @db.Timestamptz(3)
   reason                    String?
   transferId                String?                          @map("transfer_id") @db.Uuid
+  saleLineId                String?                          @map("sale_line_id") @db.Uuid
   operationId               String?                          @unique(map: "uq_inventory_movements_operation") @map("operation_id") @db.Uuid
   expectedPositionVersion   Int?                             @map("expected_position_version")
   administrativeCategory    InventoryAdministrativeCategory? @map("administrative_category")
@@ -436,11 +455,44 @@ model InventoryMovement {
   location                  Location                         @relation(fields: [locationId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_inventory_movements_location")
   actor                     UserAccount                      @relation(fields: [actorId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_inventory_movements_actor")
   transfer                  InventoryTransfer?               @relation(fields: [transferId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_inventory_movements_transfer")
+  saleLine                  SaleLine?                        @relation(fields: [saleLineId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_inventory_movements_sale_line")
   costMovement              CostMovement?
 
   @@index([productId, locationId, effectiveAt(sort: Desc), id(sort: Desc)], map: "idx_inventory_movements_product_location_date")
   @@index([transferId], map: "idx_inventory_movements_transfer")
+  @@index([saleLineId, effectiveAt, id], map: "idx_inventory_movements_sale_line_date")
   @@map("inventory_movements")
+}
+
+model InventoryReservation {
+  id              String                     @id @db.Uuid
+  saleLineId      String                     @map("sale_line_id") @db.Uuid
+  locationId      String                     @map("location_id") @db.Uuid
+  initialQuantity Int                        @map("initial_quantity")
+  activeQuantity  Int                        @map("active_quantity")
+  status          InventoryReservationStatus @default(ACTIVE)
+  createdAt       DateTime                   @map("created_at") @db.Timestamptz(3)
+  endedAt         DateTime?                  @map("ended_at") @db.Timestamptz(3)
+  saleLine        SaleLine                   @relation(fields: [saleLineId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_inventory_reservations_sale_line")
+  location        Location                   @relation(fields: [locationId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_inventory_reservations_location")
+
+  @@index([saleLineId, locationId], map: "idx_inventory_reservations_line_location")
+  @@map("inventory_reservations")
+}
+
+model SaleCostAllocation {
+  id                          String        @id @db.Uuid
+  saleLineId                  String        @map("sale_line_id") @db.Uuid
+  quantity                    Int
+  totalCostCents              BigInt        @map("total_cost_cents")
+  reservedRemainingQuantity   Int           @map("reserved_remaining_quantity")
+  reservedRemainingValueCents BigInt        @map("reserved_remaining_value_cents")
+  policy                      CostingPolicy
+  createdAt                   DateTime      @map("created_at") @db.Timestamptz(3)
+  saleLine                    SaleLine      @relation(fields: [saleLineId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_sale_cost_allocations_sale_line")
+
+  @@index([saleLineId, createdAt, id], map: "idx_sale_cost_allocations_line_date")
+  @@map("sale_cost_allocations")
 }
 
 model ProductCostPosition {

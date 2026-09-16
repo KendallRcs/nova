@@ -12,6 +12,19 @@ export interface SaleDraftLineInput {
 export interface SaleLineProperties extends SaleDraftLineInput {
   id: string;
   originalSubtotalCents: number;
+  snapshot: SaleProductSnapshot | null;
+  priceExceptionReason: string | null;
+  priceApprovedBy: string | null;
+  allocatedCostCents: number | null;
+  costingPolicy: 'moving-average-v1' | null;
+}
+
+export interface SaleProductSnapshot {
+  code: string;
+  name: string;
+  minimumPriceCents: number;
+  suggestedPriceCents: number | null;
+  maximumPriceCents: number | null;
 }
 
 export interface SaleProperties {
@@ -25,6 +38,7 @@ export interface SaleProperties {
   paymentAgreementNote: string | null;
   lines: readonly SaleLineProperties[];
   version: number;
+  confirmedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -41,6 +55,20 @@ export type ComposeSaleDraftResult =
         | 'invalid-total'
         | 'invalid-due-date'
         | 'sale-not-draft';
+      readonly productId?: string;
+    };
+
+export type ConfirmSaleResult =
+  | { readonly ok: true }
+  | {
+      readonly ok: false;
+      readonly reason:
+        | 'sale-not-draft'
+        | 'empty-sale'
+        | 'customer-required'
+        | 'product-not-found'
+        | 'price-approval-required'
+        | 'price-exception-reason-required';
       readonly productId?: string;
     };
 
@@ -65,6 +93,7 @@ export class Sale {
       paymentAgreementNote: input.paymentAgreementNote ?? null,
       lines: input.lines,
       version: 1,
+      confirmedAt: null,
       createdAt: input.now,
       updatedAt: input.now,
     });
@@ -89,10 +118,82 @@ export class Sale {
       paymentAgreementNote: input.paymentAgreementNote ?? null,
       lines: input.lines,
       version: this.properties.version + 1,
+      confirmedAt: input.now,
       updatedAt: input.now,
     });
     if (revised.ok) this.properties = revised.sale.toPrimitives();
     return revised.ok ? { ok: true, sale: this } : revised;
+  }
+
+  confirm(input: {
+    customerId: string | null;
+    productSnapshots: ReadonlyMap<string, SaleProductSnapshot>;
+    priceExceptionReasons: ReadonlyMap<string, string>;
+    confirmedBy: string;
+    canApprovePriceException: boolean;
+    now: Date;
+  }): ConfirmSaleResult {
+    if (this.properties.lifecycle !== 'draft') return { ok: false, reason: 'sale-not-draft' };
+    if (this.properties.lines.length === 0) return { ok: false, reason: 'empty-sale' };
+    if (this.properties.currentTotalCents > 0 && input.customerId === null) {
+      return { ok: false, reason: 'customer-required' };
+    }
+    const confirmedLines: SaleLineProperties[] = [];
+    for (const line of this.properties.lines) {
+      const snapshot = input.productSnapshots.get(line.productId);
+      if (snapshot === undefined) {
+        return { ok: false, reason: 'product-not-found', productId: line.productId };
+      }
+      let reason: string | null = null;
+      let approvedBy: string | null = null;
+      if (line.agreedUnitPriceCents < snapshot.minimumPriceCents) {
+        if (!input.canApprovePriceException) {
+          return { ok: false, reason: 'price-approval-required', productId: line.productId };
+        }
+        reason = normalizeOptional(input.priceExceptionReasons.get(line.id) ?? null);
+        if (reason === null) {
+          return {
+            ok: false,
+            reason: 'price-exception-reason-required',
+            productId: line.productId,
+          };
+        }
+        approvedBy = input.confirmedBy;
+      }
+      confirmedLines.push({
+        ...line,
+        snapshot,
+        priceExceptionReason: reason,
+        priceApprovedBy: approvedBy,
+      });
+    }
+    this.properties = {
+      ...this.properties,
+      customerId: input.customerId,
+      lifecycle: 'confirmed',
+      lines: confirmedLines,
+      version: this.properties.version + 1,
+      updatedAt: input.now,
+    };
+    return { ok: true };
+  }
+
+  attributeConfirmedCost(lineId: string, costCents: number): void {
+    if (
+      this.properties.lifecycle !== 'confirmed' ||
+      !Number.isSafeInteger(costCents) ||
+      costCents < 0
+    ) {
+      throw new Error('Cannot attribute an invalid sale cost.');
+    }
+    this.properties = {
+      ...this.properties,
+      lines: this.properties.lines.map((line) =>
+        line.id === lineId
+          ? { ...line, allocatedCostCents: costCents, costingPolicy: 'moving-average-v1' }
+          : line,
+      ),
+    };
   }
 
   toPrimitives(): SaleProperties {
@@ -136,7 +237,15 @@ function compose(
       return { ok: false, reason: 'invalid-total', productId: line.productId };
     }
     total += subtotal;
-    lines.push({ ...line, originalSubtotalCents: subtotal });
+    lines.push({
+      ...line,
+      originalSubtotalCents: subtotal,
+      snapshot: null,
+      priceExceptionReason: null,
+      priceApprovedBy: null,
+      allocatedCostCents: null,
+      costingPolicy: null,
+    });
   }
   const note = normalizeOptional(input.paymentAgreementNote);
   return {

@@ -41,6 +41,18 @@ export type WriteOffPositionResult =
       readonly availableQuantity?: number;
     };
 
+export type FulfillSalePositionResult =
+  | {
+      readonly ok: true;
+      readonly before: InventoryPositionSnapshot;
+      readonly after: InventoryPositionSnapshot;
+    }
+  | {
+      readonly ok: false;
+      readonly reason: 'invalid-quantity' | 'insufficient-stock';
+      readonly availableQuantity?: number;
+    };
+
 export type AdjustPositionResult =
   | {
       readonly ok: true;
@@ -156,6 +168,32 @@ export class InventoryPosition {
     return { ok: true, before, after: this.snapshot() };
   }
 
+  reserveAvailable(quantity: number, now: Date): FulfillSalePositionResult {
+    const before = this.snapshot();
+    const error = validateAvailableChange(quantity, before.availableQuantity);
+    if (error !== null) return error;
+    this.properties = {
+      ...this.properties,
+      reservedQuantity: before.reservedQuantity + quantity,
+      version: before.version + 1,
+      updatedAt: now,
+    };
+    return { ok: true, before, after: this.snapshot() };
+  }
+
+  deliverAvailable(quantity: number, now: Date): FulfillSalePositionResult {
+    const before = this.snapshot();
+    const error = validateAvailableChange(quantity, before.availableQuantity);
+    if (error !== null) return error;
+    this.properties = {
+      ...this.properties,
+      physicalQuantity: before.physicalQuantity - quantity,
+      version: before.version + 1,
+      updatedAt: now,
+    };
+    return { ok: true, before, after: this.snapshot() };
+  }
+
   adjustToPhysicalCount(observedPhysicalQuantity: number, now: Date): AdjustPositionResult {
     const before = this.snapshot();
     if (!Number.isSafeInteger(observedPhysicalQuantity) || observedPhysicalQuantity < 0) {
@@ -175,6 +213,19 @@ export class InventoryPosition {
     };
     return { ok: true, before, after: this.snapshot(), difference };
   }
+}
+
+function validateAvailableChange(
+  quantity: number,
+  availableQuantity: number,
+): Exclude<FulfillSalePositionResult, { ok: true }> | null {
+  if (!Number.isSafeInteger(quantity) || quantity <= 0) {
+    return { ok: false, reason: 'invalid-quantity' };
+  }
+  if (availableQuantity < quantity) {
+    return { ok: false, reason: 'insufficient-stock', availableQuantity };
+  }
+  return null;
 }
 
 function assertValidPosition(properties: InventoryPositionProperties): void {

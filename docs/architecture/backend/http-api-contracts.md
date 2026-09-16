@@ -111,6 +111,7 @@ PUT    /api/v1/customers/{customerId}
 POST   /api/v1/customers/merges
 POST   /api/v1/sales
 PUT    /api/v1/sales/{saleId}
+POST   /api/v1/sales/{saleId}/confirmation
 POST   /api/v1/sales/{saleId}/payments
 POST   /api/v1/sales/{saleId}/cancellations
 POST   /api/v1/returns
@@ -131,6 +132,12 @@ precio acordado y cantidades previstas para entrega y reserva; la diferencia que
 pendiente. Estas operaciones no usan `Idempotency-Key` porque todavía no generan
 efectos financieros ni de inventario. Solo el autor o una cuenta con
 `sales:update-any-draft` puede corregirlo.
+
+`POST /sales/{saleId}/confirmation` requiere `Idempotency-Key`, `expectedVersion`
+y las razones asociadas a líneas vendidas por debajo del mínimo. La confirmación
+congela la instantánea comercial y el costo, y aplica entregas y reservas dentro de
+la misma transacción. Mientras el cobro inicial aún no forma parte de este comando,
+una venta con total positivo debe tener cliente para conservar su saldo explicable.
 
 Esto no confirma aún el inventario completo de endpoints. Cada módulo definirá sus
 operaciones a partir de capacidades e historias, no mediante la exposición

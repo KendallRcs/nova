@@ -11,7 +11,7 @@ export class PrismaSaleDraftRepository implements SaleDraftRepository {
 
   async findById(id: string): Promise<Sale | null> {
     const row = await this.prisma.sale.findUnique({ where: { id }, include: { lines: true } });
-    return row === null ? null : toDomain(row);
+    return row === null ? null : toSaleDomain(row);
   }
 
   async create(sale: Sale): Promise<void> {
@@ -66,7 +66,7 @@ export class PrismaSaleDraftRepository implements SaleDraftRepository {
 }
 
 type SaleRow = Prisma.SaleGetPayload<{ include: { lines: true } }>;
-function toDomain(row: SaleRow): Sale {
+export function toSaleDomain(row: SaleRow): Sale {
   return Sale.restore({
     id: row.id,
     createdBy: row.createdBy,
@@ -79,8 +79,8 @@ function toDomain(row: SaleRow): Sale {
           : row.lifecycleStatus === SaleLifecycleStatus.FINALIZED
             ? 'finalized'
             : 'cancelled',
-    originalTotalCents: safeNumber(row.originalTotalCents),
-    currentTotalCents: safeNumber(row.currentTotalCents),
+    originalTotalCents: safeSaleNumber(row.originalTotalCents),
+    currentTotalCents: safeSaleNumber(row.currentTotalCents),
     dueDate: row.dueDate?.toISOString().slice(0, 10) ?? null,
     paymentAgreementNote: row.paymentAgreementNote,
     lines: row.lines.map((line) => ({
@@ -90,10 +90,34 @@ function toDomain(row: SaleRow): Sale {
       quantity: line.quantity,
       deliveryQuantity: line.deliveryQuantity,
       reservationQuantity: line.reservationQuantity,
-      agreedUnitPriceCents: safeNumber(line.agreedUnitPriceCents),
-      originalSubtotalCents: safeNumber(line.originalSubtotalCents),
+      agreedUnitPriceCents: safeSaleNumber(line.agreedUnitPriceCents),
+      originalSubtotalCents: safeSaleNumber(line.originalSubtotalCents),
+      snapshot:
+        line.snapshotCode === null ||
+        line.snapshotName === null ||
+        line.snapshotMinimumPriceCents === null
+          ? null
+          : {
+              code: line.snapshotCode,
+              name: line.snapshotName,
+              minimumPriceCents: safeSaleNumber(line.snapshotMinimumPriceCents),
+              suggestedPriceCents:
+                line.snapshotSuggestedPriceCents === null
+                  ? null
+                  : safeSaleNumber(line.snapshotSuggestedPriceCents),
+              maximumPriceCents:
+                line.snapshotMaximumPriceCents === null
+                  ? null
+                  : safeSaleNumber(line.snapshotMaximumPriceCents),
+            },
+      priceExceptionReason: line.priceExceptionReason,
+      priceApprovedBy: line.priceApprovedBy,
+      allocatedCostCents:
+        line.allocatedCostCents === null ? null : safeSaleNumber(line.allocatedCostCents),
+      costingPolicy: line.costingPolicy === null ? null : 'moving-average-v1',
     })),
     version: row.version,
+    confirmedAt: row.confirmedAt,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   });
@@ -116,7 +140,7 @@ function toDate(value: string | null): Date | null {
   return value === null ? null : new Date(`${value}T00:00:00.000Z`);
 }
 
-function safeNumber(value: bigint): number {
+export function safeSaleNumber(value: bigint): number {
   const number = Number(value);
   if (!Number.isSafeInteger(number)) throw new Error('Sale money exceeds JSON safe integer range.');
   return number;

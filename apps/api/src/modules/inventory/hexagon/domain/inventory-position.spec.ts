@@ -71,6 +71,18 @@ describe('InventoryPosition', () => {
     });
     expect(inventory.snapshot()).toMatchObject({ physicalQuantity: 7, availableQuantity: 2 });
   });
+
+  it('reserves and delivers only from available units for a sale', () => {
+    const inventory = position('store', 5, 0, 0);
+    expect(inventory.reserveAvailable(2, now)).toMatchObject({ ok: true });
+    expect(inventory.deliverAvailable(2, now)).toMatchObject({ ok: true });
+    expect(inventory.snapshot()).toMatchObject({
+      physicalQuantity: 3,
+      reservedQuantity: 2,
+      availableQuantity: 1,
+      version: 3,
+    });
+  });
 });
 
 function position(

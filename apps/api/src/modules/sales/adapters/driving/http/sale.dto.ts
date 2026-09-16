@@ -77,3 +77,32 @@ export class SaleDraftResponse {
   @ApiProperty({ format: 'date-time' }) createdAt!: string;
   @ApiProperty({ format: 'date-time' }) updatedAt!: string;
 }
+
+export class SalePriceExceptionRequest {
+  @ApiProperty({ format: 'uuid' }) @IsUUID('7') saleLineId!: string;
+  @ApiProperty({ maxLength: 500 }) @IsString() @MaxLength(500) reason!: string;
+}
+
+export class ConfirmSaleRequest {
+  @ApiProperty({ minimum: 1 }) @IsInt() @Min(1) expectedVersion!: number;
+  @ApiPropertyOptional({ type: [SalePriceExceptionRequest], default: [] })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(100)
+  @ValidateNested({ each: true })
+  @Type(() => SalePriceExceptionRequest)
+  priceExceptions?: SalePriceExceptionRequest[];
+}
+
+export class SaleConfirmationResponse {
+  @ApiProperty({ format: 'uuid' }) saleId!: string;
+  @ApiProperty({ format: 'uuid' }) operationId!: string;
+  @ApiProperty() version!: number;
+  @ApiProperty({ format: 'uuid' }) confirmedBy!: string;
+  @ApiProperty({ format: 'date-time' }) confirmedAt!: string;
+  @ApiProperty() totalCents!: number;
+  @ApiProperty() deliveredQuantity!: number;
+  @ApiProperty() reservedQuantity!: number;
+  @ApiProperty() allocatedCostCents!: number;
+  @ApiProperty() replayed!: boolean;
+}

@@ -6,6 +6,8 @@ import {
   NotFoundException,
   Param,
   ParseUUIDPipe,
+  Headers,
+  HttpCode,
   Post,
   Put,
   Req,
@@ -21,8 +23,16 @@ import {
   type ManageSaleDraftResult,
   UpdateSaleDraft,
 } from '../../../hexagon/application/manage-sale-drafts';
+import { ConfirmSale } from '../../../hexagon/application/confirm-sale';
+import type { SaleConfirmationResult } from '../../../hexagon/application/sale-confirmation-book';
 import type { Sale } from '../../../hexagon/domain/sale';
-import { SaleDraftDataRequest, SaleDraftResponse, UpdateSaleDraftRequest } from './sale.dto';
+import {
+  ConfirmSaleRequest,
+  SaleConfirmationResponse,
+  SaleDraftDataRequest,
+  SaleDraftResponse,
+  UpdateSaleDraftRequest,
+} from './sale.dto';
 
 @ApiTags('sales')
 @Controller('sales')
@@ -30,6 +40,7 @@ export class SalesController {
   constructor(
     private readonly createDraft: CreateSaleDraft,
     private readonly updateDraft: UpdateSaleDraft,
+    private readonly confirmSale: ConfirmSale,
   ) {}
 
   @Post()
@@ -66,7 +77,44 @@ export class SalesController {
     if (!result.ok) throwDraftError(result);
     return present(result.sale);
   }
+
+  @Post(':saleId/confirmation')
+  @HttpCode(200)
+  @RequirePermission('sales:create')
+  @ApiOperation({ operationId: 'confirmSale' })
+  @ApiOkResponse({ type: SaleConfirmationResponse })
+  async confirm(
+    @Param('saleId', new ParseUUIDPipe({ version: '7' })) saleId: string,
+    @Headers('idempotency-key') operationId: string | undefined,
+    @Body() body: ConfirmSaleRequest,
+    @Req() request: AuthenticatedRequest,
+  ): Promise<SaleConfirmationResponse> {
+    if (operationId === undefined || !UUID_V7.test(operationId)) {
+      throw new UnprocessableEntityException({ status: 422, code: 'INVALID_IDEMPOTENCY_KEY' });
+    }
+    const actor = requireActor(request);
+    const result = await this.confirmSale.execute({
+      operationId,
+      saleId,
+      expectedVersion: body.expectedVersion,
+      actorId: actor.userId,
+      canConfirmAny: actor.permissionCodes.includes('sales:update-any-draft'),
+      canApprovePriceException: actor.permissionCodes.includes('catalog:approve-price-exception'),
+      priceExceptions: (body.priceExceptions ?? []).map(({ saleLineId, reason }) => ({
+        saleLineId,
+        reason,
+      })),
+    });
+    if (!result.ok) throwConfirmationError(result);
+    return {
+      ...result.confirmation,
+      confirmedAt: result.confirmation.confirmedAt.toISOString(),
+      replayed: result.replayed,
+    };
+  }
 }
+
+const UUID_V7 = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function draftData(body: SaleDraftDataRequest) {
   return {
@@ -133,5 +181,49 @@ function throwDraftError(result: Exclude<ManageSaleDraftResult, { ok: true }>): 
     status: 422,
     code: result.reason.toUpperCase().replaceAll('-', '_'),
     ...(result.productId === undefined ? {} : { productId: result.productId }),
+  });
+}
+
+function throwConfirmationError(result: Exclude<SaleConfirmationResult, { ok: true }>): never {
+  if (
+    result.reason === 'sale-not-found' ||
+    result.reason === 'customer-not-found' ||
+    result.reason === 'product-not-found' ||
+    result.reason === 'location-not-found'
+  ) {
+    throw new NotFoundException({
+      status: 404,
+      code: result.reason.toUpperCase().replaceAll('-', '_'),
+      ...(result.referenceId === undefined ? {} : { referenceId: result.referenceId }),
+    });
+  }
+  if (result.reason === 'not-owner' || result.reason === 'price-approval-required') {
+    throw new ForbiddenException({
+      status: 403,
+      code: result.reason.toUpperCase().replaceAll('-', '_'),
+      ...(result.referenceId === undefined ? {} : { referenceId: result.referenceId }),
+    });
+  }
+  if (
+    result.reason === 'sale-not-draft' ||
+    result.reason === 'version-conflict' ||
+    result.reason === 'idempotency-conflict' ||
+    result.reason === 'concurrency-conflict' ||
+    result.reason === 'insufficient-stock' ||
+    result.reason === 'cost-unavailable'
+  ) {
+    throw new ConflictException({
+      status: 409,
+      code: result.reason.toUpperCase().replaceAll('-', '_'),
+      ...(result.referenceId === undefined ? {} : { referenceId: result.referenceId }),
+      ...(result.availableQuantity === undefined
+        ? {}
+        : { availableQuantity: result.availableQuantity }),
+    });
+  }
+  throw new UnprocessableEntityException({
+    status: 422,
+    code: result.reason.toUpperCase().replaceAll('-', '_'),
+    ...(result.referenceId === undefined ? {} : { referenceId: result.referenceId }),
   });
 }

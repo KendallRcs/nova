@@ -36,6 +36,18 @@ describe('ProductCostPosition', () => {
       addedValueCents: 300,
     });
   });
+
+  it('moves the proportional value from available to reserved', () => {
+    const cost = position(4, 1_000);
+    expect(cost.reserveAvailable(2, now)).toMatchObject({ ok: true, reservedValueCents: 500 });
+    expect(cost.snapshot()).toMatchObject({
+      availableQuantity: 2,
+      availableValueCents: 500,
+      reservedQuantity: 2,
+      reservedValueCents: 500,
+      version: 2,
+    });
+  });
 });
 
 function position(availableQuantity: number, availableValueCents: number): ProductCostPosition {

@@ -8,8 +8,9 @@
 - **Estado:** Confirmada
 - **Trazabilidad de implementación:** backend de borradores completo para crear una
   venta con varias líneas, cantidades, ubicación, precio acordado, total derivado,
-  cliente opcional y condiciones de entrega o reserva. La confirmación atómica y
-  sus efectos de inventario y caja corresponden al siguiente incremento.
+  cliente opcional y condiciones de entrega o reserva. La confirmación backend
+  congela composición, precios y costo y ejecuta los efectos iniciales de
+  inventario; el cobro inicial corresponde al módulo de pagos y caja.
 - **Como** empleado
 - **quiero** registrar varios productos y cantidades en una sola venta
 - **para** representar la operación completa realizada con el cliente.
@@ -24,6 +25,9 @@
 ### User Story SAL-002 — Combinar entregas y reservas en una venta
 
 - **Estado:** Confirmada
+- **Trazabilidad de implementación:** backend completo al confirmar un borrador:
+  bloquea posiciones, entrega y reserva por línea en una transacción idempotente y
+  revierte todo el conjunto si cualquier efecto falla.
 - **Como** empleado
 - **quiero** indicar por producto y cantidad qué se entrega y qué queda reservado
 - **para** atender operaciones con cumplimiento parcial.
@@ -38,6 +42,8 @@
 ### User Story SAL-003 — Vender directamente desde el almacén
 
 - **Estado:** Confirmada
+- **Trazabilidad de implementación:** backend completo; cada línea conserva su
+  ubicación y la confirmación afecta únicamente esa posición de inventario.
 - **Como** empleado
 - **quiero** seleccionar el almacén como origen de una línea
 - **para** registrar correctamente una venta atendida desde esa ubicación.
@@ -94,6 +100,9 @@
 ### User Story SAL-007 — Preservar el precio histórico de una venta
 
 - **Estado:** Confirmada
+- **Trazabilidad de implementación:** backend completo al confirmar: congela código,
+  nombre, precios de referencia, precio acordado, costo atribuido y política de
+  costeo. Un precio inferior al mínimo exige permiso y razón administrativa.
 - **Como** administrador
 - **quiero** conservar los precios de referencia y acordados al vender
 - **para** explicar el margen histórico aunque cambie el catálogo.

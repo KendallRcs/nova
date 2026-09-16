@@ -42,6 +42,19 @@ export type AddAvailableCostResult =
       readonly reason: 'invalid-quantity' | 'unit-cost-required' | 'invalid-unit-cost';
     };
 
+export type ReserveAvailableCostResult =
+  | {
+      readonly ok: true;
+      readonly before: ProductCostSnapshot;
+      readonly after: ProductCostSnapshot;
+      readonly reservedValueCents: number;
+    }
+  | {
+      readonly ok: false;
+      readonly reason: 'invalid-quantity' | 'insufficient-cost-quantity';
+      readonly availableQuantity?: number;
+    };
+
 export class ProductCostPosition {
   private constructor(private properties: ProductCostPositionProperties) {}
 
@@ -95,6 +108,35 @@ export class ProductCostPosition {
       updatedAt: now,
     };
     return { ok: true, before, after: this.snapshot(), removedValueCents };
+  }
+
+  reserveAvailable(quantity: number, now: Date): ReserveAvailableCostResult {
+    const before = this.snapshot();
+    if (!Number.isSafeInteger(quantity) || quantity <= 0) {
+      return { ok: false, reason: 'invalid-quantity' };
+    }
+    if (before.availableQuantity < quantity) {
+      return {
+        ok: false,
+        reason: 'insufficient-cost-quantity',
+        availableQuantity: before.availableQuantity,
+      };
+    }
+    const reservedValueCents = proportionalValue(
+      before.availableValueCents,
+      quantity,
+      before.availableQuantity,
+    );
+    this.properties = {
+      ...this.properties,
+      availableQuantity: before.availableQuantity - quantity,
+      availableValueCents: before.availableValueCents - reservedValueCents,
+      reservedQuantity: before.reservedQuantity + quantity,
+      reservedValueCents: before.reservedValueCents + reservedValueCents,
+      version: before.version + 1,
+      updatedAt: now,
+    };
+    return { ok: true, before, after: this.snapshot(), reservedValueCents };
   }
 
   addAvailableAtMovingAverage(

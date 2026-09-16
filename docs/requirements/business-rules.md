@@ -63,3 +63,4 @@
 58. Los celulares peruanos de nueve dígitos se normalizan al formato internacional `+51`; DNI y dirección del cliente son opcionales y un DNI presente contiene ocho dígitos.
 59. Fusionar clientes conserva las referencias históricas, resuelve un único cliente principal activo y registra duplicado, datos elegidos, administrador y fecha sin crear cadenas de fusiones.
 60. Crear o editar un borrador de venta valida referencias activas y calcula sus totales, pero no reserva, entrega, valoriza ni registra dinero hasta confirmar la venta.
+61. Confirmar una venta es idempotente y atómico: congela referencias comerciales y costo, y confirma todas sus entregas y reservas iniciales o no confirma ningún efecto.

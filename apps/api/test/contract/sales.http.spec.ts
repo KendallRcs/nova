@@ -12,6 +12,7 @@ import {
   CreateSaleDraft,
   UpdateSaleDraft,
 } from '../../src/modules/sales/hexagon/application/manage-sale-drafts';
+import { ConfirmSale } from '../../src/modules/sales/hexagon/application/confirm-sale';
 import { Sale } from '../../src/modules/sales/hexagon/domain/sale';
 
 const SALE_ID = '0199ef04-1b00-7000-8000-000000000080';
@@ -29,6 +30,27 @@ describe('Sales HTTP contract', () => {
       providers: [
         { provide: CreateSaleDraft, useValue: { execute: () => Promise.resolve(draft(1)) } },
         { provide: UpdateSaleDraft, useValue: { execute: () => Promise.resolve(draft(2)) } },
+        {
+          provide: ConfirmSale,
+          useValue: {
+            execute: (command: { operationId: string; saleId: string }) =>
+              Promise.resolve({
+                ok: true,
+                replayed: false,
+                confirmation: {
+                  saleId: command.saleId,
+                  operationId: command.operationId,
+                  version: 2,
+                  confirmedBy: ACTOR_ID,
+                  confirmedAt: new Date('2026-09-15T21:00:00.000Z'),
+                  totalCents: 3_000,
+                  deliveredQuantity: 1,
+                  reservedQuantity: 1,
+                  allocatedCostCents: 1_000,
+                },
+              }),
+          },
+        },
       ],
     }).compile();
     app = module.createNestApplication();
@@ -87,6 +109,21 @@ describe('Sales HTTP contract', () => {
       .post('/api/v1/sales')
       .send({ lines: [{ ...lineRequest(), productId: 'not-a-uuid' }] })
       .expect(422);
+  });
+
+  it('confirms a draft through an idempotent inventory command', async () => {
+    const response = await request(httpServer)
+      .post(`/api/v1/sales/${SALE_ID}/confirmation`)
+      .set('Idempotency-Key', '0199ef04-1b00-7000-8000-000000000086')
+      .send({ expectedVersion: 1, priceExceptions: [] })
+      .expect(200);
+    expect(response.body).toMatchObject({
+      saleId: SALE_ID,
+      version: 2,
+      deliveredQuantity: 1,
+      reservedQuantity: 1,
+      replayed: false,
+    });
   });
 });
 

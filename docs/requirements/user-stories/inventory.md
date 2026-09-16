@@ -99,6 +99,9 @@
 ### User Story INV-005 — Reservar unidades sin retirarlas físicamente
 
 - **Estado:** Confirmada
+- **Trazabilidad de implementación:** backend completo desde la confirmación de
+  venta, con reserva identificable, movimiento inmutable, costo reservado y
+  actualización atómica de disponibilidad.
 - **Como** empleado
 - **quiero** reservar unidades de una venta para un cliente
 - **para** evitar que se ofrezcan mientras permanecen en tienda o almacén.
