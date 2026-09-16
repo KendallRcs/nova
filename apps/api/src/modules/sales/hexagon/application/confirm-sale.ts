@@ -1,5 +1,6 @@
 import type { SaleClock } from './sale.dependencies';
 import type { SaleConfirmationBook, SaleConfirmationResult } from './sale-confirmation-book';
+import type { PaymentMethod } from '../domain/sale';
 
 export interface ConfirmSaleCommand {
   operationId: string;
@@ -9,6 +10,7 @@ export interface ConfirmSaleCommand {
   canConfirmAny: boolean;
   canApprovePriceException: boolean;
   priceExceptions: readonly { saleLineId: string; reason: string }[];
+  initialPayment: { amountCents: number; method: PaymentMethod } | null;
 }
 
 export class ConfirmSale {
@@ -27,6 +29,13 @@ export class ConfirmSale {
         return Promise.resolve({ ok: false, reason: 'price-exception-reason-required' });
       }
       seen.add(exception.saleLineId);
+    }
+    if (
+      command.initialPayment !== null &&
+      (!Number.isSafeInteger(command.initialPayment.amountCents) ||
+        command.initialPayment.amountCents <= 0)
+    ) {
+      return Promise.resolve({ ok: false, reason: 'invalid-payment' });
     }
     return this.confirmations.confirm({ ...command, effectiveAt: this.clock.now() });
   }

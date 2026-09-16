@@ -1,4 +1,6 @@
 export type SaleLifecycle = 'draft' | 'confirmed' | 'finalized' | 'cancelled';
+export type PaymentMethod = 'cash' | 'yape' | 'plin' | 'pos';
+export type PaymentSituation = 'unpaid' | 'partial' | 'paid';
 
 export interface SaleDraftLineInput {
   productId: string;
@@ -37,10 +39,19 @@ export interface SaleProperties {
   dueDate: string | null;
   paymentAgreementNote: string | null;
   lines: readonly SaleLineProperties[];
+  payments: readonly SalePaymentProperties[];
   version: number;
   confirmedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface SalePaymentProperties {
+  id: string;
+  amountCents: number;
+  method: PaymentMethod;
+  registeredBy: string;
+  effectiveAt: Date;
 }
 
 export type ComposeSaleDraftResult =
@@ -66,10 +77,26 @@ export type ConfirmSaleResult =
         | 'sale-not-draft'
         | 'empty-sale'
         | 'customer-required'
+        | 'invalid-payment'
+        | 'payment-exceeds-balance'
         | 'product-not-found'
         | 'price-approval-required'
         | 'price-exception-reason-required';
       readonly productId?: string;
+    };
+
+export type RegisterSalePaymentResult =
+  | {
+      readonly ok: true;
+      readonly paidCents: number;
+      readonly balanceCents: number;
+      readonly paymentSituation: 'partial' | 'paid';
+    }
+  | {
+      readonly ok: false;
+      readonly reason:
+        'sale-not-payable' | 'not-owner' | 'invalid-payment' | 'payment-exceeds-balance';
+      readonly balanceCents?: number;
     };
 
 export class Sale {
@@ -92,6 +119,7 @@ export class Sale {
       dueDate: input.dueDate ?? null,
       paymentAgreementNote: input.paymentAgreementNote ?? null,
       lines: input.lines,
+      payments: [],
       version: 1,
       confirmedAt: null,
       createdAt: input.now,
@@ -100,7 +128,11 @@ export class Sale {
   }
 
   static restore(properties: SaleProperties): Sale {
-    return new Sale({ ...properties, lines: properties.lines.map((line) => ({ ...line })) });
+    return new Sale({
+      ...properties,
+      lines: properties.lines.map((line) => ({ ...line })),
+      payments: properties.payments.map((payment) => ({ ...payment })),
+    });
   }
 
   reviseDraft(input: {
@@ -131,11 +163,22 @@ export class Sale {
     priceExceptionReasons: ReadonlyMap<string, string>;
     confirmedBy: string;
     canApprovePriceException: boolean;
+    initialPayment: SalePaymentProperties | null;
     now: Date;
   }): ConfirmSaleResult {
     if (this.properties.lifecycle !== 'draft') return { ok: false, reason: 'sale-not-draft' };
     if (this.properties.lines.length === 0) return { ok: false, reason: 'empty-sale' };
-    if (this.properties.currentTotalCents > 0 && input.customerId === null) {
+    const initialPaymentCents = input.initialPayment?.amountCents ?? 0;
+    if (
+      input.initialPayment !== null &&
+      (!Number.isSafeInteger(initialPaymentCents) || initialPaymentCents <= 0)
+    ) {
+      return { ok: false, reason: 'invalid-payment' };
+    }
+    if (initialPaymentCents > this.properties.currentTotalCents) {
+      return { ok: false, reason: 'payment-exceeds-balance' };
+    }
+    if (this.properties.currentTotalCents - initialPaymentCents > 0 && input.customerId === null) {
       return { ok: false, reason: 'customer-required' };
     }
     const confirmedLines: SaleLineProperties[] = [];
@@ -172,10 +215,58 @@ export class Sale {
       customerId: input.customerId,
       lifecycle: 'confirmed',
       lines: confirmedLines,
+      payments:
+        input.initialPayment === null
+          ? this.properties.payments
+          : [...this.properties.payments, input.initialPayment],
       version: this.properties.version + 1,
+      confirmedAt: input.now,
       updatedAt: input.now,
     };
     return { ok: true };
+  }
+
+  registerPayment(input: {
+    payment: SalePaymentProperties;
+    actorId: string;
+    canRegisterAny: boolean;
+    now: Date;
+  }): RegisterSalePaymentResult {
+    if (this.properties.lifecycle !== 'confirmed') {
+      return { ok: false, reason: 'sale-not-payable' };
+    }
+    if (this.properties.createdBy !== input.actorId && !input.canRegisterAny) {
+      return { ok: false, reason: 'not-owner' };
+    }
+    if (!Number.isSafeInteger(input.payment.amountCents) || input.payment.amountCents <= 0) {
+      return { ok: false, reason: 'invalid-payment' };
+    }
+    const balanceBefore = this.balanceCents();
+    if (input.payment.amountCents > balanceBefore) {
+      return { ok: false, reason: 'payment-exceeds-balance', balanceCents: balanceBefore };
+    }
+    const payments = [...this.properties.payments, input.payment];
+    const paidCents = payments.reduce((sum, payment) => sum + payment.amountCents, 0);
+    const balanceCents = this.properties.currentTotalCents - paidCents;
+    this.properties = {
+      ...this.properties,
+      payments,
+      version: this.properties.version + 1,
+      updatedAt: input.now,
+    };
+    return {
+      ok: true,
+      paidCents,
+      balanceCents,
+      paymentSituation: balanceCents === 0 ? 'paid' : 'partial',
+    };
+  }
+
+  balanceCents(): number {
+    return (
+      this.properties.currentTotalCents -
+      this.properties.payments.reduce((sum, payment) => sum + payment.amountCents, 0)
+    );
   }
 
   attributeConfirmedCost(lineId: string, costCents: number): void {
@@ -197,7 +288,11 @@ export class Sale {
   }
 
   toPrimitives(): SaleProperties {
-    return { ...this.properties, lines: this.properties.lines.map((line) => ({ ...line })) };
+    return {
+      ...this.properties,
+      lines: this.properties.lines.map((line) => ({ ...line })),
+      payments: this.properties.payments.map((payment) => ({ ...payment })),
+    };
   }
 }
 

@@ -46,6 +46,37 @@ enum SaleLifecycleStatus {
   @@map("sale_lifecycle_status")
 }
 
+enum PaymentMethod {
+  CASH @map("cash")
+  YAPE @map("yape")
+  PLIN @map("plin")
+  POS  @map("pos")
+
+  @@map("payment_method")
+}
+
+enum PaymentStatus {
+  CONFIRMED           @map("confirmed")
+  PARTIALLY_CORRECTED @map("partially_corrected")
+  CORRECTED           @map("corrected")
+
+  @@map("payment_status")
+}
+
+enum CashMovementDirection {
+  INFLOW  @map("inflow")
+  OUTFLOW @map("outflow")
+
+  @@map("cash_movement_direction")
+}
+
+enum CashMovementStatus {
+  CONFIRMED   @map("confirmed")
+  COMPENSATED @map("compensated")
+
+  @@map("cash_movement_status")
+}
+
 enum InventoryReservationStatus {
   ACTIVE             @map("active")
   PARTIALLY_CONSUMED @map("partially_consumed")
@@ -163,6 +194,8 @@ model UserAccount {
   createdSales       Sale[]
   approvedSaleLines  SaleLine[]          @relation("SaleLinePriceApprover")
   confirmedSales     Sale[]              @relation("SaleConfirmer")
+  registeredPayments Payment[]
+  cashMovements      CashMovement[]
 
   @@index([profileId, status], map: "idx_user_accounts_profile_status")
   @@map("user_accounts")
@@ -350,11 +383,56 @@ model Sale {
   customer                Customer?           @relation(fields: [customerId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_sales_customer")
   confirmer               UserAccount?        @relation("SaleConfirmer", fields: [confirmedBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_sales_confirmer")
   lines                   SaleLine[]
+  payments                Payment[]
 
   @@index([createdBy, lifecycleStatus, updatedAt(sort: Desc), id(sort: Desc)], map: "idx_sales_creator_status_date")
   @@index([customerId, confirmedAt(sort: Desc), id(sort: Desc)], map: "idx_sales_customer_date")
   @@index([lifecycleStatus, dueDate, id], map: "idx_sales_status_due_date")
   @@map("sales")
+}
+
+model Payment {
+  id                   String        @id @db.Uuid
+  saleId               String        @map("sale_id") @db.Uuid
+  operationId          String        @unique(map: "uq_payments_operation") @map("operation_id") @db.Uuid
+  requestFingerprint   String        @map("request_fingerprint")
+  amountCents          BigInt        @map("amount_cents")
+  method               PaymentMethod
+  status               PaymentStatus @default(CONFIRMED)
+  balanceBeforeCents   BigInt        @map("balance_before_cents")
+  balanceAfterCents    BigInt        @map("balance_after_cents")
+  paidAfterCents       BigInt        @map("paid_after_cents")
+  resultingSaleVersion Int           @map("resulting_sale_version")
+  registeredBy         String        @map("registered_by") @db.Uuid
+  effectiveAt          DateTime      @map("effective_at") @db.Timestamptz(3)
+  createdAt            DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  sale                 Sale          @relation(fields: [saleId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_payments_sale")
+  registrar            UserAccount   @relation(fields: [registeredBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_payments_registrar")
+  cashMovement         CashMovement?
+
+  @@index([saleId, effectiveAt, id], map: "idx_payments_sale_date")
+  @@index([registeredBy, effectiveAt(sort: Desc), id(sort: Desc)], map: "idx_payments_registrar_date")
+  @@map("payments")
+}
+
+model CashMovement {
+  id             String                @id @db.Uuid
+  idempotencyKey String                @unique(map: "uq_cash_movements_idempotency") @map("idempotency_key") @db.Uuid
+  direction      CashMovementDirection
+  amountCents    BigInt                @map("amount_cents")
+  method         PaymentMethod
+  status         CashMovementStatus    @default(CONFIRMED)
+  registeredBy   String                @map("registered_by") @db.Uuid
+  effectiveAt    DateTime              @map("effective_at") @db.Timestamptz(3)
+  reason         String
+  paymentId      String                @unique(map: "uq_cash_movements_payment") @map("payment_id") @db.Uuid
+  createdAt      DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+  registrar      UserAccount           @relation(fields: [registeredBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_cash_movements_registrar")
+  payment        Payment               @relation(fields: [paymentId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_cash_movements_payment")
+
+  @@index([effectiveAt(sort: Desc), id(sort: Desc)], map: "idx_cash_movements_date")
+  @@index([method, effectiveAt(sort: Desc), id(sort: Desc)], map: "idx_cash_movements_method_date")
+  @@map("cash_movements")
 }
 
 model SaleLine {

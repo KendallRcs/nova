@@ -64,3 +64,4 @@
 59. Fusionar clientes conserva las referencias históricas, resuelve un único cliente principal activo y registra duplicado, datos elegidos, administrador y fecha sin crear cadenas de fusiones.
 60. Crear o editar un borrador de venta valida referencias activas y calcula sus totales, pero no reserva, entrega, valoriza ni registra dinero hasta confirmar la venta.
 61. Confirmar una venta es idempotente y atómico: congela referencias comerciales y costo, y confirma todas sus entregas y reservas iniciales o no confirma ningún efecto.
+62. Cada cobro crea de forma atómica e idempotente un pago inmutable, una entrada de caja y una nueva versión de la venta; una venta sin cliente solo puede confirmarse cuando su pago inicial cubre el total.

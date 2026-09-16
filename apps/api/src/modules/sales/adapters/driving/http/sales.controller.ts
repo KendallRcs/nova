@@ -24,13 +24,17 @@ import {
   UpdateSaleDraft,
 } from '../../../hexagon/application/manage-sale-drafts';
 import { ConfirmSale } from '../../../hexagon/application/confirm-sale';
+import { RecordSalePayment } from '../../../hexagon/application/record-sale-payment';
 import type { SaleConfirmationResult } from '../../../hexagon/application/sale-confirmation-book';
+import type { SalePaymentResult } from '../../../hexagon/application/sale-payment-book';
 import type { Sale } from '../../../hexagon/domain/sale';
 import {
   ConfirmSaleRequest,
   SaleConfirmationResponse,
   SaleDraftDataRequest,
   SaleDraftResponse,
+  RecordSalePaymentRequest,
+  SalePaymentResponse,
   UpdateSaleDraftRequest,
 } from './sale.dto';
 
@@ -41,6 +45,7 @@ export class SalesController {
     private readonly createDraft: CreateSaleDraft,
     private readonly updateDraft: UpdateSaleDraft,
     private readonly confirmSale: ConfirmSale,
+    private readonly recordPayment: RecordSalePayment,
   ) {}
 
   @Post()
@@ -104,11 +109,50 @@ export class SalesController {
         saleLineId,
         reason,
       })),
+      initialPayment:
+        body.initialPayment === undefined || body.initialPayment === null
+          ? null
+          : {
+              amountCents: body.initialPayment.amountCents,
+              method: body.initialPayment.method,
+            },
     });
     if (!result.ok) throwConfirmationError(result);
     return {
       ...result.confirmation,
       confirmedAt: result.confirmation.confirmedAt.toISOString(),
+      replayed: result.replayed,
+    };
+  }
+
+  @Post(':saleId/payments')
+  @HttpCode(200)
+  @RequirePermission('payments:create-own')
+  @ApiOperation({ operationId: 'recordSalePayment' })
+  @ApiOkResponse({ type: SalePaymentResponse })
+  async pay(
+    @Param('saleId', new ParseUUIDPipe({ version: '7' })) saleId: string,
+    @Headers('idempotency-key') operationId: string | undefined,
+    @Body() body: RecordSalePaymentRequest,
+    @Req() request: AuthenticatedRequest,
+  ): Promise<SalePaymentResponse> {
+    if (operationId === undefined || !UUID_V7.test(operationId)) {
+      throw new UnprocessableEntityException({ status: 422, code: 'INVALID_IDEMPOTENCY_KEY' });
+    }
+    const actor = requireActor(request);
+    const result = await this.recordPayment.execute({
+      operationId,
+      saleId,
+      expectedVersion: body.expectedVersion,
+      actorId: actor.userId,
+      canRegisterAny: actor.permissionCodes.includes('payments:create-any'),
+      amountCents: body.amountCents,
+      method: body.method,
+    });
+    if (!result.ok) throwPaymentError(result);
+    return {
+      ...result.payment,
+      effectiveAt: result.payment.effectiveAt.toISOString(),
       replayed: result.replayed,
     };
   }
@@ -226,4 +270,27 @@ function throwConfirmationError(result: Exclude<SaleConfirmationResult, { ok: tr
     code: result.reason.toUpperCase().replaceAll('-', '_'),
     ...(result.referenceId === undefined ? {} : { referenceId: result.referenceId }),
   });
+}
+
+function throwPaymentError(result: Exclude<SalePaymentResult, { ok: true }>): never {
+  if (result.reason === 'sale-not-found') {
+    throw new NotFoundException({ status: 404, code: 'SALE_NOT_FOUND' });
+  }
+  if (result.reason === 'not-owner') {
+    throw new ForbiddenException({ status: 403, code: 'SALE_NOT_OWNED' });
+  }
+  if (
+    result.reason === 'sale-not-payable' ||
+    result.reason === 'version-conflict' ||
+    result.reason === 'payment-exceeds-balance' ||
+    result.reason === 'idempotency-conflict' ||
+    result.reason === 'concurrency-conflict'
+  ) {
+    throw new ConflictException({
+      status: 409,
+      code: result.reason.toUpperCase().replaceAll('-', '_'),
+      ...(result.balanceCents === undefined ? {} : { balanceCents: result.balanceCents }),
+    });
+  }
+  throw new UnprocessableEntityException({ status: 422, code: 'INVALID_PAYMENT' });
 }

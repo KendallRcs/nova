@@ -6,6 +6,10 @@
 ### User Story PAY-001 — Registrar un pago en una venta propia
 
 - **Estado:** Confirmada
+- **Trazabilidad de implementación:** backend completo para registrar cobros en una
+  venta propia con efectivo, Yape, Plin o POS. El pago, el nuevo saldo, la versión
+  de la venta y la entrada de caja se confirman de manera atómica e idempotente;
+  un cobro superior al saldo se rechaza indicando el saldo disponible.
 - **Como** empleado
 - **quiero** registrar un pago posterior en una venta que creé
 - **para** mantener actualizado el saldo del cliente.
@@ -31,6 +35,9 @@
 ### User Story PAY-002 — Registrar pagos en cualquier venta
 
 - **Estado:** Confirmada
+- **Trazabilidad de implementación:** backend completo; una cuenta con
+  `payments:create-any` puede cobrar ventas ajenas y se conservan por separado el
+  creador de la venta y quien registró el pago.
 - **Como** administrador
 - **quiero** registrar pagos en ventas de cualquier empleado
 - **para** mantener correctos los saldos cuando atiendo al cliente.
@@ -88,4 +95,3 @@
 - **Entonces:** el saldo refleja la corrección y ambos movimientos permanecen asociados con sus responsables y fechas.
 
 ---
-

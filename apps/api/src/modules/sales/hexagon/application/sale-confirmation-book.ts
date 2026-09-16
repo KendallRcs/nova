@@ -1,3 +1,5 @@
+import type { PaymentMethod, PaymentSituation } from '../domain/sale';
+
 export interface PreparedSaleConfirmation {
   operationId: string;
   saleId: string;
@@ -6,6 +8,7 @@ export interface PreparedSaleConfirmation {
   canConfirmAny: boolean;
   canApprovePriceException: boolean;
   priceExceptions: readonly { saleLineId: string; reason: string }[];
+  initialPayment: { amountCents: number; method: PaymentMethod } | null;
   effectiveAt: Date;
 }
 
@@ -19,6 +22,9 @@ export interface SaleConfirmationReceipt {
   deliveredQuantity: number;
   reservedQuantity: number;
   allocatedCostCents: number;
+  initialPaymentCents: number;
+  balanceCents: number;
+  paymentSituation: PaymentSituation;
 }
 
 export type SaleConfirmationResult =
@@ -36,6 +42,8 @@ export type SaleConfirmationResult =
         | 'version-conflict'
         | 'empty-sale'
         | 'customer-required'
+        | 'invalid-payment'
+        | 'payment-exceeds-balance'
         | 'customer-not-found'
         | 'product-not-found'
         | 'location-not-found'

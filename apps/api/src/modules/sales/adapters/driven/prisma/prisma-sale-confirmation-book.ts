@@ -7,6 +7,8 @@ import {
   CostMovementType,
   CustomerStatus,
   InventoryMovementType,
+  CashMovementDirection,
+  PaymentMethod,
   Prisma,
   RecordStatus,
   SaleLifecycleStatus,
@@ -37,7 +39,7 @@ export class PrismaSaleConfirmationBook implements SaleConfirmationBook {
           if (repeated !== null) return replay(repeated, command, fingerprint);
           const row = await transaction.sale.findUnique({
             where: { id: command.saleId },
-            include: { lines: { include: { costAllocations: true } } },
+            include: { lines: { include: { costAllocations: true } }, payments: true },
           });
           if (row === null) reject({ ok: false, reason: 'sale-not-found' });
           if (row.lifecycleStatus !== SaleLifecycleStatus.DRAFT) {
@@ -68,6 +70,7 @@ export class PrismaSaleConfirmationBook implements SaleConfirmationBook {
           }
 
           const sale = toSaleDomain(row);
+          const initialPaymentId = command.initialPayment === null ? null : uuidv7();
           const confirmed = sale.confirm({
             customerId: canonicalCustomerId,
             productSnapshots: new Map(
@@ -93,6 +96,16 @@ export class PrismaSaleConfirmationBook implements SaleConfirmationBook {
             ),
             confirmedBy: command.actorId,
             canApprovePriceException: command.canApprovePriceException,
+            initialPayment:
+              command.initialPayment === null || initialPaymentId === null
+                ? null
+                : {
+                    id: initialPaymentId,
+                    amountCents: command.initialPayment.amountCents,
+                    method: command.initialPayment.method,
+                    registeredBy: command.actorId,
+                    effectiveAt: command.effectiveAt,
+                  },
             now: command.effectiveAt,
           });
           if (!confirmed.ok) {
@@ -159,6 +172,39 @@ export class PrismaSaleConfirmationBook implements SaleConfirmationBook {
               },
             });
           }
+          if (command.initialPayment !== null && initialPaymentId !== null) {
+            const balanceAfterCents = values.currentTotalCents - command.initialPayment.amountCents;
+            await transaction.payment.create({
+              data: {
+                id: initialPaymentId,
+                saleId: values.id,
+                operationId: command.operationId,
+                requestFingerprint: fingerprint,
+                amountCents: BigInt(command.initialPayment.amountCents),
+                method: toPrismaPaymentMethod(command.initialPayment.method),
+                balanceBeforeCents: BigInt(values.currentTotalCents),
+                balanceAfterCents: BigInt(balanceAfterCents),
+                paidAfterCents: BigInt(command.initialPayment.amountCents),
+                resultingSaleVersion: values.version,
+                registeredBy: command.actorId,
+                effectiveAt: command.effectiveAt,
+                cashMovement: {
+                  create: {
+                    id: uuidv7(),
+                    idempotencyKey: command.operationId,
+                    direction: CashMovementDirection.INFLOW,
+                    amountCents: BigInt(command.initialPayment.amountCents),
+                    method: toPrismaPaymentMethod(command.initialPayment.method),
+                    registeredBy: command.actorId,
+                    effectiveAt: command.effectiveAt,
+                    reason: `Pago inicial de venta ${command.saleId}`,
+                  },
+                },
+              },
+            });
+          }
+          const initialPaymentCents = command.initialPayment?.amountCents ?? 0;
+          const balanceCents = values.currentTotalCents - initialPaymentCents;
           return {
             ok: true,
             replayed: false,
@@ -172,6 +218,10 @@ export class PrismaSaleConfirmationBook implements SaleConfirmationBook {
               deliveredQuantity,
               reservedQuantity,
               allocatedCostCents,
+              initialPaymentCents,
+              balanceCents,
+              paymentSituation:
+                balanceCents === 0 ? 'paid' : initialPaymentCents === 0 ? 'unpaid' : 'partial',
             },
           };
         },
@@ -443,12 +493,12 @@ async function lockCost(tx: Prisma.TransactionClient, productId: string) {
 }
 
 type ExistingConfirmation = Prisma.SaleGetPayload<{
-  include: { lines: { include: { costAllocations: true } } };
+  include: { lines: { include: { costAllocations: true } }; payments: true };
 }>;
 function findByOperation(client: Prisma.TransactionClient | PrismaService, operationId: string) {
   return client.sale.findUnique({
     where: { confirmationOperationId: operationId },
-    include: { lines: { include: { costAllocations: true } } },
+    include: { lines: { include: { costAllocations: true } }, payments: true },
   });
 }
 function replay(
@@ -469,6 +519,15 @@ function receiptFromRow(sale: ExistingConfirmation): SaleConfirmationReceipt {
   ) {
     throw new Error('Confirmed sale is missing confirmation metadata.');
   }
+  const initialPayment = sale.payments.find(
+    (payment) => payment.operationId === sale.confirmationOperationId,
+  );
+  const initialPaymentCents =
+    initialPayment === undefined ? 0 : safeSaleNumber(initialPayment.amountCents);
+  const balanceCents =
+    initialPayment === undefined
+      ? safeSaleNumber(sale.currentTotalCents)
+      : safeSaleNumber(initialPayment.balanceAfterCents);
   return {
     saleId: sale.id,
     operationId: sale.confirmationOperationId,
@@ -482,6 +541,10 @@ function receiptFromRow(sale: ExistingConfirmation): SaleConfirmationReceipt {
       (sum, line) => sum + safeSaleNumber(line.allocatedCostCents ?? 0n),
       0,
     ),
+    initialPaymentCents,
+    balanceCents,
+    paymentSituation:
+      balanceCents === 0 ? 'paid' : initialPaymentCents === 0 ? 'unpaid' : 'partial',
   };
 }
 function commandFingerprint(command: PreparedSaleConfirmation): string {
@@ -492,5 +555,16 @@ function commandFingerprint(command: PreparedSaleConfirmation): string {
     priceExceptions: [...command.priceExceptions]
       .map(({ saleLineId, reason }) => ({ saleLineId, reason: reason.trim() }))
       .sort((left, right) => left.saleLineId.localeCompare(right.saleLineId)),
+    initialPayment: command.initialPayment,
   });
+}
+
+function toPrismaPaymentMethod(method: 'cash' | 'yape' | 'plin' | 'pos'): PaymentMethod {
+  return method === 'cash'
+    ? PaymentMethod.CASH
+    : method === 'yape'
+      ? PaymentMethod.YAPE
+      : method === 'plin'
+        ? PaymentMethod.PLIN
+        : PaymentMethod.POS;
 }

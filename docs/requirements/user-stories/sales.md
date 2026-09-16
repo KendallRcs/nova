@@ -10,7 +10,9 @@
   venta con varias líneas, cantidades, ubicación, precio acordado, total derivado,
   cliente opcional y condiciones de entrega o reserva. La confirmación backend
   congela composición, precios y costo y ejecuta los efectos iniciales de
-  inventario; el cobro inicial corresponde al módulo de pagos y caja.
+  inventario. También puede registrar un cobro inicial y su entrada de caja; una
+  venta totalmente pagada puede confirmarse sin cliente y una que conserve saldo
+  continúa exigiendo un cliente.
 - **Como** empleado
 - **quiero** registrar varios productos y cantidades en una sola venta
 - **para** representar la operación completa realizada con el cliente.

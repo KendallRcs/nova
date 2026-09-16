@@ -28,6 +28,7 @@ describe('ConfirmSale', () => {
       canConfirmAny: false,
       canApprovePriceException: false,
       priceExceptions: [],
+      initialPayment: null,
     });
     expect(confirmations.command).toMatchObject({
       operationId: 'operation-1',

@@ -13,6 +13,7 @@ import {
   UpdateSaleDraft,
 } from '../../src/modules/sales/hexagon/application/manage-sale-drafts';
 import { ConfirmSale } from '../../src/modules/sales/hexagon/application/confirm-sale';
+import { RecordSalePayment } from '../../src/modules/sales/hexagon/application/record-sale-payment';
 import { Sale } from '../../src/modules/sales/hexagon/domain/sale';
 
 const SALE_ID = '0199ef04-1b00-7000-8000-000000000080';
@@ -47,6 +48,37 @@ describe('Sales HTTP contract', () => {
                   deliveredQuantity: 1,
                   reservedQuantity: 1,
                   allocatedCostCents: 1_000,
+                  initialPaymentCents: 0,
+                  balanceCents: 3_000,
+                  paymentSituation: 'unpaid',
+                },
+              }),
+          },
+        },
+        {
+          provide: RecordSalePayment,
+          useValue: {
+            execute: (command: {
+              operationId: string;
+              saleId: string;
+              amountCents: number;
+              method: 'cash' | 'yape' | 'plin' | 'pos';
+            }) =>
+              Promise.resolve({
+                ok: true,
+                replayed: false,
+                payment: {
+                  paymentId: '0199ef04-1b00-7000-8000-000000000087',
+                  operationId: command.operationId,
+                  saleId: command.saleId,
+                  saleVersion: 3,
+                  amountCents: command.amountCents,
+                  method: command.method,
+                  registeredBy: ACTOR_ID,
+                  effectiveAt: new Date('2026-09-16T15:00:00.000Z'),
+                  paidCents: command.amountCents,
+                  balanceCents: 2_000,
+                  paymentSituation: 'partial',
                 },
               }),
           },
@@ -122,6 +154,22 @@ describe('Sales HTTP contract', () => {
       version: 2,
       deliveredQuantity: 1,
       reservedQuantity: 1,
+      replayed: false,
+    });
+  });
+
+  it('records an idempotent payment for a sale', async () => {
+    const response = await request(httpServer)
+      .post(`/api/v1/sales/${SALE_ID}/payments`)
+      .set('Idempotency-Key', '0199ef04-1b00-7000-8000-000000000088')
+      .send({ expectedVersion: 2, amountCents: 1_000, method: 'yape' })
+      .expect(200);
+    expect(response.body).toMatchObject({
+      saleId: SALE_ID,
+      saleVersion: 3,
+      amountCents: 1_000,
+      method: 'yape',
+      balanceCents: 2_000,
       replayed: false,
     });
   });

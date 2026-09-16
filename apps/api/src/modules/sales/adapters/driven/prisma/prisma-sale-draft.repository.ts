@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
 import { PrismaService } from '../../../../../composition/prisma.service';
-import { Prisma, SaleLifecycleStatus } from '../../../../../generated/prisma/client';
+import { PaymentMethod, Prisma, SaleLifecycleStatus } from '../../../../../generated/prisma/client';
 import type { SaleDraftRepository } from '../../../hexagon/application/sale-draft.repository';
 import { Sale } from '../../../hexagon/domain/sale';
 
@@ -10,7 +10,10 @@ export class PrismaSaleDraftRepository implements SaleDraftRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async findById(id: string): Promise<Sale | null> {
-    const row = await this.prisma.sale.findUnique({ where: { id }, include: { lines: true } });
+    const row = await this.prisma.sale.findUnique({
+      where: { id },
+      include: { lines: true, payments: true },
+    });
     return row === null ? null : toSaleDomain(row);
   }
 
@@ -65,7 +68,7 @@ export class PrismaSaleDraftRepository implements SaleDraftRepository {
   }
 }
 
-type SaleRow = Prisma.SaleGetPayload<{ include: { lines: true } }>;
+type SaleRow = Prisma.SaleGetPayload<{ include: { lines: true; payments: true } }>;
 export function toSaleDomain(row: SaleRow): Sale {
   return Sale.restore({
     id: row.id,
@@ -115,6 +118,20 @@ export function toSaleDomain(row: SaleRow): Sale {
       allocatedCostCents:
         line.allocatedCostCents === null ? null : safeSaleNumber(line.allocatedCostCents),
       costingPolicy: line.costingPolicy === null ? null : 'moving-average-v1',
+    })),
+    payments: row.payments.map((payment) => ({
+      id: payment.id,
+      amountCents: safeSaleNumber(payment.amountCents),
+      method:
+        payment.method === PaymentMethod.CASH
+          ? 'cash'
+          : payment.method === PaymentMethod.YAPE
+            ? 'yape'
+            : payment.method === PaymentMethod.PLIN
+              ? 'plin'
+              : 'pos',
+      registeredBy: payment.registeredBy,
+      effectiveAt: payment.effectiveAt,
     })),
     version: row.version,
     confirmedAt: row.confirmedAt,

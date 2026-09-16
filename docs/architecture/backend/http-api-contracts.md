@@ -134,10 +134,19 @@ efectos financieros ni de inventario. Solo el autor o una cuenta con
 `sales:update-any-draft` puede corregirlo.
 
 `POST /sales/{saleId}/confirmation` requiere `Idempotency-Key`, `expectedVersion`
-y las razones asociadas a líneas vendidas por debajo del mínimo. La confirmación
-congela la instantánea comercial y el costo, y aplica entregas y reservas dentro de
-la misma transacción. Mientras el cobro inicial aún no forma parte de este comando,
-una venta con total positivo debe tener cliente para conservar su saldo explicable.
+y las razones asociadas a líneas vendidas por debajo del mínimo. Acepta además un
+`initialPayment` opcional con importe y método. La confirmación congela la
+instantánea comercial y el costo, aplica entregas y reservas y, cuando corresponde,
+crea el pago y la entrada de caja dentro de la misma transacción. Una venta sin
+cliente solo puede confirmarse si el pago inicial cubre el total; si queda saldo,
+el cliente continúa siendo obligatorio.
+
+`POST /sales/{saleId}/payments` requiere `Idempotency-Key`, `expectedVersion`, un
+importe positivo y el método real entre `cash`, `yape`, `plin` y `pos`. El empleado
+solo cobra ventas propias y el administrador puede cobrar cualquiera. La respuesta
+incluye total cobrado, saldo, situación de pago y nueva versión. Un importe superior
+al saldo o una versión obsoleta produce `409 Conflict`; repetir exactamente el mismo
+comando devuelve el primer resultado sin duplicar pago ni caja.
 
 Esto no confirma aún el inventario completo de endpoints. Cada módulo definirá sus
 operaciones a partir de capacidades e historias, no mediante la exposición

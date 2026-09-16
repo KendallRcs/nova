@@ -24,3 +24,4 @@
 | 2026-09-15 | CUS-004 completó su backend: la fusión de clientes es atómica, idempotente, versionada y conserva el registro histórico de los datos resueltos. |
 | 2026-09-15 | SAL-001 y SAL-008 incorporaron el backend de borradores multilínea, edición optimista, referencias activas y ausencia explícita de efectos antes de confirmar. |
 | 2026-09-15 | SAL-002, SAL-003, SAL-007 e INV-005 completaron la confirmación backend de ventas con entrega, reserva, costo histórico, aprobación de precio e idempotencia atómica. |
+| 2026-09-16 | PAY-001 y PAY-002 completaron su backend: cobros iniciales y posteriores actualizan saldo, versión y caja atómicamente, permiten ventas al contado sin cliente y evitan sobrepagos o duplicados por reintento. |

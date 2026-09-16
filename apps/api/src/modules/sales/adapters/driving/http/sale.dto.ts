@@ -3,6 +3,7 @@ import {
   ArrayMaxSize,
   IsArray,
   IsInt,
+  IsIn,
   IsOptional,
   IsString,
   IsUUID,
@@ -83,6 +84,14 @@ export class SalePriceExceptionRequest {
   @ApiProperty({ maxLength: 500 }) @IsString() @MaxLength(500) reason!: string;
 }
 
+const PAYMENT_METHODS = ['cash', 'yape', 'plin', 'pos'] as const;
+type PaymentMethodRequest = (typeof PAYMENT_METHODS)[number];
+
+export class InitialSalePaymentRequest {
+  @ApiProperty({ minimum: 1 }) @IsInt() @Min(1) amountCents!: number;
+  @ApiProperty({ enum: PAYMENT_METHODS }) @IsIn(PAYMENT_METHODS) method!: PaymentMethodRequest;
+}
+
 export class ConfirmSaleRequest {
   @ApiProperty({ minimum: 1 }) @IsInt() @Min(1) expectedVersion!: number;
   @ApiPropertyOptional({ type: [SalePriceExceptionRequest], default: [] })
@@ -92,6 +101,12 @@ export class ConfirmSaleRequest {
   @ValidateNested({ each: true })
   @Type(() => SalePriceExceptionRequest)
   priceExceptions?: SalePriceExceptionRequest[];
+
+  @ApiPropertyOptional({ type: InitialSalePaymentRequest, nullable: true })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => InitialSalePaymentRequest)
+  initialPayment?: InitialSalePaymentRequest | null;
 }
 
 export class SaleConfirmationResponse {
@@ -104,5 +119,30 @@ export class SaleConfirmationResponse {
   @ApiProperty() deliveredQuantity!: number;
   @ApiProperty() reservedQuantity!: number;
   @ApiProperty() allocatedCostCents!: number;
+  @ApiProperty() initialPaymentCents!: number;
+  @ApiProperty() balanceCents!: number;
+  @ApiProperty({ enum: ['unpaid', 'partial', 'paid'] })
+  paymentSituation!: 'unpaid' | 'partial' | 'paid';
+  @ApiProperty() replayed!: boolean;
+}
+
+export class RecordSalePaymentRequest {
+  @ApiProperty({ minimum: 1 }) @IsInt() @Min(1) expectedVersion!: number;
+  @ApiProperty({ minimum: 1 }) @IsInt() @Min(1) amountCents!: number;
+  @ApiProperty({ enum: PAYMENT_METHODS }) @IsIn(PAYMENT_METHODS) method!: PaymentMethodRequest;
+}
+
+export class SalePaymentResponse {
+  @ApiProperty({ format: 'uuid' }) paymentId!: string;
+  @ApiProperty({ format: 'uuid' }) operationId!: string;
+  @ApiProperty({ format: 'uuid' }) saleId!: string;
+  @ApiProperty() saleVersion!: number;
+  @ApiProperty() amountCents!: number;
+  @ApiProperty({ enum: PAYMENT_METHODS }) method!: PaymentMethodRequest;
+  @ApiProperty({ format: 'uuid' }) registeredBy!: string;
+  @ApiProperty({ format: 'date-time' }) effectiveAt!: string;
+  @ApiProperty() paidCents!: number;
+  @ApiProperty() balanceCents!: number;
+  @ApiProperty({ enum: ['partial', 'paid'] }) paymentSituation!: 'partial' | 'paid';
   @ApiProperty() replayed!: boolean;
 }
