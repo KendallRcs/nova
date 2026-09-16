@@ -108,6 +108,7 @@ POST   /api/v1/inventory/count-adjustments
 GET    /api/v1/customers?query=
 POST   /api/v1/customers
 PUT    /api/v1/customers/{customerId}
+POST   /api/v1/customers/merges
 POST   /api/v1/sales
 POST   /api/v1/sales/{saleId}/payments
 POST   /api/v1/sales/{saleId}/cancellations
@@ -118,6 +119,10 @@ Las bajas y ajustes requieren `Idempotency-Key`. El ajuste envía además
 `expectedPositionVersion`, obtenido del campo `version` del stock por ubicación;
 una versión desactualizada produce `409 Conflict`. El costo unitario declarado es
 opcional salvo al aumentar un producto que no tiene costo vigente.
+
+La fusión de clientes requiere `Idempotency-Key`, las versiones observadas de
+ambos registros y los datos finales resueltos. No reasigna ventas históricas: las
+consultas posteriores resuelven el cliente fusionado hacia su principal.
 
 Esto no confirma aún el inventario completo de endpoints. Cada módulo definirá sus
 operaciones a partir de capacidades e historias, no mediante la exposición

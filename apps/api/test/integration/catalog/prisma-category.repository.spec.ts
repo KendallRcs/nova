@@ -9,6 +9,7 @@ import { PrismaProductCatalog } from '../../../src/modules/catalog/adapters/driv
 import { PrismaProductRepository } from '../../../src/modules/catalog/adapters/driven/prisma/prisma-product.repository';
 import { PrismaTagRepository } from '../../../src/modules/catalog/adapters/driven/prisma/prisma-tag.repository';
 import { PrismaCustomerRepository } from '../../../src/modules/customers/adapters/driven/prisma/prisma-customer.repository';
+import { PrismaCustomerMergeBook } from '../../../src/modules/customers/adapters/driven/prisma/prisma-customer-merge-book';
 import { CustomerPhoneAlreadyExistsError } from '../../../src/modules/customers/hexagon/application/customer.repository';
 import { Customer } from '../../../src/modules/customers/hexagon/domain/customer';
 import { PrismaInventoryTransferBook } from '../../../src/modules/inventory/adapters/driven/prisma/prisma-inventory-transfer-book';
@@ -32,6 +33,7 @@ describe('PrismaCategoryRepository', () => {
   let inventoryTransfers: PrismaInventoryTransferBook;
   let inventoryAdministration: PrismaInventoryAdministrationBook;
   let customers: PrismaCustomerRepository;
+  let customerMerges: PrismaCustomerMergeBook;
 
   beforeAll(async () => {
     container = await new PostgreSqlContainer('postgres:18.6').start();
@@ -51,6 +53,7 @@ describe('PrismaCategoryRepository', () => {
     inventoryTransfers = new PrismaInventoryTransferBook(prisma);
     inventoryAdministration = new PrismaInventoryAdministrationBook(prisma);
     customers = new PrismaCustomerRepository(prisma);
+    customerMerges = new PrismaCustomerMergeBook(prisma);
   }, 120_000);
 
   beforeEach(async () => {
@@ -64,6 +67,7 @@ describe('PrismaCategoryRepository', () => {
     await prisma?.product.deleteMany();
     await prisma?.category.deleteMany();
     await prisma?.tag.deleteMany();
+    await prisma?.customerMerge.deleteMany();
     await prisma?.customer.deleteMany();
     await prisma?.session.deleteMany();
     await prisma?.userAccount.deleteMany();
@@ -107,6 +111,71 @@ describe('PrismaCategoryRepository', () => {
       ),
     ).rejects.toBeInstanceOf(CustomerPhoneAlreadyExistsError);
     await expect(customers.search('María', 50)).resolves.toHaveLength(1);
+  });
+
+  it('merges customers atomically, frees the duplicate phone and replays safely', async () => {
+    if (prisma === undefined) throw new Error('Prisma was not initialized.');
+    const now = new Date('2026-09-15T19:00:00.000Z');
+    const primary = Customer.register({
+      id: '0199ef04-1b00-7000-8000-000000000070',
+      name: 'Ana',
+      phone: '987654321',
+      now,
+    });
+    const duplicate = Customer.register({
+      id: '0199ef04-1b00-7000-8000-000000000071',
+      name: 'Ana Torres',
+      phone: '986654321',
+      now,
+    });
+    await customers.save(primary);
+    await customers.save(duplicate);
+    const actorId = await createActor(prisma);
+    const command = {
+      mergeId: '0199ef04-1b00-7000-8000-000000000072',
+      operationId: '0199ef04-1b00-7000-8000-000000000073',
+      primaryCustomerId: primary.toPrimitives().id,
+      duplicateCustomerId: duplicate.toPrimitives().id,
+      expectedPrimaryVersion: 1,
+      expectedDuplicateVersion: 1,
+      identity: {
+        name: 'Ana Torres',
+        nameNormalized: 'ana torres',
+        phoneNormalized: '+51986654321',
+        dni: '12345678',
+        address: null,
+      },
+      actorId,
+      effectiveAt: now,
+    };
+    await expect(customerMerges.merge(command)).resolves.toMatchObject({
+      ok: true,
+      replayed: false,
+      merge: { primaryVersion: 2, duplicateVersion: 2 },
+    });
+    await expect(
+      customerMerges.merge({
+        ...command,
+        mergeId: '0199ef04-1b00-7000-8000-000000000074',
+      }),
+    ).resolves.toMatchObject({ ok: true, replayed: true });
+    await expect(
+      prisma.customer.findUniqueOrThrow({ where: { id: primary.toPrimitives().id } }),
+    ).resolves.toMatchObject({
+      phoneNormalized: '+51986654321',
+      dni: '12345678',
+      status: 'ACTIVE',
+      version: 2,
+    });
+    await expect(
+      prisma.customer.findUniqueOrThrow({ where: { id: duplicate.toPrimitives().id } }),
+    ).resolves.toMatchObject({
+      status: 'MERGED',
+      mergedIntoCustomerId: primary.toPrimitives().id,
+      version: 2,
+    });
+    await expect(prisma.customerMerge.count()).resolves.toBe(1);
+    await expect(customers.search(undefined, 50)).resolves.toHaveLength(1);
   });
 
   it('translates the unique database constraint into an application conflict', async () => {

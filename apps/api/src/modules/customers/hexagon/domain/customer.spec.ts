@@ -56,4 +56,46 @@ describe('Customer', () => {
       version: 2,
     });
   });
+
+  it('resolves a merge by updating the principal and retiring the duplicate', () => {
+    const primary = Customer.register({ id: 'customer-1', name: 'Ana', phone: '987654321', now });
+    const duplicate = Customer.register({
+      id: 'customer-2',
+      name: 'Anita',
+      phone: '986654321',
+      now,
+    });
+    const identity = {
+      name: 'Ana Torres',
+      nameNormalized: 'ana torres',
+      phoneNormalized: '+51986654321',
+      dni: '12345678',
+      address: 'Centro',
+    };
+    expect(Customer.resolveMerge({ primary, duplicate, identity, now })).toEqual({ ok: true });
+    expect(primary.toPrimitives()).toMatchObject({ ...identity, status: 'active', version: 2 });
+    expect(duplicate.toPrimitives()).toMatchObject({
+      status: 'merged',
+      mergedIntoCustomerId: 'customer-1',
+      version: 2,
+    });
+  });
+
+  it('rejects merging a customer into itself', () => {
+    const customer = Customer.register({ id: 'customer-1', name: 'Ana', phone: '987654321', now });
+    expect(
+      Customer.resolveMerge({
+        primary: customer,
+        duplicate: customer,
+        identity: {
+          name: 'Ana',
+          nameNormalized: 'ana',
+          phoneNormalized: '+51987654321',
+          dni: null,
+          address: null,
+        },
+        now,
+      }),
+    ).toEqual({ ok: false, reason: 'same-customer' });
+  });
 });

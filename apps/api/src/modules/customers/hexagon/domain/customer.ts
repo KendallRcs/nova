@@ -33,6 +33,21 @@ export interface CustomerProperties {
   updatedAt: Date;
 }
 
+export interface CustomerIdentity {
+  name: string;
+  nameNormalized: string;
+  phoneNormalized: string;
+  dni: string | null;
+  address: string | null;
+}
+
+export type ResolveCustomerMergeResult =
+  | { readonly ok: true }
+  | {
+      readonly ok: false;
+      readonly reason: 'same-customer' | 'primary-not-active' | 'duplicate-not-active';
+    };
+
 export class Customer {
   private constructor(private properties: CustomerProperties) {}
 
@@ -44,15 +59,10 @@ export class Customer {
     address?: string | null;
     now: Date;
   }): Customer {
-    const name = normalizeCustomerDisplayName(input.name);
-    if (name.length === 0) throw new InvalidCustomerNameError();
+    const identity = normalizeCustomerIdentity(input);
     return new Customer({
       id: input.id,
-      name,
-      nameNormalized: normalizeCustomerName(name),
-      phoneNormalized: normalizeCustomerPhone(input.phone),
-      dni: normalizeDni(input.dni),
-      address: normalizeOptionalText(input.address),
+      ...identity,
       status: 'active',
       mergedIntoCustomerId: null,
       version: 1,
@@ -74,18 +84,40 @@ export class Customer {
   }): void {
     if (this.properties.status !== 'active')
       throw new Error('A merged customer cannot be updated.');
-    const name = normalizeCustomerDisplayName(input.name);
-    if (name.length === 0) throw new InvalidCustomerNameError();
+    const identity = normalizeCustomerIdentity(input);
     this.properties = {
       ...this.properties,
-      name,
-      nameNormalized: normalizeCustomerName(name),
-      phoneNormalized: normalizeCustomerPhone(input.phone),
-      dni: normalizeDni(input.dni),
-      address: normalizeOptionalText(input.address),
+      ...identity,
       version: this.properties.version + 1,
       updatedAt: input.now,
     };
+  }
+
+  static resolveMerge(input: {
+    primary: Customer;
+    duplicate: Customer;
+    identity: CustomerIdentity;
+    now: Date;
+  }): ResolveCustomerMergeResult {
+    const primary = input.primary.properties;
+    const duplicate = input.duplicate.properties;
+    if (primary.id === duplicate.id) return { ok: false, reason: 'same-customer' };
+    if (primary.status !== 'active') return { ok: false, reason: 'primary-not-active' };
+    if (duplicate.status !== 'active') return { ok: false, reason: 'duplicate-not-active' };
+    input.duplicate.properties = {
+      ...duplicate,
+      status: 'merged',
+      mergedIntoCustomerId: primary.id,
+      version: duplicate.version + 1,
+      updatedAt: input.now,
+    };
+    input.primary.properties = {
+      ...primary,
+      ...input.identity,
+      version: primary.version + 1,
+      updatedAt: input.now,
+    };
+    return { ok: true };
   }
 
   toPrimitives(): CustomerProperties {
@@ -111,6 +143,23 @@ export function normalizeCustomerPhone(value: string): string {
     return `+${digits}`;
   }
   throw new InvalidCustomerPhoneError();
+}
+
+export function normalizeCustomerIdentity(input: {
+  name: string;
+  phone: string;
+  dni?: string | null;
+  address?: string | null;
+}): CustomerIdentity {
+  const name = normalizeCustomerDisplayName(input.name);
+  if (name.length === 0) throw new InvalidCustomerNameError();
+  return {
+    name,
+    nameNormalized: normalizeCustomerName(name),
+    phoneNormalized: normalizeCustomerPhone(input.phone),
+    dni: normalizeDni(input.dni),
+    address: normalizeOptionalText(input.address),
+  };
 }
 
 function normalizeCustomerDisplayName(value: string): string {

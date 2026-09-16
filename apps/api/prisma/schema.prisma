@@ -141,6 +141,7 @@ model UserAccount {
   inventoryTransfers InventoryTransfer[]
   inventoryMovements InventoryMovement[]
   costMovements      CostMovement[]
+  customerMerges     CustomerMerge[]
 
   @@index([profileId, status], map: "idx_user_accounts_profile_status")
   @@map("user_accounts")
@@ -165,23 +166,46 @@ model Session {
 }
 
 model Customer {
-  id                   String         @id @db.Uuid
+  id                   String          @id @db.Uuid
   name                 String
-  nameNormalized       String         @map("name_normalized")
-  phoneNormalized      String         @map("phone_normalized")
+  nameNormalized       String          @map("name_normalized")
+  phoneNormalized      String          @map("phone_normalized")
   dni                  String?
   address              String?
-  status               CustomerStatus @default(ACTIVE)
-  mergedIntoCustomerId String?        @map("merged_into_customer_id") @db.Uuid
-  version              Int            @default(1)
-  createdAt            DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt            DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
-  mergedInto           Customer?      @relation("CustomerMerges", fields: [mergedIntoCustomerId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_customers_merged_into")
-  mergedCustomers      Customer[]     @relation("CustomerMerges")
+  status               CustomerStatus  @default(ACTIVE)
+  mergedIntoCustomerId String?         @map("merged_into_customer_id") @db.Uuid
+  version              Int             @default(1)
+  createdAt            DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt            DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+  mergedInto           Customer?       @relation("CustomerMerges", fields: [mergedIntoCustomerId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_customers_merged_into")
+  mergedCustomers      Customer[]      @relation("CustomerMerges")
+  mergesAsPrimary      CustomerMerge[] @relation("CustomerMergePrimary")
+  mergeAsDuplicate     CustomerMerge?  @relation("CustomerMergeDuplicate")
 
   @@index([nameNormalized, id], map: "idx_customers_search_name")
   @@index([mergedIntoCustomerId], map: "idx_customers_merged_into")
   @@map("customers")
+}
+
+model CustomerMerge {
+  id                       String      @id @db.Uuid
+  operationId              String      @unique(map: "uq_customer_merges_operation") @map("operation_id") @db.Uuid
+  primaryCustomerId        String      @map("primary_customer_id") @db.Uuid
+  duplicateCustomerId      String      @unique(map: "uq_customer_merges_duplicate") @map("duplicate_customer_id") @db.Uuid
+  expectedPrimaryVersion   Int         @map("expected_primary_version")
+  expectedDuplicateVersion Int         @map("expected_duplicate_version")
+  resolvedName             String      @map("resolved_name")
+  resolvedPhoneNormalized  String      @map("resolved_phone_normalized")
+  resolvedDni              String?     @map("resolved_dni")
+  resolvedAddress          String?     @map("resolved_address")
+  mergedBy                 String      @map("merged_by") @db.Uuid
+  mergedAt                 DateTime    @map("merged_at") @db.Timestamptz(3)
+  primaryCustomer          Customer    @relation("CustomerMergePrimary", fields: [primaryCustomerId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_customer_merges_primary")
+  duplicateCustomer        Customer    @relation("CustomerMergeDuplicate", fields: [duplicateCustomerId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_customer_merges_duplicate")
+  actor                    UserAccount @relation(fields: [mergedBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_customer_merges_actor")
+
+  @@index([primaryCustomerId, mergedAt(sort: Desc), id(sort: Desc)], map: "idx_customer_merges_primary_date")
+  @@map("customer_merges")
 }
 
 model Category {

@@ -61,3 +61,4 @@
 56. Un ajuste positivo usa el costo promedio vigente de las unidades actuales; si no existe costo anterior, el administrador debe indicar el costo unitario.
 57. Bajas y ajustes actualizan existencia, valoración y movimientos de auditoría en una única transacción idempotente.
 58. Los celulares peruanos de nueve dígitos se normalizan al formato internacional `+51`; DNI y dirección del cliente son opcionales y un DNI presente contiene ocho dígitos.
+59. Fusionar clientes conserva las referencias históricas, resuelve un único cliente principal activo y registra duplicado, datos elegidos, administrador y fecha sin crear cadenas de fusiones.

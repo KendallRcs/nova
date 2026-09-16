@@ -59,6 +59,8 @@
 ### User Story CUS-004 — Fusionar clientes duplicados
 
 - **Estado:** Confirmada
+- **Trazabilidad de implementación:** backend completo con datos resueltos,
+  bloqueo ordenado, versiones optimistas, idempotencia y auditoría del administrador.
 - **Como** administrador
 - **quiero** fusionar dos registros de la misma persona
 - **para** mantener un único historial comercial y financiero.
@@ -69,5 +71,15 @@
 - **Dado:** que elegí el registro principal y resolví los datos en conflicto
 - **Cuando:** confirmo la fusión
 - **Entonces:** las operaciones quedan asociadas al cliente principal, el duplicado se desactiva y se conserva la trazabilidad de la fusión.
+
+- **Escenario:** Fusión basada en datos desactualizados
+- **Dado:** que uno de los clientes cambió después de que revisé sus datos
+- **Cuando:** intento confirmar la fusión con una versión anterior
+- **Entonces:** el sistema rechaza la operación sin modificar ninguno de los registros.
+
+- **Escenario:** Reintento de la misma fusión
+- **Dado:** que una fusión ya fue confirmada con una clave idempotente
+- **Cuando:** reintento exactamente la misma operación con esa clave
+- **Entonces:** recibo el resultado original sin crear otra fusión.
 
 ---
