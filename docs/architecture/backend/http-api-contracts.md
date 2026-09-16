@@ -110,6 +110,7 @@ POST   /api/v1/customers
 PUT    /api/v1/customers/{customerId}
 POST   /api/v1/customers/merges
 POST   /api/v1/sales
+PUT    /api/v1/sales/{saleId}
 POST   /api/v1/sales/{saleId}/payments
 POST   /api/v1/sales/{saleId}/cancellations
 POST   /api/v1/returns
@@ -123,6 +124,13 @@ opcional salvo al aumentar un producto que no tiene costo vigente.
 La fusión de clientes requiere `Idempotency-Key`, las versiones observadas de
 ambos registros y los datos finales resueltos. No reasigna ventas históricas: las
 consultas posteriores resuelven el cliente fusionado hacia su principal.
+
+`POST /sales` crea un borrador y `PUT /sales/{saleId}` reemplaza sus condiciones y
+líneas usando `expectedVersion`. Cada línea indica producto, ubicación, cantidad,
+precio acordado y cantidades previstas para entrega y reserva; la diferencia queda
+pendiente. Estas operaciones no usan `Idempotency-Key` porque todavía no generan
+efectos financieros ni de inventario. Solo el autor o una cuenta con
+`sales:update-any-draft` puede corregirlo.
 
 Esto no confirma aún el inventario completo de endpoints. Cada módulo definirá sus
 operaciones a partir de capacidades e historias, no mediante la exposición

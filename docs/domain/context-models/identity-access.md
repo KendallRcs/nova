@@ -104,7 +104,7 @@ todas las capacidades y Empleado únicamente las indicadas como operativas.
 | Catálogo | `catalog:read`, `catalog:manage`, `catalog:approve-price-exception` | `catalog:read` |
 | Clientes | `customers:read`, `customers:write-basic`, `customers:merge` | lectura y datos básicos |
 | Inventario | `inventory:read`, `inventory:transfer`, `inventory:write-off`, `inventory:adjust`, `inventory:release-reservation`, `inventory:inspect-return` | `inventory:read` |
-| Ventas | `sales:create`, `sales:read-own`, `sales:read-any`, `sales:update-own-draft`, `sales:adjust-confirmed`, `sales:finalize-with-balance`, `sales:cancel` | crear, consultar propias y editar borradores propios |
+| Ventas | `sales:create`, `sales:read-own`, `sales:read-any`, `sales:update-own-draft`, `sales:update-any-draft`, `sales:adjust-confirmed`, `sales:finalize-with-balance`, `sales:cancel` | crear, consultar propias y editar borradores propios |
 | Pagos | `payments:create-own`, `payments:create-any`, `payments:correct` | `payments:create-own` |
 | Compras | `purchases:manage` | ninguna |
 | Gastos | `expenses:manage` | ninguna |

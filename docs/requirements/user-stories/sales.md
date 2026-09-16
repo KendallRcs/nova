@@ -6,6 +6,10 @@
 ### User Story SAL-001 — Crear una venta con varios productos
 
 - **Estado:** Confirmada
+- **Trazabilidad de implementación:** backend de borradores completo para crear una
+  venta con varias líneas, cantidades, ubicación, precio acordado, total derivado,
+  cliente opcional y condiciones de entrega o reserva. La confirmación atómica y
+  sus efectos de inventario y caja corresponden al siguiente incremento.
 - **Como** empleado
 - **quiero** registrar varios productos y cantidades en una sola venta
 - **para** representar la operación completa realizada con el cliente.
@@ -104,6 +108,9 @@
 ### User Story SAL-008 — Editar una venta antes de confirmarla
 
 - **Estado:** Confirmada
+- **Trazabilidad de implementación:** backend completo para reemplazar los datos y
+  líneas de un borrador propio con versión optimista; un administrador puede
+  corregir cualquier borrador. No se producen movimientos de stock ni caja.
 - **Como** empleado
 - **quiero** modificar una venta mientras permanece en borrador
 - **para** corregir productos, cantidades y precios antes de producir efectos financieros o de inventario.
@@ -141,4 +148,3 @@
 - **Entonces:** el sistema rechaza la operación e informa qué movimientos deben resolverse primero.
 
 ---
-

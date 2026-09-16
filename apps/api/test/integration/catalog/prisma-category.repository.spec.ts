@@ -12,6 +12,9 @@ import { PrismaCustomerRepository } from '../../../src/modules/customers/adapter
 import { PrismaCustomerMergeBook } from '../../../src/modules/customers/adapters/driven/prisma/prisma-customer-merge-book';
 import { CustomerPhoneAlreadyExistsError } from '../../../src/modules/customers/hexagon/application/customer.repository';
 import { Customer } from '../../../src/modules/customers/hexagon/domain/customer';
+import { PrismaSaleDraftReferences } from '../../../src/modules/sales/adapters/driven/prisma/prisma-sale-draft-references';
+import { PrismaSaleDraftRepository } from '../../../src/modules/sales/adapters/driven/prisma/prisma-sale-draft.repository';
+import { Sale } from '../../../src/modules/sales/hexagon/domain/sale';
 import { PrismaInventoryTransferBook } from '../../../src/modules/inventory/adapters/driven/prisma/prisma-inventory-transfer-book';
 import { PrismaInventoryAdministrationBook } from '../../../src/modules/inventory/adapters/driven/prisma/prisma-inventory-administration-book';
 import { UuidV7IdGenerator } from '../../../src/modules/catalog/adapters/driven/system/uuid-v7-id-generator';
@@ -34,6 +37,8 @@ describe('PrismaCategoryRepository', () => {
   let inventoryAdministration: PrismaInventoryAdministrationBook;
   let customers: PrismaCustomerRepository;
   let customerMerges: PrismaCustomerMergeBook;
+  let saleDrafts: PrismaSaleDraftRepository;
+  let saleReferences: PrismaSaleDraftReferences;
 
   beforeAll(async () => {
     container = await new PostgreSqlContainer('postgres:18.6').start();
@@ -54,9 +59,13 @@ describe('PrismaCategoryRepository', () => {
     inventoryAdministration = new PrismaInventoryAdministrationBook(prisma);
     customers = new PrismaCustomerRepository(prisma);
     customerMerges = new PrismaCustomerMergeBook(prisma);
+    saleDrafts = new PrismaSaleDraftRepository(prisma);
+    saleReferences = new PrismaSaleDraftReferences(prisma);
   }, 120_000);
 
   beforeEach(async () => {
+    await prisma?.saleLine.deleteMany();
+    await prisma?.sale.deleteMany();
     await prisma?.productImage.deleteMany();
     await prisma?.productTag.deleteMany();
     await prisma?.costMovement.deleteMany();
@@ -176,6 +185,68 @@ describe('PrismaCategoryRepository', () => {
     });
     await expect(prisma.customerMerge.count()).resolves.toBe(1);
     await expect(customers.search(undefined, 50)).resolves.toHaveLength(1);
+  });
+
+  it('persists and optimistically replaces a sale draft with valid references', async () => {
+    if (prisma === undefined) throw new Error('Prisma was not initialized.');
+    const category = createCategory('Ventas');
+    await repository.save(category);
+    const product = createProduct(category.toPrimitives().id, undefined, 'VENTA-001');
+    await products.save(product);
+    const location = await prisma.location.findFirstOrThrow({ where: { status: 'ACTIVE' } });
+    const actorId = await createActor(prisma);
+    await expect(
+      saleReferences.validate({
+        customerId: null,
+        lines: [{ productId: product.toPrimitives().id, locationId: location.id }],
+      }),
+    ).resolves.toEqual({ ok: true, canonicalCustomerId: null });
+    const composed = Sale.createDraft({
+      id: '0199ef04-1b00-7000-8000-000000000080',
+      createdBy: actorId,
+      lines: [
+        {
+          id: '0199ef04-1b00-7000-8000-000000000081',
+          productId: product.toPrimitives().id,
+          locationId: location.id,
+          quantity: 2,
+          deliveryQuantity: 1,
+          reservationQuantity: 1,
+          agreedUnitPriceCents: 1_500,
+        },
+      ],
+      now: new Date('2026-09-15T20:00:00.000Z'),
+    });
+    if (!composed.ok) throw new Error(composed.reason);
+    await saleDrafts.create(composed.sale);
+    const restored = await saleDrafts.findById(composed.sale.toPrimitives().id);
+    expect(restored?.toPrimitives()).toMatchObject({
+      originalTotalCents: 3_000,
+      version: 1,
+      lines: [{ deliveryQuantity: 1, reservationQuantity: 1 }],
+    });
+    if (restored === null) throw new Error('Sale draft was not restored.');
+    const revised = restored.reviseDraft({
+      dueDate: '2026-10-15',
+      lines: [
+        {
+          id: '0199ef04-1b00-7000-8000-000000000085',
+          productId: product.toPrimitives().id,
+          locationId: location.id,
+          quantity: 3,
+          deliveryQuantity: 3,
+          reservationQuantity: 0,
+          agreedUnitPriceCents: 1_400,
+        },
+      ],
+      now: new Date('2026-09-15T20:01:00.000Z'),
+    });
+    if (!revised.ok) throw new Error(revised.reason);
+    await expect(saleDrafts.update(restored, 1)).resolves.toBe(true);
+    await expect(saleDrafts.update(restored, 1)).resolves.toBe(false);
+    expect(
+      (await saleDrafts.findById(composed.sale.toPrimitives().id))?.toPrimitives(),
+    ).toMatchObject({ originalTotalCents: 4_200, dueDate: '2026-10-15', version: 2 });
   });
 
   it('translates the unique database constraint into an application conflict', async () => {

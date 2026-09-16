@@ -50,11 +50,11 @@ describe('PrismaInitialAccessSetup', () => {
 
     expect(outcomes.sort()).toEqual(['already-initialized', 'created']);
     expect(await database.userAccount.count()).toBe(1);
-    expect(await database.permission.count()).toBe(28);
+    expect(await database.permission.count()).toBe(29);
     expect(await database.accessProfile.count()).toBe(2);
     expect(
       await database.profilePermission.count({ where: { profileId: ADMINISTRATOR_PROFILE_ID } }),
-    ).toBe(28);
+    ).toBe(29);
     expect(
       await database.accessProfile.findUnique({ where: { id: ADMINISTRATOR_PROFILE_ID } }),
     ).toMatchObject({

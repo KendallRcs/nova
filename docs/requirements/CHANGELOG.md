@@ -22,3 +22,4 @@
 | 2026-09-15 | INV-003 e INV-004 completaron su backend: bajas categorizadas y ajustes de conteo actualizan stock y costo promedio de forma atómica, auditable e idempotente. |
 | 2026-09-15 | CUS-001 y CUS-002 completaron su backend de identidad: registro, búsqueda y actualización con teléfono canónico único, datos opcionales y versión optimista. |
 | 2026-09-15 | CUS-004 completó su backend: la fusión de clientes es atómica, idempotente, versionada y conserva el registro histórico de los datos resueltos. |
+| 2026-09-15 | SAL-001 y SAL-008 incorporaron el backend de borradores multilínea, edición optimista, referencias activas y ausencia explícita de efectos antes de confirmar. |

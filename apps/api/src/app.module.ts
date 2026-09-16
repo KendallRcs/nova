@@ -11,6 +11,7 @@ import { CatalogModule } from './modules/catalog/catalog.module';
 import { IdentityAccessModule } from './modules/identity-access/identity-access.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
 import { CustomersModule } from './modules/customers/customers.module';
+import { SalesModule } from './modules/sales/sales.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { CustomersModule } from './modules/customers/customers.module';
     IdentityAccessModule,
     InventoryModule,
     CustomersModule,
+    SalesModule,
   ],
   controllers: [HealthController],
   providers: [CsrfTokens, { provide: APP_GUARD, useClass: CsrfGuard }],

@@ -13,7 +13,7 @@ describe('SynchronizeAccessPolicy', () => {
       'administrador',
       'empleado',
     ]);
-    expect(catalog.synchronized?.permissions.length).toBe(28);
+    expect(catalog.synchronized?.permissions.length).toBe(29);
   });
 });
 

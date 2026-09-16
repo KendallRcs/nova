@@ -31,6 +31,7 @@ export const PERMISSIONS = [
   permission('sales:read-own', 'sales', 'read-own'),
   permission('sales:read-any', 'sales', 'read-any'),
   permission('sales:update-own-draft', 'sales', 'update-own-draft'),
+  permission('sales:update-any-draft', 'sales', 'update-any-draft'),
   permission('sales:adjust-confirmed', 'sales', 'adjust-confirmed'),
   permission('sales:finalize-with-balance', 'sales', 'finalize-with-balance'),
   permission('sales:cancel', 'sales', 'cancel'),
