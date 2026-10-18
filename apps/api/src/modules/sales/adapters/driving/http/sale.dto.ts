@@ -149,6 +149,42 @@ export class SalePaymentResponse {
   @ApiProperty() replayed!: boolean;
 }
 
+export class DeliverSaleLineRequest {
+  @ApiProperty({ format: 'uuid' }) @IsUUID('7') saleLineId!: string;
+  @ApiProperty({ minimum: 1 }) @IsInt() @Min(1) quantity!: number;
+}
+
+export class DeliverSaleRequest {
+  @ApiProperty({ minimum: 1 }) @IsInt() @Min(1) expectedVersion!: number;
+  @ApiProperty({ type: [DeliverSaleLineRequest] })
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(100)
+  @ValidateNested({ each: true })
+  @Type(() => DeliverSaleLineRequest)
+  lines!: DeliverSaleLineRequest[];
+}
+
+export class SaleDeliveryLineResponse {
+  @ApiProperty({ format: 'uuid' }) saleLineId!: string;
+  @ApiProperty({ format: 'uuid' }) locationId!: string;
+  @ApiProperty() quantity!: number;
+  @ApiProperty() consumedCostCents!: number;
+}
+
+export class SaleDeliveryResponse {
+  @ApiProperty({ format: 'uuid' }) deliveryId!: string;
+  @ApiProperty({ format: 'uuid' }) operationId!: string;
+  @ApiProperty({ format: 'uuid' }) saleId!: string;
+  @ApiProperty() saleVersion!: number;
+  @ApiProperty() deliveredQuantity!: number;
+  @ApiProperty() remainingReservedQuantity!: number;
+  @ApiProperty({ format: 'uuid' }) deliveredBy!: string;
+  @ApiProperty({ format: 'date-time' }) effectiveAt!: string;
+  @ApiProperty({ type: [SaleDeliveryLineResponse] }) lines!: SaleDeliveryLineResponse[];
+  @ApiProperty() replayed!: boolean;
+}
+
 export class AdjustSaleTotalRequest {
   @ApiProperty({ minimum: 1 }) @IsInt() @Min(1) expectedVersion!: number;
   @ApiProperty({ minimum: 0 }) @IsInt() @Min(0) newTotalCents!: number;
@@ -405,6 +441,7 @@ export class SaleDetailResponse extends SaleActivityItemResponse {
   @ApiProperty({ type: [SaleDetailPaymentResponse] }) payments!: SaleDetailPaymentResponse[];
   @ApiProperty({ type: [Object] }) totalAdjustments!: Record<string, unknown>[];
   @ApiProperty({ type: [Object] }) returns!: Record<string, unknown>[];
+  @ApiProperty({ type: [Object] }) deliveries!: Record<string, unknown>[];
   @ApiProperty({ nullable: true, type: Object }) cancellation!: Record<string, unknown> | null;
   @ApiProperty({ nullable: true, type: Object }) closure!: Record<string, unknown> | null;
   @ApiProperty({ format: 'date-time', nullable: true, type: String })

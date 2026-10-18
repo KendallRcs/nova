@@ -275,6 +275,7 @@ const commonSaleInclude = {
   totalAdjustments: true,
   closure: true,
   returns: { include: { lines: true, refund: true } },
+  deliveries: { include: { lines: true } },
   cancellation: { include: { lines: true, refund: true } },
 } satisfies Prisma.SaleInclude;
 function findSale(client: Prisma.TransactionClient, saleId: string) {

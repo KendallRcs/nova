@@ -161,6 +161,48 @@ describe('Sale draft', () => {
     ).toEqual({ ok: false, reason: 'payment-exceeds-balance', balanceCents: 900 });
   });
 
+  it('delivers a reservation partially and preserves the original sale total', () => {
+    const sale = confirmedReservedSale();
+    expect(
+      sale.deliver({
+        delivery: delivery('delivery-1', 1, 250),
+        actorId: 'employee-1',
+        canDeliverAny: false,
+        now: new Date('2026-09-16T10:00:00.000Z'),
+      }),
+    ).toEqual({ ok: true, deliveredQuantity: 1, remainingReservedQuantity: 1 });
+    expect(sale.toPrimitives()).toMatchObject({
+      currentTotalCents: 3_000,
+      version: 3,
+      deliveries: [{ id: 'delivery-1', lines: [{ quantity: 1, consumedCostCents: 250 }] }],
+    });
+  });
+
+  it('rejects a foreign employee and a delivery above the pending reservation', () => {
+    const sale = confirmedReservedSale();
+    expect(
+      sale.deliver({
+        delivery: delivery('delivery-1', 1, 250),
+        actorId: 'employee-2',
+        canDeliverAny: false,
+        now: new Date(),
+      }),
+    ).toEqual({ ok: false, reason: 'not-owner' });
+    expect(
+      sale.deliver({
+        delivery: delivery('delivery-2', 3, 750),
+        actorId: 'admin-1',
+        canDeliverAny: true,
+        now: new Date(),
+      }),
+    ).toEqual({
+      ok: false,
+      reason: 'quantity-exceeds-reserved',
+      saleLineId: 'line-reserved',
+      deliverableQuantity: 2,
+    });
+  });
+
   it('preserves the financial audit trail when adjusting, correcting and closing with balance', () => {
     const sale = confirmedSale();
     const paid = sale.registerPayment({
@@ -505,6 +547,57 @@ function confirmedSale(): Sale {
   });
   if (!confirmed.ok) throw new Error(confirmed.reason);
   return result.sale;
+}
+
+function confirmedReservedSale(): Sale {
+  const result = Sale.createDraft({
+    id: 'sale-reserved',
+    createdBy: 'employee-1',
+    customerId: 'customer-1',
+    lines: [line('line-reserved', 'product-1', 2, 1_500, 0, 2)],
+    now: new Date('2026-09-15T20:00:00.000Z'),
+  });
+  if (!result.ok) throw new Error(result.reason);
+  const confirmed = result.sale.confirm({
+    customerId: 'customer-1',
+    productSnapshots: new Map([
+      [
+        'product-1',
+        {
+          code: 'P-1',
+          name: 'Producto',
+          minimumPriceCents: 1_000,
+          suggestedPriceCents: null,
+          maximumPriceCents: null,
+        },
+      ],
+    ]),
+    priceExceptionReasons: new Map(),
+    confirmedBy: 'employee-1',
+    canApprovePriceException: false,
+    initialPayment: null,
+    now: new Date('2026-09-15T21:00:00.000Z'),
+  });
+  if (!confirmed.ok) throw new Error(confirmed.reason);
+  result.sale.attributeConfirmedCost('line-reserved', 500);
+  return result.sale;
+}
+
+function delivery(id: string, quantity: number, consumedCostCents: number) {
+  return {
+    id,
+    deliveredBy: 'employee-1',
+    effectiveAt: new Date('2026-09-16T10:00:00.000Z'),
+    lines: [
+      {
+        id: `${id}-line`,
+        saleLineId: 'line-reserved',
+        locationId: 'location-1',
+        quantity,
+        consumedCostCents,
+      },
+    ],
+  };
 }
 
 function payment(id: string, amountCents: number) {

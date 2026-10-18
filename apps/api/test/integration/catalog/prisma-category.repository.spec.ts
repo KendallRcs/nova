@@ -22,6 +22,7 @@ import { PrismaSaleActivitySource } from '../../../src/modules/sales/adapters/dr
 import { PrismaSaleFinancialBook } from '../../../src/modules/sales/adapters/driven/prisma/prisma-sale-financial-book';
 import { PrismaSaleReturnBook } from '../../../src/modules/sales/adapters/driven/prisma/prisma-sale-return-book';
 import { PrismaSaleCancellationBook } from '../../../src/modules/sales/adapters/driven/prisma/prisma-sale-cancellation-book';
+import { PrismaSaleDeliveryBook } from '../../../src/modules/sales/adapters/driven/prisma/prisma-sale-delivery-book';
 import { ListSales } from '../../../src/modules/sales/hexagon/application/sale-activity';
 import { Sale } from '../../../src/modules/sales/hexagon/domain/sale';
 import { PrismaInventoryTransferBook } from '../../../src/modules/inventory/adapters/driven/prisma/prisma-inventory-transfer-book';
@@ -55,6 +56,7 @@ describe('PrismaCategoryRepository', () => {
   let saleFinancials: PrismaSaleFinancialBook;
   let saleReturns: PrismaSaleReturnBook;
   let saleCancellations: PrismaSaleCancellationBook;
+  let saleDeliveries: PrismaSaleDeliveryBook;
 
   beforeAll(async () => {
     container = await new PostgreSqlContainer('postgres:18.6').start();
@@ -84,6 +86,7 @@ describe('PrismaCategoryRepository', () => {
     saleFinancials = new PrismaSaleFinancialBook(prisma);
     saleReturns = new PrismaSaleReturnBook(prisma);
     saleCancellations = new PrismaSaleCancellationBook(prisma);
+    saleDeliveries = new PrismaSaleDeliveryBook(prisma);
   }, 120_000);
 
   beforeEach(async () => {
@@ -93,6 +96,8 @@ describe('PrismaCategoryRepository', () => {
     await prisma?.inventoryMovement.deleteMany();
     await prisma?.inventoryReservation.deleteMany();
     await prisma?.saleCostAllocation.deleteMany();
+    await prisma?.deliveryLine.deleteMany();
+    await prisma?.delivery.deleteMany();
     await prisma?.cashMovement.deleteMany();
     await prisma?.saleCancellationRefund.deleteMany();
     await prisma?.returnRefund.deleteMany();
@@ -664,6 +669,114 @@ describe('PrismaCategoryRepository', () => {
           },
         ],
       },
+    });
+  });
+
+  it('delivers a reservation partially and consumes its frozen cost atomically', async () => {
+    if (prisma === undefined) throw new Error('Prisma was not initialized.');
+    const category = createCategory('Entregas');
+    await repository.save(category);
+    const product = createProduct(category.toPrimitives().id, undefined, 'ENT-001');
+    await products.save(product);
+    const location = await prisma.location.findFirstOrThrow({ where: { status: 'ACTIVE' } });
+    const actorId = await createActor(prisma);
+    const customer = Customer.register({
+      id: '0199ef04-1b00-7000-8000-0000000000b0',
+      name: 'Cliente entrega',
+      phone: '987654321',
+      now: new Date('2026-10-18T18:00:00.000Z'),
+    });
+    await customers.save(customer);
+    await inventoryAdministration.execute({
+      kind: 'count-adjustment',
+      movementId: '0199ef04-1b00-7000-8000-0000000000b1',
+      costMovementId: '0199ef04-1b00-7000-8000-0000000000b2',
+      operationId: '0199ef04-1b00-7000-8000-0000000000b3',
+      productId: product.toPrimitives().id,
+      locationId: location.id,
+      observedPhysicalQuantity: 3,
+      expectedPositionVersion: 0,
+      declaredUnitCostCents: 401,
+      reason: 'Inventario para entrega posterior',
+      actorId,
+      effectiveAt: new Date('2026-10-18T18:01:00.000Z'),
+    });
+    const draft = Sale.createDraft({
+      id: '0199ef04-1b00-7000-8000-0000000000b4',
+      createdBy: actorId,
+      customerId: customer.toPrimitives().id,
+      lines: [
+        {
+          id: '0199ef04-1b00-7000-8000-0000000000b5',
+          productId: product.toPrimitives().id,
+          locationId: location.id,
+          quantity: 3,
+          deliveryQuantity: 1,
+          reservationQuantity: 2,
+          agreedUnitPriceCents: 2_000,
+        },
+      ],
+      now: new Date('2026-10-18T18:02:00.000Z'),
+    });
+    if (!draft.ok) throw new Error(draft.reason);
+    await saleDrafts.create(draft.sale);
+    await saleConfirmations.confirm({
+      operationId: '0199ef04-1b00-7000-8000-0000000000b6',
+      saleId: draft.sale.toPrimitives().id,
+      expectedVersion: 1,
+      actorId,
+      canConfirmAny: false,
+      canApprovePriceException: false,
+      priceExceptions: [],
+      initialPayment: null,
+      effectiveAt: new Date('2026-10-18T18:03:00.000Z'),
+    });
+    const command = {
+      operationId: '0199ef04-1b00-7000-8000-0000000000b7',
+      saleId: draft.sale.toPrimitives().id,
+      expectedVersion: 2,
+      actorId,
+      canDeliverAny: false,
+      lines: [{ saleLineId: '0199ef04-1b00-7000-8000-0000000000b5', quantity: 1 }],
+      effectiveAt: new Date('2026-10-18T18:04:00.000Z'),
+    };
+    await expect(saleDeliveries.deliver(command)).resolves.toMatchObject({
+      ok: true,
+      replayed: false,
+      delivery: {
+        saleVersion: 3,
+        deliveredQuantity: 1,
+        remainingReservedQuantity: 1,
+        lines: [{ quantity: 1, consumedCostCents: 401 }],
+      },
+    });
+    await expect(saleDeliveries.deliver(command)).resolves.toMatchObject({
+      ok: true,
+      replayed: true,
+      delivery: { remainingReservedQuantity: 1 },
+    });
+    await expect(
+      prisma.inventoryPosition.findUniqueOrThrow({
+        where: {
+          productId_locationId: { productId: product.toPrimitives().id, locationId: location.id },
+        },
+      }),
+    ).resolves.toMatchObject({ physicalQuantity: 1, reservedQuantity: 1 });
+    await expect(prisma.inventoryReservation.findFirstOrThrow()).resolves.toMatchObject({
+      activeQuantity: 1,
+      status: 'PARTIALLY_CONSUMED',
+    });
+    await expect(prisma.saleCostAllocation.findFirstOrThrow()).resolves.toMatchObject({
+      reservedRemainingQuantity: 1,
+      reservedRemainingValueCents: 401n,
+    });
+    await expect(prisma.delivery.count()).resolves.toBe(1);
+    await expect(
+      prisma.inventoryMovement.findFirstOrThrow({ where: { deliveryLineId: { not: null } } }),
+    ).resolves.toMatchObject({ type: 'DELIVERY', physicalDelta: -1, reservedDelta: -1 });
+    await expect(saleActivity.findById(draft.sale.toPrimitives().id)).resolves.toMatchObject({
+      lines: [{ deliveryQuantity: 2, activeReservationQuantity: 1 }],
+      deliveries: [{ deliveredBy: actorId, lines: [{ quantity: 1 }] }],
     });
   });
 

@@ -82,6 +82,8 @@ export type ReleaseReservedPositionResult =
     }
   | { readonly ok: false; readonly reason: 'invalid-quantity' | 'insufficient-reserved' };
 
+export type DeliverReservedPositionResult = ReleaseReservedPositionResult;
+
 export class InventoryPosition {
   private constructor(private properties: InventoryPositionProperties) {}
 
@@ -240,6 +242,24 @@ export class InventoryPosition {
     }
     this.properties = {
       ...this.properties,
+      reservedQuantity: before.reservedQuantity - quantity,
+      version: before.version + 1,
+      updatedAt: now,
+    };
+    return { ok: true, before, after: this.snapshot() };
+  }
+
+  deliverReserved(quantity: number, now: Date): DeliverReservedPositionResult {
+    const before = this.snapshot();
+    if (!Number.isSafeInteger(quantity) || quantity <= 0) {
+      return { ok: false, reason: 'invalid-quantity' };
+    }
+    if (quantity > before.reservedQuantity) {
+      return { ok: false, reason: 'insufficient-reserved' };
+    }
+    this.properties = {
+      ...this.properties,
+      physicalQuantity: before.physicalQuantity - quantity,
       reservedQuantity: before.reservedQuantity - quantity,
       version: before.version + 1,
       updatedAt: now,

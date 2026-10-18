@@ -89,6 +89,7 @@ function record(): SaleDetailRecord {
     totalAdjustments: [],
     closure: null,
     returns: [],
+    deliveries: [],
     cancellation: null,
     version: 3,
     confirmedAt: new Date('2026-10-01T14:00:00.000Z'),

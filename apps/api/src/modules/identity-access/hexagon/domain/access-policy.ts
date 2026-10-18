@@ -35,6 +35,8 @@ export const PERMISSIONS = [
   permission('sales:adjust-confirmed', 'sales', 'adjust-confirmed'),
   permission('sales:finalize-with-balance', 'sales', 'finalize-with-balance'),
   permission('sales:cancel', 'sales', 'cancel'),
+  permission('sales:deliver-own', 'sales', 'deliver-own'),
+  permission('sales:deliver-any', 'sales', 'deliver-any'),
   permission('payments:create-own', 'payments', 'create-own'),
   permission('payments:create-any', 'payments', 'create-any'),
   permission('payments:correct', 'payments', 'correct'),
@@ -54,6 +56,7 @@ export const EMPLOYEE_PERMISSION_CODES = [
   'sales:create',
   'sales:read-own',
   'sales:update-own-draft',
+  'sales:deliver-own',
   'payments:create-own',
 ] as const;
 

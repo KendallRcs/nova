@@ -186,6 +186,20 @@ salida, costo ni cobro parcial.
 Dos pagos concurrentes se serializan sobre la venta. El segundo recalcula el saldo
 después de que el primero confirme y se rechaza si ya no cabe.
 
+### Entregar una reserva
+
+1. Bloquear la venta y verificar que permanezca confirmada y en la versión esperada.
+2. Validar autoría, líneas únicas, cantidades positivas y reserva activa suficiente.
+3. Bloquear las posiciones físicas y de costo por producto en orden estable.
+4. Consumir en la misma cantidad la existencia física, la reserva activa y el
+   saldo de costo reservado; el último consumo absorbe cualquier residuo de redondeo.
+5. Crear la entrega, sus líneas y los movimientos inmutables de inventario y costo.
+6. Incrementar la versión de la venta y confirmar todos los efectos juntos.
+
+La entrega no registra pagos ni cambia el total comercial. Dos entregas
+concurrentes sobre la misma venta se serializan; la segunda relee la reserva
+restante antes de decidir.
+
 ### Confirmar una compra
 
 1. Validar el borrador y ordenar los recursos involucrados.

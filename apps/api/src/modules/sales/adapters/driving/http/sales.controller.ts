@@ -31,6 +31,7 @@ import { ListSales } from '../../../hexagon/application/sale-activity';
 import { GetSaleDetail } from '../../../hexagon/application/sale-detail';
 import { ApproveSaleReturn } from '../../../hexagon/application/approve-sale-return';
 import { CancelSale } from '../../../hexagon/application/cancel-sale';
+import { DeliverSale } from '../../../hexagon/application/deliver-sale';
 import {
   AdjustSaleTotal,
   CorrectSalePayment,
@@ -45,6 +46,7 @@ import type {
 import type { SalePaymentResult } from '../../../hexagon/application/sale-payment-book';
 import type { SaleReturnResult } from '../../../hexagon/application/sale-return-book';
 import type { SaleCancellationResult } from '../../../hexagon/application/sale-cancellation-book';
+import type { SaleDeliveryResult } from '../../../hexagon/application/sale-delivery-book';
 import type { Sale } from '../../../hexagon/domain/sale';
 import {
   ConfirmSaleRequest,
@@ -67,6 +69,8 @@ import {
   UpdateSaleDraftRequest,
   CancelSaleRequest,
   SaleCancellationResponse,
+  DeliverSaleRequest,
+  SaleDeliveryResponse,
 } from './sale.dto';
 
 @ApiTags('sales')
@@ -84,6 +88,7 @@ export class SalesController {
     private readonly correctSalePayment: CorrectSalePayment,
     private readonly approveSaleReturn: ApproveSaleReturn,
     private readonly cancelSale: CancelSale,
+    private readonly deliverSale: DeliverSale,
   ) {}
 
   @Get()
@@ -159,6 +164,10 @@ export class SalesController {
       returns: result.sale.returns.map((saleReturn) => ({
         ...saleReturn,
         effectiveAt: saleReturn.effectiveAt.toISOString(),
+      })),
+      deliveries: result.sale.deliveries.map((delivery) => ({
+        ...delivery,
+        effectiveAt: delivery.effectiveAt.toISOString(),
       })),
       cancellation:
         result.sale.cancellation === null
@@ -284,6 +293,36 @@ export class SalesController {
     return {
       ...result.payment,
       effectiveAt: result.payment.effectiveAt.toISOString(),
+      replayed: result.replayed,
+    };
+  }
+
+  @Post(':saleId/deliveries')
+  @HttpCode(200)
+  @RequirePermission('sales:deliver-own')
+  @ApiOperation({ operationId: 'deliverSaleReservation' })
+  @ApiOkResponse({ type: SaleDeliveryResponse })
+  async deliver(
+    @Param('saleId', new ParseUUIDPipe({ version: '7' })) saleId: string,
+    @Headers('idempotency-key') operationId: string | undefined,
+    @Body() body: DeliverSaleRequest,
+    @Req() request: AuthenticatedRequest,
+  ): Promise<SaleDeliveryResponse> {
+    requireIdempotencyKey(operationId);
+    const actor = requireActor(request);
+    const result = await this.deliverSale.execute({
+      operationId,
+      saleId,
+      expectedVersion: body.expectedVersion,
+      actorId: actor.userId,
+      canDeliverAny: actor.permissionCodes.includes('sales:deliver-any'),
+      lines: body.lines,
+    });
+    if (!result.ok) throwDeliveryError(result);
+    return {
+      ...result.delivery,
+      effectiveAt: result.delivery.effectiveAt.toISOString(),
+      lines: [...result.delivery.lines],
       replayed: result.replayed,
     };
   }
@@ -606,6 +645,41 @@ function throwPaymentError(result: Exclude<SalePaymentResult, { ok: true }>): ne
     });
   }
   throw new UnprocessableEntityException({ status: 422, code: 'INVALID_PAYMENT' });
+}
+
+function throwDeliveryError(result: Exclude<SaleDeliveryResult, { ok: true }>): never {
+  if (result.reason === 'sale-not-found' || result.reason === 'sale-line-not-found') {
+    throw new NotFoundException({
+      status: 404,
+      code: result.reason.toUpperCase().replaceAll('-', '_'),
+      ...('saleLineId' in result ? { saleLineId: result.saleLineId } : {}),
+    });
+  }
+  if (result.reason === 'not-owner') {
+    throw new ForbiddenException({ status: 403, code: 'SALE_NOT_OWNED' });
+  }
+  if (
+    result.reason === 'sale-not-deliverable' ||
+    result.reason === 'version-conflict' ||
+    result.reason === 'quantity-exceeds-reserved' ||
+    result.reason === 'cost-unavailable' ||
+    result.reason === 'idempotency-conflict' ||
+    result.reason === 'concurrency-conflict'
+  ) {
+    throw new ConflictException({
+      status: 409,
+      code: result.reason.toUpperCase().replaceAll('-', '_'),
+      ...('saleLineId' in result ? { saleLineId: result.saleLineId } : {}),
+      ...('deliverableQuantity' in result
+        ? { deliverableQuantity: result.deliverableQuantity }
+        : {}),
+    });
+  }
+  throw new UnprocessableEntityException({
+    status: 422,
+    code: result.reason.toUpperCase().replaceAll('-', '_'),
+    ...('saleLineId' in result ? { saleLineId: result.saleLineId } : {}),
+  });
 }
 
 function throwFinancialError(

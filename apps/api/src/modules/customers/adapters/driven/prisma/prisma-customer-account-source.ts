@@ -46,7 +46,13 @@ export class PrismaCustomerAccountSource implements CustomerAccountSource {
         returns: { select: { refundAmountCents: true } },
         cancellation: { select: { refundAmountCents: true } },
         closure: { select: { forgivenAmountCents: true } },
-        lines: { select: { quantity: true, deliveryQuantity: true } },
+        lines: {
+          select: {
+            quantity: true,
+            deliveryQuantity: true,
+            deliveryLines: { select: { quantity: true } },
+          },
+        },
       },
       orderBy: [{ confirmedAt: 'desc' }, { id: 'desc' }],
     });
@@ -76,7 +82,13 @@ type SaleRow = Prisma.SaleGetPayload<{
     returns: { select: { refundAmountCents: true } };
     cancellation: { select: { refundAmountCents: true } };
     closure: { select: { forgivenAmountCents: true } };
-    lines: { select: { quantity: true; deliveryQuantity: true } };
+    lines: {
+      select: {
+        quantity: true;
+        deliveryQuantity: true;
+        deliveryLines: { select: { quantity: true } };
+      };
+    };
   };
 }>;
 
@@ -112,9 +124,10 @@ function toSaleRecord(row: SaleRow): CustomerAccountRecord['sales'][number] {
       .map(({ refundAmountCents }) => safeNumber(refundAmountCents))
       .concat(row.cancellation === null ? [] : [safeNumber(row.cancellation.refundAmountCents)]),
     forgivenAmountCents: row.closure === null ? 0 : safeNumber(row.closure.forgivenAmountCents),
-    lines: row.lines.map(({ quantity, deliveryQuantity }) => ({
+    lines: row.lines.map(({ quantity, deliveryQuantity, deliveryLines }) => ({
       quantity,
-      deliveredQuantity: deliveryQuantity,
+      deliveredQuantity:
+        deliveryQuantity + deliveryLines.reduce((sum, line) => sum + line.quantity, 0),
     })),
     payments,
     confirmedAt: row.confirmedAt,

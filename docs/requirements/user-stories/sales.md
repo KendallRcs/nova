@@ -29,7 +29,9 @@
 - **Estado:** Confirmada
 - **Trazabilidad de implementación:** backend completo al confirmar un borrador:
   bloquea posiciones, entrega y reserva por línea en una transacción idempotente y
-  revierte todo el conjunto si cualquier efecto falla.
+  revierte todo el conjunto si cualquier efecto falla. También permite entregas
+  posteriores parciales o totales sobre reservas activas, conserva su historial y
+  recalcula la situación de entrega sin generar un cobro.
 - **Como** empleado
 - **quiero** indicar por producto y cantidad qué se entrega y qué queda reservado
 - **para** atender operaciones con cumplimiento parcial.
@@ -40,6 +42,21 @@
 - **Dado:** que existe disponibilidad suficiente en las ubicaciones elegidas
 - **Cuando:** confirmo las cantidades a entregar y reservar
 - **Entonces:** las entregadas salen físicamente del inventario y las reservadas reducen solo la disponibilidad.
+
+- **Escenario:** Entrega posterior parcial de una separación
+- **Dado:** que una venta confirmada conserva unidades reservadas para el cliente
+- **Cuando:** el empleado responsable registra la entrega de una parte de esas unidades
+- **Entonces:** disminuyen en la misma cantidad la existencia física, la reserva activa y el costo reservado, y el resto continúa separado.
+
+- **Escenario:** Entrega posterior independiente del pago
+- **Dado:** que una venta confirmada conserva saldo por cobrar y unidades reservadas
+- **Cuando:** registro una entrega válida
+- **Entonces:** se conserva el total y el historial de pagos sin crear un nuevo cobro ni exigir que el saldo esté pagado.
+
+- **Escenario:** Reintento o entrega superior a la reserva
+- **Dado:** que una orden de entrega ya fue aplicada o supera las unidades todavía reservadas
+- **Cuando:** se procesa la solicitud
+- **Entonces:** el mismo `Idempotency-Key` devuelve el resultado original y una orden distinta que exceda la reserva se rechaza sin efectos parciales.
 
 ### User Story SAL-003 — Vender directamente desde el almacén
 
@@ -80,8 +97,9 @@
 - **Trazabilidad de implementación:** backend completo mediante listado paginado con
   cliente canónico, creador, totales, cobrado, saldo, estado de pago, estado de
   entrega y atraso. El detalle operativo expone líneas, instantáneas, reservas,
-  pagos, correcciones, ajustes y cierre; oculta el costo atribuido a quien no tiene
-  capacidad financiera. El alcance del empleado se fuerza a su propia cuenta.
+  entregas posteriores, pagos, correcciones, ajustes y cierre; oculta el costo
+  atribuido a quien no tiene capacidad financiera. El alcance del empleado se
+  fuerza a su propia cuenta.
 - **Como** empleado
 - **quiero** consultar las ventas que registré
 - **para** dar seguimiento a mis operaciones y pagos pendientes.

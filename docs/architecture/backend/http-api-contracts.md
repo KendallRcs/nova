@@ -116,6 +116,7 @@ POST   /api/v1/sales
 PUT    /api/v1/sales/{saleId}
 POST   /api/v1/sales/{saleId}/confirmation
 POST   /api/v1/sales/{saleId}/payments
+POST   /api/v1/sales/{saleId}/deliveries
 POST   /api/v1/sales/{saleId}/total-adjustments
 POST   /api/v1/sales/{saleId}/closure
 POST   /api/v1/sales/{saleId}/payments/{paymentId}/corrections
@@ -161,6 +162,15 @@ incluye total cobrado, saldo, situación de pago y nueva versión. Un importe su
 al saldo o una versión obsoleta produce `409 Conflict`; repetir exactamente el mismo
 comando devuelve el primer resultado sin duplicar pago ni caja.
 
+`POST /sales/{saleId}/deliveries` requiere `Idempotency-Key`, `expectedVersion` y
+una o más líneas con `saleLineId` y cantidad positiva. Solo consume unidades que
+continúan reservadas en la ubicación original de la línea. El empleado puede
+entregar sus propias ventas mediante `sales:deliver-own`; una cuenta con
+`sales:deliver-any` puede operar cualquier venta. La operación reduce existencia
+física, reserva activa y costo reservado de forma atómica, incrementa la versión y
+no crea pagos ni modifica el total comercial. Un reintento exacto devuelve la
+entrega original y una cantidad superior a la reserva vigente produce `409`.
+
 `GET /sales` devuelve una página de actividad comercial ordenada por actualización.
 Cada elemento contiene creador, cliente canónico e identidad histórica, totales,
 cobro, saldo, situación de pago, situación de entrega, vencimiento y etiqueta de
@@ -171,7 +181,7 @@ la fecha de atraso se calcula en `America/Lima` sin persistir una transición.
 
 `GET /sales/{saleId}` devuelve la vista operativa de una venta: cabecera, cliente
 canónico e histórico, creador, líneas e instantáneas, cumplimiento, pagos con sus
-correcciones, ajustes del total, devoluciones, cierre y cancelación. El empleado
+correcciones, entregas posteriores, ajustes del total, devoluciones, cierre y cancelación. El empleado
 solo consulta ventas propias; el administrador puede consultar cualquiera. El
 costo atribuido de líneas, devoluciones y cancelaciones se entrega únicamente con
 capacidad financiera.

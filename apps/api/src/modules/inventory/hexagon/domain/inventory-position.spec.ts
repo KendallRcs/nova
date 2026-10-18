@@ -120,6 +120,21 @@ describe('InventoryPosition', () => {
       reason: 'insufficient-reserved',
     });
   });
+
+  it('delivers reserved units by reducing physical and reserved stock together', () => {
+    const inventory = position('store', 5, 3, 0);
+    expect(inventory.deliverReserved(2, now)).toMatchObject({ ok: true });
+    expect(inventory.snapshot()).toMatchObject({
+      physicalQuantity: 3,
+      reservedQuantity: 1,
+      availableQuantity: 2,
+      version: 2,
+    });
+    expect(inventory.deliverReserved(2, now)).toEqual({
+      ok: false,
+      reason: 'insufficient-reserved',
+    });
+  });
 });
 
 function position(

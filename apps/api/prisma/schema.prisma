@@ -217,6 +217,7 @@ model UserAccount {
   registeredRefunds    ReturnRefund[]
   saleCancellations    SaleCancellation[]
   cancellationRefunds  SaleCancellationRefund[]
+  deliveries           Delivery[]
 
   @@index([profileId, status], map: "idx_user_accounts_profile_status")
   @@map("user_accounts")
@@ -379,6 +380,7 @@ model Location {
   inventoryReservations InventoryReservation[]
   returnLines           ReturnLine[]
   cancellationLines     SaleCancellationLine[]
+  deliveryLines         DeliveryLine[]
 
   @@index([status, name], map: "idx_locations_status_name")
   @@map("locations")
@@ -411,6 +413,7 @@ model Sale {
   closure                 SaleClosure?
   returns                 SaleReturn[]
   cancellation            SaleCancellation?
+  deliveries              Delivery[]
 
   @@index([createdBy, lifecycleStatus, updatedAt(sort: Desc), id(sort: Desc)], map: "idx_sales_creator_status_date")
   @@index([customerId, confirmedAt(sort: Desc), id(sort: Desc)], map: "idx_sales_customer_date")
@@ -668,11 +671,48 @@ model SaleLine {
   costAllocations             SaleCostAllocation[]
   returnLines                 ReturnLine[]
   cancellationLines           SaleCancellationLine[]
+  deliveryLines               DeliveryLine[]
 
   @@unique([saleId, productId], map: "uq_sale_lines_sale_product")
   @@index([productId, saleId], map: "idx_sale_lines_product_sale")
   @@index([locationId, saleId], map: "idx_sale_lines_location_sale")
   @@map("sale_lines")
+}
+
+model Delivery {
+  id                        String         @id @db.Uuid
+  saleId                    String         @map("sale_id") @db.Uuid
+  operationId               String         @unique(map: "uq_deliveries_operation") @map("operation_id") @db.Uuid
+  requestFingerprint        String         @map("request_fingerprint")
+  deliveredBy               String         @map("delivered_by") @db.Uuid
+  effectiveAt               DateTime       @map("effective_at") @db.Timestamptz(3)
+  resultingSaleVersion      Int            @map("resulting_sale_version")
+  remainingReservedQuantity Int            @map("remaining_reserved_quantity")
+  sale                      Sale           @relation(fields: [saleId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_deliveries_sale")
+  actor                     UserAccount    @relation(fields: [deliveredBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_deliveries_actor")
+  lines                     DeliveryLine[]
+
+  @@index([saleId, effectiveAt, id], map: "idx_deliveries_sale_date")
+  @@index([deliveredBy, effectiveAt(sort: Desc), id(sort: Desc)], map: "idx_deliveries_actor_date")
+  @@map("deliveries")
+}
+
+model DeliveryLine {
+  id                 String              @id @db.Uuid
+  deliveryId         String              @map("delivery_id") @db.Uuid
+  saleLineId         String              @map("sale_line_id") @db.Uuid
+  locationId         String              @map("location_id") @db.Uuid
+  quantity           Int
+  consumedCostCents  BigInt              @map("consumed_cost_cents")
+  delivery           Delivery            @relation(fields: [deliveryId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_delivery_lines_delivery")
+  saleLine           SaleLine            @relation(fields: [saleLineId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_delivery_lines_sale_line")
+  location           Location            @relation(fields: [locationId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_delivery_lines_location")
+  inventoryMovements InventoryMovement[]
+
+  @@unique([deliveryId, saleLineId], map: "uq_delivery_lines_delivery_sale_line")
+  @@index([saleLineId], map: "idx_delivery_lines_sale_line")
+  @@index([locationId], map: "idx_delivery_lines_location")
+  @@map("delivery_lines")
 }
 
 model InventoryPosition {
@@ -733,6 +773,7 @@ model InventoryMovement {
   saleLineId                String?                          @map("sale_line_id") @db.Uuid
   returnLineId              String?                          @map("return_line_id") @db.Uuid
   cancellationLineId        String?                          @map("cancellation_line_id") @db.Uuid
+  deliveryLineId            String?                          @map("delivery_line_id") @db.Uuid
   operationId               String?                          @unique(map: "uq_inventory_movements_operation") @map("operation_id") @db.Uuid
   expectedPositionVersion   Int?                             @map("expected_position_version")
   administrativeCategory    InventoryAdministrativeCategory? @map("administrative_category")
@@ -743,6 +784,7 @@ model InventoryMovement {
   saleLine                  SaleLine?                        @relation(fields: [saleLineId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_inventory_movements_sale_line")
   returnLine                ReturnLine?                      @relation(fields: [returnLineId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_inventory_movements_return_line")
   cancellationLine          SaleCancellationLine?            @relation(fields: [cancellationLineId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_inventory_movements_cancellation_line")
+  deliveryLine              DeliveryLine?                    @relation(fields: [deliveryLineId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_inventory_movements_delivery_line")
   costMovement              CostMovement?
 
   @@index([productId, locationId, effectiveAt(sort: Desc), id(sort: Desc)], map: "idx_inventory_movements_product_location_date")
@@ -750,6 +792,7 @@ model InventoryMovement {
   @@index([saleLineId, effectiveAt, id], map: "idx_inventory_movements_sale_line_date")
   @@index([returnLineId, effectiveAt, id], map: "idx_inventory_movements_return_line_date")
   @@index([cancellationLineId, effectiveAt, id], map: "idx_inventory_movements_cancellation_line_date")
+  @@index([deliveryLineId, effectiveAt, id], map: "idx_inventory_movements_delivery_line_date")
   @@map("inventory_movements")
 }
 

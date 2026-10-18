@@ -8,6 +8,7 @@ import { PrismaSaleActivitySource } from './adapters/driven/prisma/prisma-sale-a
 import { PrismaSaleFinancialBook } from './adapters/driven/prisma/prisma-sale-financial-book';
 import { PrismaSaleReturnBook } from './adapters/driven/prisma/prisma-sale-return-book';
 import { PrismaSaleCancellationBook } from './adapters/driven/prisma/prisma-sale-cancellation-book';
+import { PrismaSaleDeliveryBook } from './adapters/driven/prisma/prisma-sale-delivery-book';
 import {
   SystemSaleClock,
   UuidV7SaleIdGenerator,
@@ -24,6 +25,8 @@ import { ApproveSaleReturn } from './hexagon/application/approve-sale-return';
 import type { SaleReturnBook } from './hexagon/application/sale-return-book';
 import { CancelSale } from './hexagon/application/cancel-sale';
 import type { SaleCancellationBook } from './hexagon/application/sale-cancellation-book';
+import { DeliverSale } from './hexagon/application/deliver-sale';
+import type { SaleDeliveryBook } from './hexagon/application/sale-delivery-book';
 import {
   AdjustSaleTotal,
   CorrectSalePayment,
@@ -50,6 +53,7 @@ const SALE_CLOSURE_BOOK = Symbol('SALE_CLOSURE_BOOK');
 const PAYMENT_CORRECTION_BOOK = Symbol('PAYMENT_CORRECTION_BOOK');
 const SALE_RETURN_BOOK = Symbol('SALE_RETURN_BOOK');
 const SALE_CANCELLATION_BOOK = Symbol('SALE_CANCELLATION_BOOK');
+const SALE_DELIVERY_BOOK = Symbol('SALE_DELIVERY_BOOK');
 
 @Module({
   controllers: [SalesController],
@@ -62,6 +66,7 @@ const SALE_CANCELLATION_BOOK = Symbol('SALE_CANCELLATION_BOOK');
     PrismaSaleFinancialBook,
     PrismaSaleReturnBook,
     PrismaSaleCancellationBook,
+    PrismaSaleDeliveryBook,
     SystemSaleClock,
     UuidV7SaleIdGenerator,
     { provide: SALE_DRAFT_REPOSITORY, useExisting: PrismaSaleDraftRepository },
@@ -75,6 +80,7 @@ const SALE_CANCELLATION_BOOK = Symbol('SALE_CANCELLATION_BOOK');
     { provide: PAYMENT_CORRECTION_BOOK, useExisting: PrismaSaleFinancialBook },
     { provide: SALE_RETURN_BOOK, useExisting: PrismaSaleReturnBook },
     { provide: SALE_CANCELLATION_BOOK, useExisting: PrismaSaleCancellationBook },
+    { provide: SALE_DELIVERY_BOOK, useExisting: PrismaSaleDeliveryBook },
     {
       provide: CreateSaleDraft,
       inject: [
@@ -157,6 +163,11 @@ const SALE_CANCELLATION_BOOK = Symbol('SALE_CANCELLATION_BOOK');
       inject: [SALE_CANCELLATION_BOOK, SystemSaleClock],
       useFactory: (book: SaleCancellationBook, clock: SystemSaleClock) =>
         new CancelSale(book, clock),
+    },
+    {
+      provide: DeliverSale,
+      inject: [SALE_DELIVERY_BOOK, SystemSaleClock],
+      useFactory: (book: SaleDeliveryBook, clock: SystemSaleClock) => new DeliverSale(book, clock),
     },
   ],
 })

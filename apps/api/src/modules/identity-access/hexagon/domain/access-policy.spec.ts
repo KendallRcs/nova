@@ -13,6 +13,8 @@ describe('initial access policy', () => {
 
   it('limits the employee to confirmed operational capabilities', () => {
     expect(EMPLOYEE_PERMISSION_CODES).toContain('sales:create');
+    expect(EMPLOYEE_PERMISSION_CODES).toContain('sales:deliver-own');
+    expect(EMPLOYEE_PERMISSION_CODES).not.toContain('sales:deliver-any');
     expect(EMPLOYEE_PERMISSION_CODES).toContain('payments:create-own');
     expect(EMPLOYEE_PERMISSION_CODES).not.toContain('catalog:manage');
     expect(EMPLOYEE_PERMISSION_CODES).not.toContain('inventory:adjust');

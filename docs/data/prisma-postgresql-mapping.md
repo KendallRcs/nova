@@ -148,8 +148,8 @@ que exista un repositorio por modelo.
 | `SaleTotalAdjustment` | `sale_total_adjustments` | venta, razón y actor requeridos |
 | `Payment` | `payments` | una venta, importe/método/registrador |
 | `PaymentCorrection` | `payment_corrections` | pago original y actor administrativo |
-| `Delivery` | `deliveries` | venta y responsable |
-| `DeliveryLine` | `delivery_lines` | entrega, línea de la misma venta y ubicación |
+| `Delivery` | `deliveries` | venta, operación idempotente, responsable, versión y reserva restante |
+| `DeliveryLine` | `delivery_lines` | entrega, línea de la misma venta, ubicación, cantidad y costo consumido |
 | `SaleReturn` | `returns` | venta, operación idempotente, razón, efecto monetario y aprobador |
 | `ReturnLine` | `return_lines` | devolución, línea, decisión física y costo |
 | `ReturnRefund` | `return_refunds` | `returnId` único: relación 0:1 |

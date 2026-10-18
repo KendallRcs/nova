@@ -43,6 +43,7 @@ export interface SaleProperties {
   totalAdjustments: readonly SaleTotalAdjustmentProperties[];
   closure: SaleClosureProperties | null;
   returns: readonly SaleReturnProperties[];
+  deliveries: readonly SaleDeliveryProperties[];
   cancellation: SaleCancellationProperties | null;
   version: number;
   confirmedAt: Date | null;
@@ -100,6 +101,21 @@ export interface SaleReturnProperties {
   approvedBy: string;
   effectiveAt: Date;
   lines: readonly SaleReturnLineProperties[];
+}
+
+export interface SaleDeliveryLineProperties {
+  id: string;
+  saleLineId: string;
+  locationId: string;
+  quantity: number;
+  consumedCostCents: number;
+}
+
+export interface SaleDeliveryProperties {
+  id: string;
+  deliveredBy: string;
+  effectiveAt: Date;
+  lines: readonly SaleDeliveryLineProperties[];
 }
 
 export interface SaleCancellationLineProperties {
@@ -278,6 +294,27 @@ export type CancelSaleResult =
       readonly paidCents?: number;
     };
 
+export type DeliverSaleResult =
+  | {
+      readonly ok: true;
+      readonly deliveredQuantity: number;
+      readonly remainingReservedQuantity: number;
+    }
+  | {
+      readonly ok: false;
+      readonly reason:
+        | 'sale-not-deliverable'
+        | 'not-owner'
+        | 'empty-delivery'
+        | 'duplicate-line'
+        | 'sale-line-not-found'
+        | 'invalid-quantity'
+        | 'quantity-exceeds-reserved'
+        | 'invalid-cost';
+      readonly saleLineId?: string;
+      readonly deliverableQuantity?: number;
+    };
+
 export class Sale {
   private constructor(private properties: SaleProperties) {}
 
@@ -302,6 +339,7 @@ export class Sale {
       totalAdjustments: [],
       closure: null,
       returns: [],
+      deliveries: [],
       cancellation: null,
       version: 1,
       confirmedAt: null,
@@ -322,6 +360,10 @@ export class Sale {
       returns: properties.returns.map((saleReturn) => ({
         ...saleReturn,
         lines: saleReturn.lines.map((line) => ({ ...line })),
+      })),
+      deliveries: properties.deliveries.map((delivery) => ({
+        ...delivery,
+        lines: delivery.lines.map((line) => ({ ...line })),
       })),
       cancellation:
         properties.cancellation === null
@@ -641,7 +683,7 @@ export class Sale {
       const previouslyReturnedQuantity = previousLines
         .filter(({ saleLineId }) => saleLineId === requested.saleLineId)
         .reduce((sum, line) => sum + line.quantity, 0);
-      const returnableQuantity = saleLine.deliveryQuantity - previouslyReturnedQuantity;
+      const returnableQuantity = this.deliveredQuantity(saleLine.id) - previouslyReturnedQuantity;
       if (requested.quantity > returnableQuantity) {
         return {
           ok: false,
@@ -771,7 +813,7 @@ export class Sale {
       const previouslyReturnedQuantity = previousLines
         .filter(({ saleLineId }) => saleLineId === requested.saleLineId)
         .reduce((sum, line) => sum + line.quantity, 0);
-      const unresolvedDelivered = saleLine.deliveryQuantity - previouslyReturnedQuantity;
+      const unresolvedDelivered = this.deliveredQuantity(saleLine.id) - previouslyReturnedQuantity;
       if (requested.returnedQuantity + requested.notReturnedQuantity !== unresolvedDelivered) {
         return { ok: false, reason: 'invalid-quantity', saleLineId: requested.saleLineId };
       }
@@ -861,6 +903,70 @@ export class Sale {
     );
   }
 
+  deliver(input: {
+    delivery: SaleDeliveryProperties;
+    actorId: string;
+    canDeliverAny: boolean;
+    now: Date;
+  }): DeliverSaleResult {
+    if (this.properties.lifecycle !== 'confirmed') {
+      return { ok: false, reason: 'sale-not-deliverable' };
+    }
+    if (this.properties.createdBy !== input.actorId && !input.canDeliverAny) {
+      return { ok: false, reason: 'not-owner' };
+    }
+    if (input.delivery.lines.length === 0) return { ok: false, reason: 'empty-delivery' };
+    const seen = new Set<string>();
+    let deliveredQuantity = 0;
+    for (const requested of input.delivery.lines) {
+      if (seen.has(requested.saleLineId)) {
+        return { ok: false, reason: 'duplicate-line', saleLineId: requested.saleLineId };
+      }
+      seen.add(requested.saleLineId);
+      const saleLine = this.properties.lines.find(({ id }) => id === requested.saleLineId);
+      if (saleLine === undefined) {
+        return { ok: false, reason: 'sale-line-not-found', saleLineId: requested.saleLineId };
+      }
+      if (!Number.isSafeInteger(requested.quantity) || requested.quantity <= 0) {
+        return { ok: false, reason: 'invalid-quantity', saleLineId: requested.saleLineId };
+      }
+      if (!Number.isSafeInteger(requested.consumedCostCents) || requested.consumedCostCents < 0) {
+        return { ok: false, reason: 'invalid-cost', saleLineId: requested.saleLineId };
+      }
+      const previouslyDelivered = this.properties.deliveries
+        .flatMap((delivery) => delivery.lines)
+        .filter(({ saleLineId }) => saleLineId === requested.saleLineId)
+        .reduce((sum, line) => sum + line.quantity, 0);
+      const deliverableQuantity = saleLine.reservationQuantity - previouslyDelivered;
+      if (requested.quantity > deliverableQuantity) {
+        return {
+          ok: false,
+          reason: 'quantity-exceeds-reserved',
+          saleLineId: requested.saleLineId,
+          deliverableQuantity,
+        };
+      }
+      if (requested.locationId !== saleLine.locationId) {
+        return { ok: false, reason: 'sale-line-not-found', saleLineId: requested.saleLineId };
+      }
+      deliveredQuantity += requested.quantity;
+    }
+    this.properties = {
+      ...this.properties,
+      deliveries: [...this.properties.deliveries, input.delivery],
+      version: this.properties.version + 1,
+      updatedAt: input.now,
+    };
+    return {
+      ok: true,
+      deliveredQuantity,
+      remainingReservedQuantity: this.properties.lines.reduce(
+        (sum, line) => sum + line.reservationQuantity - this.laterDeliveredQuantity(line.id),
+        0,
+      ),
+    };
+  }
+
   netPaidCents(): number {
     const payments = this.properties.payments.reduce(
       (sum, payment) => sum + payment.amountCents - payment.correctedCents,
@@ -902,6 +1008,10 @@ export class Sale {
         ...saleReturn,
         lines: saleReturn.lines.map((line) => ({ ...line })),
       })),
+      deliveries: this.properties.deliveries.map((delivery) => ({
+        ...delivery,
+        lines: delivery.lines.map((line) => ({ ...line })),
+      })),
       cancellation:
         this.properties.cancellation === null
           ? null
@@ -910,6 +1020,18 @@ export class Sale {
               lines: this.properties.cancellation.lines.map((line) => ({ ...line })),
             },
     };
+  }
+
+  private laterDeliveredQuantity(saleLineId: string): number {
+    return this.properties.deliveries
+      .flatMap((delivery) => delivery.lines)
+      .filter((line) => line.saleLineId === saleLineId)
+      .reduce((sum, line) => sum + line.quantity, 0);
+  }
+
+  private deliveredQuantity(saleLineId: string): number {
+    const line = this.properties.lines.find(({ id }) => id === saleLineId);
+    return (line?.deliveryQuantity ?? 0) + this.laterDeliveredQuantity(saleLineId);
   }
 }
 

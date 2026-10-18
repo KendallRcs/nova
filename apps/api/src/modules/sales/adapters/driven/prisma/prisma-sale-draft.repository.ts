@@ -18,6 +18,7 @@ export class PrismaSaleDraftRepository implements SaleDraftRepository {
         totalAdjustments: true,
         closure: true,
         returns: { include: { lines: true, refund: true } },
+        deliveries: { include: { lines: true } },
         cancellation: { include: { lines: true, refund: true } },
       },
     });
@@ -82,6 +83,7 @@ type SaleRow = Prisma.SaleGetPayload<{
     totalAdjustments: true;
     closure: true;
     returns: { include: { lines: true; refund: true } };
+    deliveries: { include: { lines: true } };
     cancellation: { include: { lines: true; refund: true } };
   };
 }>;
@@ -192,6 +194,18 @@ export function toSaleDomain(row: SaleRow): Sale {
         condition:
           line.condition === null ? null : line.condition === 'AVAILABLE' ? 'available' : 'review',
         attributedCostCents: safeSaleNumber(line.attributedCostCents),
+      })),
+    })),
+    deliveries: row.deliveries.map((delivery) => ({
+      id: delivery.id,
+      deliveredBy: delivery.deliveredBy,
+      effectiveAt: delivery.effectiveAt,
+      lines: delivery.lines.map((line) => ({
+        id: line.id,
+        saleLineId: line.saleLineId,
+        locationId: line.locationId,
+        quantity: line.quantity,
+        consumedCostCents: safeSaleNumber(line.consumedCostCents),
       })),
     })),
     cancellation:

@@ -45,6 +45,7 @@ export class PrismaSaleConfirmationBook implements SaleConfirmationBook {
               totalAdjustments: true,
               closure: true,
               returns: { include: { lines: true, refund: true } },
+              deliveries: { include: { lines: true } },
               cancellation: { include: { lines: true, refund: true } },
             },
           });

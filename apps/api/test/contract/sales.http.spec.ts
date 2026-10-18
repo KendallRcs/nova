@@ -18,6 +18,7 @@ import { ListSales } from '../../src/modules/sales/hexagon/application/sale-acti
 import { GetSaleDetail } from '../../src/modules/sales/hexagon/application/sale-detail';
 import { ApproveSaleReturn } from '../../src/modules/sales/hexagon/application/approve-sale-return';
 import { CancelSale } from '../../src/modules/sales/hexagon/application/cancel-sale';
+import { DeliverSale } from '../../src/modules/sales/hexagon/application/deliver-sale';
 import {
   AdjustSaleTotal,
   CorrectSalePayment,
@@ -94,6 +95,35 @@ describe('Sales HTTP contract', () => {
           },
         },
         {
+          provide: DeliverSale,
+          useValue: {
+            execute: (command: {
+              operationId: string;
+              saleId: string;
+              lines: { saleLineId: string; quantity: number }[];
+            }) =>
+              Promise.resolve({
+                ok: true,
+                replayed: false,
+                delivery: {
+                  deliveryId: '0199ef04-1b00-7000-8000-00000000008a',
+                  operationId: command.operationId,
+                  saleId: command.saleId,
+                  saleVersion: 3,
+                  deliveredQuantity: 1,
+                  remainingReservedQuantity: 0,
+                  deliveredBy: ACTOR_ID,
+                  effectiveAt: new Date('2026-09-16T14:00:00.000Z'),
+                  lines: command.lines.map((line) => ({
+                    ...line,
+                    locationId: LOCATION_ID,
+                    consumedCostCents: 500,
+                  })),
+                },
+              }),
+          },
+        },
+        {
           provide: ListSales,
           useValue: {
             execute: () =>
@@ -148,6 +178,7 @@ describe('Sales HTTP contract', () => {
                   payments: [],
                   totalAdjustments: [],
                   returns: [],
+                  deliveries: [],
                   cancellation: null,
                   closure: null,
                   version: 3,
@@ -298,7 +329,7 @@ describe('Sales HTTP contract', () => {
         userId: ACTOR_ID,
         username: 'employee',
         securityVersion: 1,
-        permissionCodes: ['sales:create', 'sales:update-own-draft'],
+        permissionCodes: ['sales:create', 'sales:update-own-draft', 'sales:deliver-own'],
         requiresPasswordChange: false,
       };
       next();
@@ -403,6 +434,22 @@ describe('Sales HTTP contract', () => {
       amountCents: 1_000,
       method: 'yape',
       balanceCents: 2_000,
+      replayed: false,
+    });
+  });
+
+  it('delivers reserved units through an idempotent sale command', async () => {
+    const response = await request(httpServer)
+      .post(`/api/v1/sales/${SALE_ID}/deliveries`)
+      .set('Idempotency-Key', '0199ef04-1b00-7000-8000-000000000089')
+      .send({ expectedVersion: 2, lines: [{ saleLineId: LINE_ID, quantity: 1 }] })
+      .expect(200);
+    expect(response.body).toMatchObject({
+      saleId: SALE_ID,
+      saleVersion: 3,
+      deliveredQuantity: 1,
+      remainingReservedQuantity: 0,
+      lines: [{ saleLineId: LINE_ID, quantity: 1, consumedCostCents: 500 }],
       replayed: false,
     });
   });

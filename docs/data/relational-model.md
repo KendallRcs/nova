@@ -106,6 +106,11 @@ Reglas estructurales importantes:
 | `cost_movements` | product_id, tipo, cantidad, valor, saldos anterior/resultante, política de costeo, effective_at y referencia origen | Libro inmutable de variaciones del valor de inventario. |
 | `sale_cost_allocations` | sale_line_id, cantidad, costo total congelado, reserved_remaining_quantity/value, costing_policy | Una o más asignaciones de costo pertenecen a una línea. El costo comercial no cambia al entregar una reserva. |
 
+Las entregas posteriores se registran en `deliveries` y `delivery_lines` con clave
+idempotente, actor, fecha, versión resultante, línea, ubicación, cantidad y costo
+reservado consumido. Cada movimiento de inventario causal referencia su línea de
+entrega; el total y el costo atribuido original de la venta permanecen inmutables.
+
 `inventory_positions` permite bloquear y actualizar una fila concreta durante una
 operación concurrente. Debe reconciliarse con `inventory_movements`; no reemplaza
 el libro histórico. De igual forma, `product_cost_positions` se reconcilia con

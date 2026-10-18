@@ -101,7 +101,9 @@
 - **Estado:** Confirmada
 - **Trazabilidad de implementación:** backend completo desde la confirmación de
   venta, con reserva identificable, movimiento inmutable, costo reservado y
-  actualización atómica de disponibilidad.
+  actualización atómica de disponibilidad. La entrega posterior consume parcial o
+  totalmente la reserva activa, la existencia física y su valor histórico exacto
+  en una sola transacción.
 - **Como** empleado
 - **quiero** reservar unidades de una venta para un cliente
 - **para** evitar que se ofrezcan mientras permanecen en tienda o almacén.
@@ -112,6 +114,11 @@
 - **Dado:** que la ubicación elegida posee cantidad disponible suficiente
 - **Cuando:** confirmo la reserva de la línea de venta
 - **Entonces:** aumenta la cantidad reservada y disminuye la disponible sin cambiar la existencia física.
+
+- **Escenario:** Consumo parcial de una reserva al entregar
+- **Dado:** que una línea conserva varias unidades reservadas en una ubicación
+- **Cuando:** se entrega solo una parte al cliente
+- **Entonces:** la reserva queda parcialmente consumida, disminuye la existencia física y las unidades restantes continúan no disponibles para otra venta.
 
 ### User Story INV-006 — Liberar inventario de una reserva cancelada
 

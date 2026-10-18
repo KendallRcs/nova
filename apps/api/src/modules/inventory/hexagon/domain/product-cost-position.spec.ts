@@ -86,6 +86,22 @@ describe('ProductCostPosition', () => {
       version: 2,
     });
   });
+
+  it('consumes the exact historical value when reserved units are delivered', () => {
+    const cost = ProductCostPosition.restore({
+      ...position(2, 500).snapshot(),
+      reservedQuantity: 2,
+      reservedValueCents: 510,
+    });
+    expect(cost.removeReserved(1, 255, now)).toMatchObject({ ok: true });
+    expect(cost.snapshot()).toMatchObject({
+      availableQuantity: 2,
+      availableValueCents: 500,
+      reservedQuantity: 1,
+      reservedValueCents: 255,
+      version: 2,
+    });
+  });
 });
 
 function position(availableQuantity: number, availableValueCents: number): ProductCostPosition {

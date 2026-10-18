@@ -74,6 +74,8 @@ export type ReleaseReservedCostResult =
       readonly reason: 'invalid-quantity' | 'invalid-cost' | 'insufficient-reserved';
     };
 
+export type RemoveReservedCostResult = ReleaseReservedCostResult;
+
 export class ProductCostPosition {
   private constructor(private properties: ProductCostPositionProperties) {}
 
@@ -236,6 +238,27 @@ export class ProductCostPosition {
       ...this.properties,
       availableQuantity: before.availableQuantity + quantity,
       availableValueCents: before.availableValueCents + valueCents,
+      reservedQuantity: before.reservedQuantity - quantity,
+      reservedValueCents: before.reservedValueCents - valueCents,
+      version: before.version + 1,
+      updatedAt: now,
+    };
+    return { ok: true, before, after: this.snapshot() };
+  }
+
+  removeReserved(quantity: number, valueCents: number, now: Date): RemoveReservedCostResult {
+    const before = this.snapshot();
+    if (!Number.isSafeInteger(quantity) || quantity <= 0) {
+      return { ok: false, reason: 'invalid-quantity' };
+    }
+    if (!Number.isSafeInteger(valueCents) || valueCents < 0) {
+      return { ok: false, reason: 'invalid-cost' };
+    }
+    if (quantity > before.reservedQuantity || valueCents > before.reservedValueCents) {
+      return { ok: false, reason: 'insufficient-reserved' };
+    }
+    this.properties = {
+      ...this.properties,
       reservedQuantity: before.reservedQuantity - quantity,
       reservedValueCents: before.reservedValueCents - valueCents,
       version: before.version + 1,

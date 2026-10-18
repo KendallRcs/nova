@@ -68,6 +68,19 @@ export interface SaleDetailRecord extends Omit<SaleActivityRecord, 'lines'> {
       readonly attributedCostCents: number | null;
     }[];
   }[];
+  readonly deliveries: readonly {
+    readonly id: string;
+    readonly deliveredBy: string;
+    readonly actorUsername: string;
+    readonly effectiveAt: Date;
+    readonly lines: readonly {
+      readonly id: string;
+      readonly saleLineId: string;
+      readonly locationId: string;
+      readonly quantity: number;
+      readonly consumedCostCents: number | null;
+    }[];
+  }[];
   readonly cancellation: {
     readonly id: string;
     readonly reason: string;
@@ -175,6 +188,13 @@ export class GetSaleDetail {
           lines: saleReturn.lines.map((line) => ({
             ...line,
             attributedCostCents: input.canReadCost ? line.attributedCostCents : null,
+          })),
+        })),
+        deliveries: record.deliveries.map((delivery) => ({
+          ...delivery,
+          lines: delivery.lines.map((line) => ({
+            ...line,
+            consumedCostCents: input.canReadCost ? line.consumedCostCents : null,
           })),
         })),
         cancellation:
