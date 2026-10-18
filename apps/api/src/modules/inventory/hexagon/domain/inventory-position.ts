@@ -66,6 +66,14 @@ export type AdjustPositionResult =
       readonly minimumPhysicalQuantity?: number;
     };
 
+export type ReturnPositionResult =
+  | {
+      readonly ok: true;
+      readonly before: InventoryPositionSnapshot;
+      readonly after: InventoryPositionSnapshot;
+    }
+  | { readonly ok: false; readonly reason: 'invalid-quantity' };
+
 export class InventoryPosition {
   private constructor(private properties: InventoryPositionProperties) {}
 
@@ -188,6 +196,26 @@ export class InventoryPosition {
     this.properties = {
       ...this.properties,
       physicalQuantity: before.physicalQuantity - quantity,
+      version: before.version + 1,
+      updatedAt: now,
+    };
+    return { ok: true, before, after: this.snapshot() };
+  }
+
+  receiveReturn(
+    quantity: number,
+    condition: 'available' | 'review',
+    now: Date,
+  ): ReturnPositionResult {
+    const before = this.snapshot();
+    if (!Number.isSafeInteger(quantity) || quantity <= 0) {
+      return { ok: false, reason: 'invalid-quantity' };
+    }
+    this.properties = {
+      ...this.properties,
+      physicalQuantity: before.physicalQuantity + quantity,
+      reviewQuantity:
+        condition === 'review' ? before.reviewQuantity + quantity : before.reviewQuantity,
       version: before.version + 1,
       updatedAt: now,
     };

@@ -95,13 +95,14 @@ Estos valores se derivan de operaciones trazables. Si posteriormente se almacena
 1. Toda devolución tiene razón, aprobador y al menos una línea con cantidad positiva.
 2. Solo se devuelven cantidades de líneas pertenecientes a la misma venta.
 3. La suma devuelta por línea no supera la cantidad previamente entregada y todavía no devuelta.
-4. Toda devolución produce un reembolso trazable.
-5. El reembolso no supera el importe neto efectivamente pagado, atribuible y todavía no reembolsado por las unidades seleccionadas.
+4. Toda devolución reduce el total comercial por el valor de sus unidades.
+5. Solo el exceso positivo del pago neto sobre el nuevo total produce un reembolso trazable.
 6. El método del reembolso representa la salida real y puede diferir del método de los pagos originales.
 7. El retorno físico es opcional e independiente del reembolso.
 8. Si existe retorno, se especifican ubicación y condición; Inventario decide su efecto sobre existencia y disponibilidad.
 
-La regla exacta para atribuir pagos a unidades en devoluciones parciales se concretará en el diseño de cálculos monetarios antes del modelo de datos.
+Los pagos no se atribuyen por línea: pertenecen a la venta y se comparan con el
+total comercial vigente después de la devolución.
 
 ## Invariantes de ciclo de vida
 

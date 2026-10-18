@@ -114,39 +114,45 @@ La política de costeo no se incrustará en repositorios ni controladores. Cada 
 
 Si Nova controla lotes en el futuro, podrá activar FIFO desde una fecha de corte creando una capa de apertura con la cantidad y valor existentes. Las ventas anteriores conservarán su costo promedio histórico y las posteriores utilizarán la nueva política. No se promete reconstruir retrospectivamente lotes que el negocio no identificó.
 
-## 4. Pagos atribuibles en devoluciones parciales
+## 4. Reembolso por exceso pagado en devoluciones
 
 ### Recomendación
 
-Como cada pago pertenece a la venta completa y no a una línea, atribuir el pago neto proporcionalmente al valor comercial neto de las líneas vigentes.
+Como cada pago pertenece a la venta completa y no a una línea, no se atribuyen
+pagos artificialmente por producto. La devolución reduce primero el total
+comercial por el valor de las unidades devueltas y solo reembolsa el exceso pagado.
 
 Ejemplo:
 
 - línea A: S/ 60;
 - línea B: S/ 40;
 - pago neto total: S/ 50;
-- pago atribuible a A: S/ 30;
-- pago atribuible a B: S/ 20.
+- se devuelve B y el nuevo total queda en S/ 60;
+- el saldo pendiente queda en S/ 10 y no existe reembolso.
 
-Si se devuelve B, el reembolso máximo inicial es S/ 20, no S/ 40, porque solo ese importe fue efectivamente pagado y atribuible.
+Si se hubieran pagado S/ 80, el nuevo total continuaría siendo S/ 60 y el
+reembolso sería exactamente S/ 20. Con S/ 100 pagados, sería S/ 40.
 
 ### Reglas
 
-- La atribución se recalcula desde movimientos vigentes; no convierte cada pago en varios pagos.
-- Los céntimos residuales se asignan con una regla determinista y estable.
-- El total atribuido nunca supera el pago neto de la venta.
-- El reembolso acumulado de una unidad nunca supera su pago atribuible.
-- Ajustes del total y devoluciones anteriores forman parte del valor comercial neto usado en el cálculo.
+- `nuevo total = total vigente - valor comercial de las unidades devueltas`.
+- `reembolso = max(0, pago neto - nuevo total)`.
+- `nuevo pago neto = pago neto - reembolso`.
+- `nuevo saldo = max(0, nuevo total - nuevo pago neto - monto condonado)`.
+- Ajustes, correcciones de cobros y devoluciones anteriores forman parte de los
+  valores vigentes usados en el cálculo.
+- El método solo se exige cuando el reembolso calculado es mayor que cero.
 
 ### Alternativas
 
 | Alternativa | Problema |
 | --- | --- |
+| Prorratear pagos entre líneas | Inventa una distribución que el cliente nunca acordó y puede producir un reembolso mientras aún existe saldo |
 | Asignar pagos manualmente por línea | Añade trabajo en cada cobro y contradice el pago único asociado a la venta |
-| Consumir líneas en orden | El resultado depende de un orden artificial que el cliente nunca acordó |
-| Permitir reembolsar el precio completo aunque no esté pagado | Puede devolver más dinero del recibido |
+| Elegir libremente el reembolso | Puede dejar pago neto superior al nuevo total o devolver dinero que corresponde a productos conservados |
 
-La fórmula exacta de redondeo y distribución se acompañará de ejemplos y pruebas antes de implementar devoluciones.
+El valor comercial de unidades parciales usa los precios enteros ya congelados en
+la línea, por lo que no requiere distribuir fracciones de céntimo.
 
 ## 5. Fechas y zona horaria
 

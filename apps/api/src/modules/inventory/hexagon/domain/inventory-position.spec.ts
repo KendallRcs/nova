@@ -83,6 +83,28 @@ describe('InventoryPosition', () => {
       version: 3,
     });
   });
+
+  it('receives a returned unit as available or under review', () => {
+    const available = position('store', 3, 1, 0);
+    expect(available.receiveReturn(2, 'available', now)).toMatchObject({ ok: true });
+    expect(available.snapshot()).toMatchObject({
+      physicalQuantity: 5,
+      reservedQuantity: 1,
+      reviewQuantity: 0,
+      availableQuantity: 4,
+      version: 2,
+    });
+
+    const review = position('warehouse', 3, 1, 0);
+    expect(review.receiveReturn(2, 'review', now)).toMatchObject({ ok: true });
+    expect(review.snapshot()).toMatchObject({
+      physicalQuantity: 5,
+      reservedQuantity: 1,
+      reviewQuantity: 2,
+      availableQuantity: 2,
+      version: 2,
+    });
+  });
 });
 
 function position(

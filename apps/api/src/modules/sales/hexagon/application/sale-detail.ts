@@ -49,6 +49,25 @@ export interface SaleDetailRecord extends Omit<SaleActivityRecord, 'lines'> {
     readonly actorUsername: string;
     readonly effectiveAt: Date;
   } | null;
+  readonly returns: readonly {
+    readonly id: string;
+    readonly reason: string;
+    readonly commercialReductionCents: number;
+    readonly refundAmountCents: number;
+    readonly refundMethod: PaymentMethod | null;
+    readonly approvedBy: string;
+    readonly effectiveAt: Date;
+    readonly lines: readonly {
+      readonly id: string;
+      readonly saleLineId: string;
+      readonly quantity: number;
+      readonly commercialReductionCents: number;
+      readonly productReturns: boolean;
+      readonly returnLocationId: string | null;
+      readonly condition: 'available' | 'review' | null;
+      readonly attributedCostCents: number | null;
+    }[];
+  }[];
   readonly payments: readonly {
     readonly id: string;
     readonly amountCents: number;
@@ -74,7 +93,7 @@ export interface SaleDetailSource {
   findById(saleId: string): Promise<SaleDetailRecord | null>;
 }
 
-export type SaleDetail = Omit<SaleDetailRecord, 'paymentAmountsCents'> &
+export type SaleDetail = Omit<SaleDetailRecord, 'paymentAmountsCents' | 'refundAmountsCents'> &
   SaleTracking & {
     readonly lines: readonly (SaleDetailRecord['lines'][number] & {
       readonly allocatedCostCents: number | null;
@@ -106,6 +125,7 @@ export class GetSaleDetail {
       lifecycle: record.lifecycle,
       currentTotalCents: record.currentTotalCents,
       paymentAmountsCents: record.paymentAmountsCents,
+      refundAmountsCents: record.refundAmountsCents,
       forgivenAmountCents: record.forgivenAmountCents,
       lineQuantities: record.lines.map((line) => ({
         quantity: line.quantity,
@@ -114,8 +134,13 @@ export class GetSaleDetail {
       dueDate: record.dueDate,
       todayInLima: limaCivilDate(this.clock.now()),
     });
-    const { paymentAmountsCents: _paymentAmountsCents, ...detail } = record;
+    const {
+      paymentAmountsCents: _paymentAmountsCents,
+      refundAmountsCents: _refundAmountsCents,
+      ...detail
+    } = record;
     void _paymentAmountsCents;
+    void _refundAmountsCents;
     return {
       ok: true,
       sale: {
@@ -124,6 +149,13 @@ export class GetSaleDetail {
         lines: record.lines.map((line) => ({
           ...line,
           allocatedCostCents: input.canReadCost ? line.allocatedCostCents : null,
+        })),
+        returns: record.returns.map((saleReturn) => ({
+          ...saleReturn,
+          lines: saleReturn.lines.map((line) => ({
+            ...line,
+            attributedCostCents: input.canReadCost ? line.attributedCostCents : null,
+          })),
         })),
       },
     };

@@ -118,8 +118,8 @@ POST   /api/v1/sales/{saleId}/payments
 POST   /api/v1/sales/{saleId}/total-adjustments
 POST   /api/v1/sales/{saleId}/closure
 POST   /api/v1/sales/{saleId}/payments/{paymentId}/corrections
+POST   /api/v1/sales/{saleId}/returns
 POST   /api/v1/sales/{saleId}/cancellations
-POST   /api/v1/returns
 ```
 
 Las bajas y ajustes requieren `Idempotency-Key`. El ajuste envía además
@@ -163,9 +163,9 @@ la fecha de atraso se calcula en `America/Lima` sin persistir una transición.
 
 `GET /sales/{saleId}` devuelve la vista operativa de una venta: cabecera, cliente
 canónico e histórico, creador, líneas e instantáneas, cumplimiento, pagos con sus
-correcciones, ajustes del total y cierre. El empleado solo consulta ventas propias;
-el administrador puede consultar cualquiera. El costo atribuido de las líneas se
-entrega únicamente con capacidad financiera.
+correcciones, ajustes del total, devoluciones y cierre. El empleado solo consulta
+ventas propias; el administrador puede consultar cualquiera. El costo atribuido de
+líneas y devoluciones se entrega únicamente con capacidad financiera.
 
 `POST /sales/{saleId}/total-adjustments` requiere permiso administrativo,
 `Idempotency-Key`, `expectedVersion`, el nuevo total y una razón. No modifica el
@@ -180,6 +180,14 @@ método; la suma de correcciones no puede exceder el pago.
 `Idempotency-Key` y `expectedVersion`. Si existe saldo, la razón es obligatoria y
 el saldo se registra como condonado; si no existe, el cierre queda completo. En
 ambos casos la venta pasa a `finalized` y ya no acepta cobros ni ajustes.
+
+`POST /sales/{saleId}/returns` requiere permiso administrativo,
+`Idempotency-Key`, `expectedVersion`, razón y al menos una línea con cantidad. La
+operación reduce el total vigente y calcula el reembolso exclusivamente como el
+exceso positivo del pago neto sobre el nuevo total; el método se exige solo si hay
+reembolso. Cada línea declara de forma independiente si el producto retorna y, en
+ese caso, su ubicación y condición `available` o `review`. Devolución, eventual
+salida de caja, inventario, costo histórico y versión se confirman atómicamente.
 
 Esto no confirma aún el inventario completo de endpoints. Cada módulo definirá sus
 operaciones a partir de capacidades e historias, no mediante la exposición

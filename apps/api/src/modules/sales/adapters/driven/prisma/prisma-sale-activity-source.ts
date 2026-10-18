@@ -50,6 +50,7 @@ export class PrismaSaleActivitySource implements SaleActivitySource, SaleDetailS
         payments: {
           select: { amountCents: true, corrections: { select: { amountCents: true } } },
         },
+        returns: { select: { refundAmountCents: true } },
         closure: { select: { forgivenAmountCents: true } },
         lines: { select: { quantity: true, deliveryQuantity: true } },
       },
@@ -88,6 +89,10 @@ export class PrismaSaleActivitySource implements SaleActivitySource, SaleDetailS
           include: { actor: { select: { usernameNormalized: true } } },
           orderBy: [{ effectiveAt: 'asc' }, { id: 'asc' }],
         },
+        returns: {
+          include: { lines: true, refund: true },
+          orderBy: [{ effectiveAt: 'asc' }, { id: 'asc' }],
+        },
         closure: { include: { actor: { select: { usernameNormalized: true } } } },
       },
     });
@@ -123,6 +128,7 @@ type DetailRow = Prisma.SaleGetPayload<{
       };
     };
     totalAdjustments: { include: { actor: { select: { usernameNormalized: true } } } };
+    returns: { include: { lines: true; refund: true } };
     closure: { include: { actor: { select: { usernameNormalized: true } } } };
   };
 }>;
@@ -151,6 +157,9 @@ function toDetailRecord(row: DetailRow): SaleDetailRecord {
       ({ amountCents, corrections }) =>
         safeSaleNumber(amountCents) -
         corrections.reduce((sum, correction) => sum + safeSaleNumber(correction.amountCents), 0),
+    ),
+    refundAmountsCents: row.returns.map((saleReturn) =>
+      safeSaleNumber(saleReturn.refundAmountCents),
     ),
     forgivenAmountCents: row.closure === null ? 0 : safeSaleNumber(row.closure.forgivenAmountCents),
     lines: row.lines.map((line) => ({
@@ -233,6 +242,27 @@ function toDetailRecord(row: DetailRow): SaleDetailRecord {
       actorUsername: adjustment.actor.usernameNormalized,
       effectiveAt: adjustment.effectiveAt,
     })),
+    returns: row.returns.map((saleReturn) => ({
+      id: saleReturn.id,
+      reason: saleReturn.reason,
+      commercialReductionCents: safeSaleNumber(saleReturn.commercialReductionCents),
+      refundAmountCents: safeSaleNumber(saleReturn.refundAmountCents),
+      refundMethod:
+        saleReturn.refund === null ? null : fromPrismaPaymentMethod(saleReturn.refund.method),
+      approvedBy: saleReturn.approvedBy,
+      effectiveAt: saleReturn.effectiveAt,
+      lines: saleReturn.lines.map((line) => ({
+        id: line.id,
+        saleLineId: line.saleLineId,
+        quantity: line.quantity,
+        commercialReductionCents: safeSaleNumber(line.commercialReductionCents),
+        productReturns: line.productReturns,
+        returnLocationId: line.returnLocationId,
+        condition:
+          line.condition === null ? null : line.condition === 'AVAILABLE' ? 'available' : 'review',
+        attributedCostCents: safeSaleNumber(line.attributedCostCents),
+      })),
+    })),
     closure:
       row.closure === null
         ? null
@@ -273,6 +303,7 @@ type ActivityRow = Prisma.SaleGetPayload<{
     payments: {
       select: { amountCents: true; corrections: { select: { amountCents: true } } };
     };
+    returns: { select: { refundAmountCents: true } };
     closure: { select: { forgivenAmountCents: true } };
     lines: { select: { quantity: true; deliveryQuantity: true } };
   };
@@ -301,6 +332,9 @@ function toRecord(row: ActivityRow): SaleActivityRecord {
       ({ amountCents, corrections }) =>
         safeSaleNumber(amountCents) -
         corrections.reduce((sum, correction) => sum + safeSaleNumber(correction.amountCents), 0),
+    ),
+    refundAmountsCents: row.returns.map((saleReturn) =>
+      safeSaleNumber(saleReturn.refundAmountCents),
     ),
     forgivenAmountCents: row.closure === null ? 0 : safeSaleNumber(row.closure.forgivenAmountCents),
     lines: row.lines.map(({ quantity, deliveryQuantity }) => ({

@@ -165,10 +165,12 @@ El saldo se deriva de hechos vigentes. `atrasada` significa: saldo mayor que cer
 fecha de vencimiento anterior a la fecha actual de Lima y venta no cerrada ni
 cancelada. Esta etiqueta no se persiste.
 
-El primer corte backend implementado incluye cabecera, cliente, creador, líneas,
-instantáneas, reservas activas, pagos y correcciones, ajustes del total y cierre.
-Devoluciones y entregas posteriores se incorporarán al mismo modelo de lectura
-cuando sus capacidades de escritura estén implementadas.
+El corte backend implementado incluye cabecera, cliente, creador, líneas,
+instantáneas, reservas activas, pagos y correcciones, ajustes del total,
+devoluciones y cierre. Los reembolsos reducen el pago neto mostrado; el costo
+atribuido a una devolución se protege con la misma capacidad financiera que el
+costo de las líneas. Las entregas posteriores se incorporarán al mismo modelo de
+lectura cuando su capacidad de escritura esté implementada.
 
 ### Ventas y actividad por cuenta
 

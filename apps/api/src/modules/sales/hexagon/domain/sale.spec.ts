@@ -246,7 +246,146 @@ describe('Sale draft', () => {
       }),
     ).toEqual({ ok: false, reason: 'total-below-paid', paidCents: 600 });
   });
+
+  it('reduces an unpaid sale without refunding while a balance remains', () => {
+    const sale = returnableSale(5_000);
+
+    expect(
+      sale.approveReturn({
+        saleReturn: saleReturn('return-1', 'line-b', null),
+        canApprove: true,
+        now: new Date('2026-09-16T12:00:00.000Z'),
+      }),
+    ).toEqual({
+      ok: true,
+      commercialReductionCents: 4_000,
+      refundAmountCents: 0,
+      currentTotalCents: 6_000,
+      paidCents: 5_000,
+      balanceCents: 1_000,
+    });
+    expect(sale.toPrimitives().returns[0]).toMatchObject({
+      refundMethod: null,
+      lines: [{ attributedCostCents: 2_000 }],
+    });
+  });
+
+  it('refunds exactly the paid excess after reducing the commercial total', () => {
+    const sale = returnableSale(8_000);
+
+    expect(
+      sale.approveReturn({
+        saleReturn: saleReturn('return-1', 'line-b', 'yape'),
+        canApprove: true,
+        now: new Date('2026-09-16T12:00:00.000Z'),
+      }),
+    ).toEqual({
+      ok: true,
+      commercialReductionCents: 4_000,
+      refundAmountCents: 2_000,
+      currentTotalCents: 6_000,
+      paidCents: 6_000,
+      balanceCents: 0,
+    });
+  });
+
+  it('does not permit returning more units than were delivered', () => {
+    const sale = returnableSale(0);
+    expect(
+      sale.approveReturn({
+        saleReturn: saleReturn('return-1', 'line-a', null),
+        canApprove: true,
+        now: new Date('2026-09-16T12:00:00.000Z'),
+      }).ok,
+    ).toBe(true);
+
+    expect(
+      sale.approveReturn({
+        saleReturn: saleReturn('return-2', 'line-a', null),
+        canApprove: true,
+        now: new Date('2026-09-16T13:00:00.000Z'),
+      }),
+    ).toEqual({
+      ok: false,
+      reason: 'quantity-exceeds-delivered',
+      saleLineId: 'line-a',
+      returnableQuantity: 0,
+    });
+  });
 });
+
+function returnableSale(initialPaymentCents: number): Sale {
+  const created = Sale.createDraft({
+    id: 'sale-returnable',
+    createdBy: 'employee-1',
+    customerId: 'customer-1',
+    lines: [
+      line('line-a', 'product-a', 1, 6_000, 1, 0),
+      line('line-b', 'product-b', 1, 4_000, 1, 0),
+    ],
+    now: new Date('2026-09-15T20:00:00.000Z'),
+  });
+  if (!created.ok) throw new Error(created.reason);
+  const confirmed = created.sale.confirm({
+    customerId: 'customer-1',
+    productSnapshots: new Map([
+      [
+        'product-a',
+        {
+          code: 'A',
+          name: 'Producto A',
+          minimumPriceCents: 6_000,
+          suggestedPriceCents: null,
+          maximumPriceCents: null,
+        },
+      ],
+      [
+        'product-b',
+        {
+          code: 'B',
+          name: 'Producto B',
+          minimumPriceCents: 4_000,
+          suggestedPriceCents: null,
+          maximumPriceCents: null,
+        },
+      ],
+    ]),
+    priceExceptionReasons: new Map(),
+    confirmedBy: 'employee-1',
+    canApprovePriceException: false,
+    initialPayment:
+      initialPaymentCents === 0 ? null : payment('payment-returnable', initialPaymentCents),
+    now: new Date('2026-09-15T21:00:00.000Z'),
+  });
+  if (!confirmed.ok) throw new Error(confirmed.reason);
+  created.sale.attributeConfirmedCost('line-a', 3_000);
+  created.sale.attributeConfirmedCost('line-b', 2_000);
+  return created.sale;
+}
+
+function saleReturn(
+  id: string,
+  saleLineId: string,
+  refundMethod: 'cash' | 'yape' | 'plin' | 'pos' | null,
+) {
+  return {
+    id,
+    reason: 'Cliente cambió de opinión',
+    refundMethod,
+    approvedBy: 'admin-1',
+    effectiveAt: new Date('2026-09-16T12:00:00.000Z'),
+    lines: [
+      {
+        id: `${id}-line`,
+        saleLineId,
+        quantity: 1,
+        productReturns: false,
+        returnLocationId: null,
+        condition: null,
+      },
+    ],
+  };
+}
 
 function confirmedSale(): Sale {
   const result = Sale.createDraft({

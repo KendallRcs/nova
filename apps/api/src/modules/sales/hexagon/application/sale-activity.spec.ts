@@ -61,6 +61,7 @@ function record(id: string): SaleActivityRecord {
     currentTotalCents: 2_000,
     dueDate: '2026-09-15',
     paymentAmountsCents: [500],
+    refundAmountsCents: [],
     forgivenAmountCents: 0,
     lines: [{ quantity: 2, deliveredQuantity: 1 }],
     version: 3,

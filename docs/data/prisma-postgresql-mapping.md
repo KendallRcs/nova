@@ -150,9 +150,9 @@ que exista un repositorio por modelo.
 | `PaymentCorrection` | `payment_corrections` | pago original y actor administrativo |
 | `Delivery` | `deliveries` | venta y responsable |
 | `DeliveryLine` | `delivery_lines` | entrega, línea de la misma venta y ubicación |
-| `Return` | `returns` | venta, razón y aprobador |
+| `SaleReturn` | `returns` | venta, operación idempotente, razón, efecto monetario y aprobador |
 | `ReturnLine` | `return_lines` | devolución, línea, decisión física y costo |
-| `ReturnRefund` | `return_refunds` | `returnId` único: relación 1:1 |
+| `ReturnRefund` | `return_refunds` | `returnId` único: relación 0:1 |
 | `SaleClosure` | `sale_closures` | `saleId` único: relación 0:1 |
 | `SaleCancellation` | `sale_cancellations` | `saleId` único: relación 0:1 |
 | `SaleCancellationLine` | `sale_cancellation_lines` | cancelación y línea afectada |
@@ -236,7 +236,7 @@ La colección de relaciones existe para navegar en el adaptador; no autoriza
 - Relaciones múltiples entre los mismos modelos reciben nombres Prisma explícitos,
   por ejemplo origen y destino de una transferencia o principal y duplicado de
   una fusión.
-- Relaciones 1:1 colocan la FK única en el registro dependiente histórico, como
+- Relaciones 0:1 colocan la FK única en el registro dependiente histórico, como
   `ReturnRefund.returnId` o `SaleClosure.saleId`.
 
 ## Causalidad financiera

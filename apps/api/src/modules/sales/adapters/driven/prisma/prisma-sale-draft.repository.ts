@@ -17,6 +17,7 @@ export class PrismaSaleDraftRepository implements SaleDraftRepository {
         payments: { include: { corrections: true } },
         totalAdjustments: true,
         closure: true,
+        returns: { include: { lines: true, refund: true } },
       },
     });
     return row === null ? null : toSaleDomain(row);
@@ -79,6 +80,7 @@ type SaleRow = Prisma.SaleGetPayload<{
     payments: { include: { corrections: true } };
     totalAdjustments: true;
     closure: true;
+    returns: { include: { lines: true; refund: true } };
   };
 }>;
 export function toSaleDomain(row: SaleRow): Sale {
@@ -169,6 +171,27 @@ export function toSaleDomain(row: SaleRow): Sale {
             closedBy: row.closure.closedBy,
             effectiveAt: row.closure.effectiveAt,
           },
+    returns: row.returns.map((saleReturn) => ({
+      id: saleReturn.id,
+      reason: saleReturn.reason,
+      commercialReductionCents: safeSaleNumber(saleReturn.commercialReductionCents),
+      refundAmountCents: safeSaleNumber(saleReturn.refundAmountCents),
+      refundMethod:
+        saleReturn.refund === null ? null : fromPrismaPaymentMethod(saleReturn.refund.method),
+      approvedBy: saleReturn.approvedBy,
+      effectiveAt: saleReturn.effectiveAt,
+      lines: saleReturn.lines.map((line) => ({
+        id: line.id,
+        saleLineId: line.saleLineId,
+        quantity: line.quantity,
+        commercialReductionCents: safeSaleNumber(line.commercialReductionCents),
+        productReturns: line.productReturns,
+        returnLocationId: line.returnLocationId,
+        condition:
+          line.condition === null ? null : line.condition === 'AVAILABLE' ? 'available' : 'review',
+        attributedCostCents: safeSaleNumber(line.attributedCostCents),
+      })),
+    })),
     version: row.version,
     confirmedAt: row.confirmedAt,
     finalizedAt: row.finalizedAt,
@@ -205,4 +228,14 @@ export function safeSignedSaleNumber(value: bigint): number {
   const number = Number(value);
   if (!Number.isSafeInteger(number)) throw new Error('Sale money exceeds JSON safe integer range.');
   return number;
+}
+
+function fromPrismaPaymentMethod(method: PaymentMethod): 'cash' | 'yape' | 'plin' | 'pos' {
+  return method === PaymentMethod.CASH
+    ? 'cash'
+    : method === PaymentMethod.YAPE
+      ? 'yape'
+      : method === PaymentMethod.PLIN
+        ? 'plin'
+        : 'pos';
 }

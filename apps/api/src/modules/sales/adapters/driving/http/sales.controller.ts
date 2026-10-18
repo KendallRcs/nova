@@ -29,6 +29,7 @@ import { ConfirmSale } from '../../../hexagon/application/confirm-sale';
 import { RecordSalePayment } from '../../../hexagon/application/record-sale-payment';
 import { ListSales } from '../../../hexagon/application/sale-activity';
 import { GetSaleDetail } from '../../../hexagon/application/sale-detail';
+import { ApproveSaleReturn } from '../../../hexagon/application/approve-sale-return';
 import {
   AdjustSaleTotal,
   CorrectSalePayment,
@@ -41,6 +42,7 @@ import type {
   SaleTotalAdjustmentResult,
 } from '../../../hexagon/application/sale-financial-book';
 import type { SalePaymentResult } from '../../../hexagon/application/sale-payment-book';
+import type { SaleReturnResult } from '../../../hexagon/application/sale-return-book';
 import type { Sale } from '../../../hexagon/domain/sale';
 import {
   ConfirmSaleRequest,
@@ -58,6 +60,8 @@ import {
   SaleClosureResponse,
   CorrectSalePaymentRequest,
   PaymentCorrectionResponse,
+  ApproveSaleReturnRequest,
+  SaleReturnResponse,
   UpdateSaleDraftRequest,
 } from './sale.dto';
 
@@ -74,6 +78,7 @@ export class SalesController {
     private readonly adjustSaleTotal: AdjustSaleTotal,
     private readonly finalizeSale: FinalizeSale,
     private readonly correctSalePayment: CorrectSalePayment,
+    private readonly approveSaleReturn: ApproveSaleReturn,
   ) {}
 
   @Get()
@@ -145,6 +150,10 @@ export class SalesController {
       totalAdjustments: result.sale.totalAdjustments.map((adjustment) => ({
         ...adjustment,
         effectiveAt: adjustment.effectiveAt.toISOString(),
+      })),
+      returns: result.sale.returns.map((saleReturn) => ({
+        ...saleReturn,
+        effectiveAt: saleReturn.effectiveAt.toISOString(),
       })),
       closure:
         result.sale.closure === null
@@ -354,6 +363,42 @@ export class SalesController {
       replayed: result.replayed,
     };
   }
+
+  @Post(':saleId/returns')
+  @HttpCode(200)
+  @RequirePermission('returns:approve')
+  @ApiOperation({ operationId: 'approveSaleReturn' })
+  @ApiOkResponse({ type: SaleReturnResponse })
+  async approveReturn(
+    @Param('saleId', new ParseUUIDPipe({ version: '7' })) saleId: string,
+    @Headers('idempotency-key') operationId: string | undefined,
+    @Body() body: ApproveSaleReturnRequest,
+    @Req() request: AuthenticatedRequest,
+  ): Promise<SaleReturnResponse> {
+    requireIdempotencyKey(operationId);
+    const actor = requireActor(request);
+    const result = await this.approveSaleReturn.execute({
+      operationId,
+      saleId,
+      expectedVersion: body.expectedVersion,
+      actorId: actor.userId,
+      reason: body.reason,
+      refundMethod: body.refundMethod ?? null,
+      lines: body.lines.map((line) => ({
+        saleLineId: line.saleLineId,
+        quantity: line.quantity,
+        productReturns: line.productReturns,
+        returnLocationId: line.returnLocationId ?? null,
+        condition: line.condition ?? null,
+      })),
+    });
+    if (!result.ok) throwReturnError(result);
+    return {
+      ...result.saleReturn,
+      effectiveAt: result.saleReturn.effectiveAt.toISOString(),
+      replayed: result.replayed,
+    };
+  }
 }
 
 const UUID_V7 = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -549,5 +594,42 @@ function throwFinancialError(
   throw new UnprocessableEntityException({
     status: 422,
     code: result.reason.toUpperCase().replaceAll('-', '_'),
+  });
+}
+
+function throwReturnError(result: Exclude<SaleReturnResult, { ok: true }>): never {
+  if (
+    result.reason === 'sale-not-found' ||
+    result.reason === 'sale-line-not-found' ||
+    result.reason === 'location-not-found'
+  ) {
+    throw new NotFoundException({
+      status: 404,
+      code: result.reason.toUpperCase().replaceAll('-', '_'),
+      ...('referenceId' in result ? { referenceId: result.referenceId } : {}),
+      ...('saleLineId' in result ? { saleLineId: result.saleLineId } : {}),
+    });
+  }
+  if (result.reason === 'not-authorized') {
+    throw new ForbiddenException({ status: 403, code: 'RETURN_NOT_AUTHORIZED' });
+  }
+  if (
+    result.reason === 'sale-not-returnable' ||
+    result.reason === 'version-conflict' ||
+    result.reason === 'quantity-exceeds-delivered' ||
+    result.reason === 'idempotency-conflict' ||
+    result.reason === 'concurrency-conflict'
+  ) {
+    throw new ConflictException({
+      status: 409,
+      code: result.reason.toUpperCase().replaceAll('-', '_'),
+      ...('saleLineId' in result ? { saleLineId: result.saleLineId } : {}),
+      ...('returnableQuantity' in result ? { returnableQuantity: result.returnableQuantity } : {}),
+    });
+  }
+  throw new UnprocessableEntityException({
+    status: 422,
+    code: result.reason.toUpperCase().replaceAll('-', '_'),
+    ...('saleLineId' in result ? { saleLineId: result.saleLineId } : {}),
   });
 }

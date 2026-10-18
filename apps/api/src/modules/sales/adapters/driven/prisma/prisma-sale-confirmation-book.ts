@@ -44,6 +44,7 @@ export class PrismaSaleConfirmationBook implements SaleConfirmationBook {
               payments: { include: { corrections: true } },
               totalAdjustments: true,
               closure: true,
+              returns: { include: { lines: true, refund: true } },
             },
           });
           if (row === null) reject({ ok: false, reason: 'sale-not-found' });

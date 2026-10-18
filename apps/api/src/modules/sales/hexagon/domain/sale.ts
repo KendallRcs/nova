@@ -42,6 +42,7 @@ export interface SaleProperties {
   payments: readonly SalePaymentProperties[];
   totalAdjustments: readonly SaleTotalAdjustmentProperties[];
   closure: SaleClosureProperties | null;
+  returns: readonly SaleReturnProperties[];
   version: number;
   confirmedAt: Date | null;
   finalizedAt: Date | null;
@@ -76,6 +77,28 @@ export interface SaleClosureProperties {
   reason: string | null;
   closedBy: string;
   effectiveAt: Date;
+}
+
+export interface SaleReturnLineProperties {
+  id: string;
+  saleLineId: string;
+  quantity: number;
+  commercialReductionCents: number;
+  productReturns: boolean;
+  returnLocationId: string | null;
+  condition: 'available' | 'review' | null;
+  attributedCostCents: number;
+}
+
+export interface SaleReturnProperties {
+  id: string;
+  reason: string;
+  commercialReductionCents: number;
+  refundAmountCents: number;
+  refundMethod: PaymentMethod | null;
+  approvedBy: string;
+  effectiveAt: Date;
+  lines: readonly SaleReturnLineProperties[];
 }
 
 export type ComposeSaleDraftResult =
@@ -176,6 +199,33 @@ export type CorrectSalePaymentResult =
       readonly correctableCents?: number;
     };
 
+export type ApproveSaleReturnResult =
+  | {
+      readonly ok: true;
+      readonly commercialReductionCents: number;
+      readonly refundAmountCents: number;
+      readonly currentTotalCents: number;
+      readonly paidCents: number;
+      readonly balanceCents: number;
+    }
+  | {
+      readonly ok: false;
+      readonly reason:
+        | 'sale-not-returnable'
+        | 'not-authorized'
+        | 'reason-required'
+        | 'empty-return'
+        | 'duplicate-line'
+        | 'sale-line-not-found'
+        | 'invalid-quantity'
+        | 'quantity-exceeds-delivered'
+        | 'invalid-return-treatment'
+        | 'cost-unavailable'
+        | 'refund-method-required';
+      readonly saleLineId?: string;
+      readonly returnableQuantity?: number;
+    };
+
 export class Sale {
   private constructor(private properties: SaleProperties) {}
 
@@ -199,6 +249,7 @@ export class Sale {
       payments: [],
       totalAdjustments: [],
       closure: null,
+      returns: [],
       version: 1,
       confirmedAt: null,
       finalizedAt: null,
@@ -215,6 +266,10 @@ export class Sale {
       payments: properties.payments.map((payment) => ({ ...payment })),
       totalAdjustments: properties.totalAdjustments.map((adjustment) => ({ ...adjustment })),
       closure: properties.closure === null ? null : { ...properties.closure },
+      returns: properties.returns.map((saleReturn) => ({
+        ...saleReturn,
+        lines: saleReturn.lines.map((line) => ({ ...line })),
+      })),
     });
   }
 
@@ -481,6 +536,124 @@ export class Sale {
     };
   }
 
+  approveReturn(input: {
+    saleReturn: {
+      id: string;
+      reason: string;
+      refundMethod: PaymentMethod | null;
+      approvedBy: string;
+      effectiveAt: Date;
+      lines: readonly {
+        id: string;
+        saleLineId: string;
+        quantity: number;
+        productReturns: boolean;
+        returnLocationId: string | null;
+        condition: 'available' | 'review' | null;
+      }[];
+    };
+    canApprove: boolean;
+    now: Date;
+  }): ApproveSaleReturnResult {
+    if (this.properties.lifecycle !== 'confirmed' && this.properties.lifecycle !== 'finalized') {
+      return { ok: false, reason: 'sale-not-returnable' };
+    }
+    if (!input.canApprove) return { ok: false, reason: 'not-authorized' };
+    const reason = normalizeOptional(input.saleReturn.reason);
+    if (reason === null) return { ok: false, reason: 'reason-required' };
+    if (input.saleReturn.lines.length === 0) return { ok: false, reason: 'empty-return' };
+    const seen = new Set<string>();
+    const lines: SaleReturnLineProperties[] = [];
+    let commercialReductionCents = 0;
+    for (const requested of input.saleReturn.lines) {
+      if (seen.has(requested.saleLineId)) {
+        return { ok: false, reason: 'duplicate-line', saleLineId: requested.saleLineId };
+      }
+      seen.add(requested.saleLineId);
+      const saleLine = this.properties.lines.find(({ id }) => id === requested.saleLineId);
+      if (saleLine === undefined) {
+        return { ok: false, reason: 'sale-line-not-found', saleLineId: requested.saleLineId };
+      }
+      if (!Number.isSafeInteger(requested.quantity) || requested.quantity <= 0) {
+        return { ok: false, reason: 'invalid-quantity', saleLineId: requested.saleLineId };
+      }
+      const previousLines = this.properties.returns.flatMap((saleReturn) => saleReturn.lines);
+      const previouslyReturnedQuantity = previousLines
+        .filter(({ saleLineId }) => saleLineId === requested.saleLineId)
+        .reduce((sum, line) => sum + line.quantity, 0);
+      const returnableQuantity = saleLine.deliveryQuantity - previouslyReturnedQuantity;
+      if (requested.quantity > returnableQuantity) {
+        return {
+          ok: false,
+          reason: 'quantity-exceeds-delivered',
+          saleLineId: requested.saleLineId,
+          returnableQuantity,
+        };
+      }
+      if (
+        (requested.productReturns &&
+          (requested.returnLocationId === null || requested.condition === null)) ||
+        (!requested.productReturns &&
+          (requested.returnLocationId !== null || requested.condition !== null))
+      ) {
+        return { ok: false, reason: 'invalid-return-treatment', saleLineId: requested.saleLineId };
+      }
+      if (saleLine.allocatedCostCents === null) {
+        return { ok: false, reason: 'cost-unavailable', saleLineId: requested.saleLineId };
+      }
+      const previouslyReturnedCost = previousLines
+        .filter(({ saleLineId }) => saleLineId === requested.saleLineId)
+        .reduce((sum, line) => sum + line.attributedCostCents, 0);
+      const cumulativeCost = proportionalCents(
+        saleLine.allocatedCostCents,
+        previouslyReturnedQuantity + requested.quantity,
+        saleLine.deliveryQuantity + saleLine.reservationQuantity,
+      );
+      const reduction = safeMoneyMultiply(saleLine.agreedUnitPriceCents, requested.quantity);
+      commercialReductionCents = safeMoneyAdd(commercialReductionCents, reduction);
+      lines.push({
+        ...requested,
+        commercialReductionCents: reduction,
+        attributedCostCents: cumulativeCost - previouslyReturnedCost,
+      });
+    }
+    if (commercialReductionCents > this.properties.currentTotalCents) {
+      return { ok: false, reason: 'invalid-quantity' };
+    }
+    const currentTotalCents = this.properties.currentTotalCents - commercialReductionCents;
+    const paidBeforeCents = this.netPaidCents();
+    const refundAmountCents = Math.max(0, paidBeforeCents - currentTotalCents);
+    if (refundAmountCents > 0 && input.saleReturn.refundMethod === null) {
+      return { ok: false, reason: 'refund-method-required' };
+    }
+    const saleReturn: SaleReturnProperties = {
+      id: input.saleReturn.id,
+      reason,
+      commercialReductionCents,
+      refundAmountCents,
+      refundMethod: refundAmountCents === 0 ? null : input.saleReturn.refundMethod,
+      approvedBy: input.saleReturn.approvedBy,
+      effectiveAt: input.saleReturn.effectiveAt,
+      lines,
+    };
+    this.properties = {
+      ...this.properties,
+      currentTotalCents,
+      returns: [...this.properties.returns, saleReturn],
+      version: this.properties.version + 1,
+      updatedAt: input.now,
+    };
+    const paidCents = this.netPaidCents();
+    return {
+      ok: true,
+      commercialReductionCents,
+      refundAmountCents,
+      currentTotalCents,
+      paidCents,
+      balanceCents: this.balanceCents(),
+    };
+  }
+
   balanceCents(): number {
     return Math.max(
       0,
@@ -491,9 +664,13 @@ export class Sale {
   }
 
   netPaidCents(): number {
-    return this.properties.payments.reduce(
+    const payments = this.properties.payments.reduce(
       (sum, payment) => sum + payment.amountCents - payment.correctedCents,
       0,
+    );
+    return (
+      payments -
+      this.properties.returns.reduce((sum, saleReturn) => sum + saleReturn.refundAmountCents, 0)
     );
   }
 
@@ -522,6 +699,10 @@ export class Sale {
       payments: this.properties.payments.map((payment) => ({ ...payment })),
       totalAdjustments: this.properties.totalAdjustments.map((adjustment) => ({ ...adjustment })),
       closure: this.properties.closure === null ? null : { ...this.properties.closure },
+      returns: this.properties.returns.map((saleReturn) => ({
+        ...saleReturn,
+        lines: saleReturn.lines.map((line) => ({ ...line })),
+      })),
     };
   }
 }
@@ -595,4 +776,24 @@ function isCivilDate(value: string): boolean {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
   const date = new Date(`${value}T00:00:00.000Z`);
   return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
+}
+
+function proportionalCents(valueCents: number, quantity: number, totalQuantity: number): number {
+  if (quantity === totalQuantity) return valueCents;
+  const value = (BigInt(valueCents) * BigInt(quantity)) / BigInt(totalQuantity);
+  const result = Number(value);
+  if (!Number.isSafeInteger(result)) throw new Error('Sale return cost exceeds safe range.');
+  return result;
+}
+
+function safeMoneyMultiply(value: number, quantity: number): number {
+  const result = value * quantity;
+  if (!Number.isSafeInteger(result)) throw new Error('Sale return amount exceeds safe range.');
+  return result;
+}
+
+function safeMoneyAdd(left: number, right: number): number {
+  const result = left + right;
+  if (!Number.isSafeInteger(result)) throw new Error('Sale return amount exceeds safe range.');
+  return result;
 }

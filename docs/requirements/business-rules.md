@@ -15,7 +15,7 @@
 10. Un empleado registra pagos solo en ventas propias; un administrador puede hacerlo en cualquiera.
 11. El creador de la venta y el registrador de cada pago se conservan por separado.
 12. Solo un administrador aprueba precios inferiores al mínimo, devoluciones, bajas, ajustes y traslados.
-13. Toda devolución exige razón y reembolso; el retorno físico puede o no ocurrir.
+13. Toda devolución exige razón y reduce el total comercial por las unidades devueltas; solo genera reembolso cuando el pago neto supera el nuevo total. El retorno físico puede o no ocurrir.
 14. Las compras se pagan al contado en el MVP y pueden usar proveedores registrados u ocasionales.
 15. Un nuevo costo de compra solo sugiere revisar precios; nunca los cambia automáticamente.
 16. Las compras, anticipos, gastos, reembolsos y cobros son movimientos de caja diferenciados.
@@ -51,7 +51,7 @@
 46. Solo el administrador puede ajustar el total acordado de una venta confirmada y debe indicar una razón.
 47. Un pago no puede superar el saldo vigente; si cambia el acuerdo, primero se registra un ajuste del total.
 48. Una devolución puede realizarse en cualquier momento y no posee cancelación automática por antigüedad.
-49. Un reembolso no puede superar el importe neto pagado y aún no reembolsado por las unidades devueltas.
+49. El reembolso de una devolución equivale al exceso positivo entre el pago neto y el nuevo total comercial; si no existe exceso, no se mueve dinero.
 50. El método del reembolso se registra según la salida real de dinero y puede diferir del pago original.
 51. En el MVP, los conteos posteriores se resuelven por producto mediante ajustes auditables; no existe una jornada masiva de inventario.
 52. Los acuerdos con clientes de confianza se modelan como acuerdos informales de pago dentro de ventas con saldo pendiente.

@@ -18,6 +18,7 @@ import { PrismaSaleConfirmationBook } from '../../../src/modules/sales/adapters/
 import { PrismaSalePaymentBook } from '../../../src/modules/sales/adapters/driven/prisma/prisma-sale-payment-book';
 import { PrismaSaleActivitySource } from '../../../src/modules/sales/adapters/driven/prisma/prisma-sale-activity-source';
 import { PrismaSaleFinancialBook } from '../../../src/modules/sales/adapters/driven/prisma/prisma-sale-financial-book';
+import { PrismaSaleReturnBook } from '../../../src/modules/sales/adapters/driven/prisma/prisma-sale-return-book';
 import { ListSales } from '../../../src/modules/sales/hexagon/application/sale-activity';
 import { Sale } from '../../../src/modules/sales/hexagon/domain/sale';
 import { PrismaInventoryTransferBook } from '../../../src/modules/inventory/adapters/driven/prisma/prisma-inventory-transfer-book';
@@ -48,6 +49,7 @@ describe('PrismaCategoryRepository', () => {
   let salePayments: PrismaSalePaymentBook;
   let saleActivity: PrismaSaleActivitySource;
   let saleFinancials: PrismaSaleFinancialBook;
+  let saleReturns: PrismaSaleReturnBook;
 
   beforeAll(async () => {
     container = await new PostgreSqlContainer('postgres:18.6').start();
@@ -74,6 +76,7 @@ describe('PrismaCategoryRepository', () => {
     salePayments = new PrismaSalePaymentBook(prisma);
     saleActivity = new PrismaSaleActivitySource(prisma);
     saleFinancials = new PrismaSaleFinancialBook(prisma);
+    saleReturns = new PrismaSaleReturnBook(prisma);
   }, 120_000);
 
   beforeEach(async () => {
@@ -84,6 +87,9 @@ describe('PrismaCategoryRepository', () => {
     await prisma?.inventoryReservation.deleteMany();
     await prisma?.saleCostAllocation.deleteMany();
     await prisma?.cashMovement.deleteMany();
+    await prisma?.returnRefund.deleteMany();
+    await prisma?.returnLine.deleteMany();
+    await prisma?.saleReturn.deleteMany();
     await prisma?.paymentCorrection.deleteMany();
     await prisma?.payment.deleteMany();
     await prisma?.saleClosure.deleteMany();
@@ -527,6 +533,82 @@ describe('PrismaCategoryRepository', () => {
       totalAdjustments: [{ differenceCents: 500 }],
       closure: { type: 'incomplete', forgivenAmountCents: 4_500 },
       payments: [{ correctedCents: 0 }, { correctedCents: 500, netAmountCents: 1_000 }],
+    });
+
+    const returnCommand = {
+      operationId: '0199ef04-1b00-7000-8000-00000000009f',
+      saleId: cashDraft.sale.toPrimitives().id,
+      expectedVersion: 2,
+      actorId,
+      reason: 'Producto defectuoso devuelto por el cliente',
+      refundMethod: 'yape' as const,
+      lines: [
+        {
+          saleLineId: '0199ef04-1b00-7000-8000-00000000009a',
+          quantity: 1,
+          productReturns: true,
+          returnLocationId: location.id,
+          condition: 'review' as const,
+        },
+      ],
+      effectiveAt: new Date('2026-09-15T20:10:00.000Z'),
+    };
+    await expect(saleReturns.approve(returnCommand)).resolves.toMatchObject({
+      ok: true,
+      replayed: false,
+      saleReturn: {
+        saleVersion: 3,
+        commercialReductionCents: 2_000,
+        refundAmountCents: 2_000,
+        refundMethod: 'yape',
+        currentTotalCents: 0,
+        paidCents: 0,
+        balanceCents: 0,
+      },
+    });
+    await expect(saleReturns.approve(returnCommand)).resolves.toMatchObject({
+      ok: true,
+      replayed: true,
+    });
+    await expect(
+      prisma.inventoryPosition.findUniqueOrThrow({
+        where: {
+          productId_locationId: { productId: product.toPrimitives().id, locationId: location.id },
+        },
+      }),
+    ).resolves.toMatchObject({ physicalQuantity: 4, reservedQuantity: 2, reviewQuantity: 1 });
+    await expect(
+      prisma.productCostPosition.findUniqueOrThrow({
+        where: { productId: product.toPrimitives().id },
+      }),
+    ).resolves.toMatchObject({
+      availableQuantity: 1,
+      availableValueCents: 400n,
+      reservedQuantity: 2,
+      reservedValueCents: 800n,
+      reviewQuantity: 1,
+      reviewValueCents: 400n,
+    });
+    await expect(prisma.returnRefund.count()).resolves.toBe(1);
+    await expect(prisma.cashMovement.count()).resolves.toBe(5);
+    await expect(saleActivity.findById(cashDraft.sale.toPrimitives().id)).resolves.toMatchObject({
+      currentTotalCents: 0,
+      paymentAmountsCents: [2_000],
+      refundAmountsCents: [2_000],
+      returns: [
+        {
+          commercialReductionCents: 2_000,
+          refundAmountCents: 2_000,
+          refundMethod: 'yape',
+          lines: [
+            {
+              productReturns: true,
+              condition: 'review',
+              attributedCostCents: 400,
+            },
+          ],
+        },
+      ],
     });
   });
 

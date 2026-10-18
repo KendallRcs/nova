@@ -16,12 +16,13 @@ export function deriveSaleTracking(input: {
   lifecycle: SaleLifecycle;
   currentTotalCents: number;
   paymentAmountsCents: readonly number[];
+  refundAmountsCents: readonly number[];
   forgivenAmountCents: number;
   lineQuantities: readonly { quantity: number; deliveredQuantity: number }[];
   dueDate: string | null;
   todayInLima: string;
 }): SaleTracking {
-  const paidCents = safeSum(input.paymentAmountsCents);
+  const paidCents = safeSum(input.paymentAmountsCents) - safeSum(input.refundAmountsCents);
   const forgivenAmountCents = safeSum([input.forgivenAmountCents]);
   const balanceCents = Math.max(0, input.currentTotalCents - paidCents - forgivenAmountCents);
   const active = input.lifecycle === 'confirmed' || input.lifecycle === 'finalized';

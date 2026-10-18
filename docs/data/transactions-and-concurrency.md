@@ -200,7 +200,8 @@ después de que el primero confirme y se rechaza si ya no cabe.
 ### Aprobar una devolución
 
 1. Bloquear la venta y releer entregas, devoluciones y pago neto.
-2. Validar cantidad aún retornable y calcular pago atribuible proporcional.
+2. Validar cantidad aún retornable, reducir el total comercial y calcular el
+   reembolso únicamente como exceso del pago neto sobre el nuevo total.
 3. Si hay retorno, bloquear posiciones físicas y de costo ordenadas.
 4. Crear devolución, líneas, reembolso y salida de caja.
 5. Ingresar las unidades a revisión o disponible según la decisión; una devolución

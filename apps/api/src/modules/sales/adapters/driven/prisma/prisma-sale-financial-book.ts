@@ -274,6 +274,7 @@ const commonSaleInclude = {
   payments: { include: { corrections: true } },
   totalAdjustments: true,
   closure: true,
+  returns: { include: { lines: true, refund: true } },
 } satisfies Prisma.SaleInclude;
 function findSale(client: Prisma.TransactionClient, saleId: string) {
   return client.sale.findUnique({ where: { id: saleId }, include: commonSaleInclude });

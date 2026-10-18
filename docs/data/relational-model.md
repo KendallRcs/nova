@@ -69,9 +69,9 @@ existen clientes fusionados se concreta en las restricciones.
 | `payment_corrections` | payment_id, tipo, importe compensado, razón, corrected_by, effective_at | Un pago puede tener varias correcciones compensatorias; nunca se sobrescribe el hecho original. |
 | `deliveries` | sale_id, delivered_by, effective_at | Una venta puede tener varias entregas. |
 | `delivery_lines` | delivery_id, sale_line_id, location_id, cantidad | Una entrega contiene una o más líneas y especifica de qué ubicación salió cada cantidad. |
-| `returns` | sale_id, razón obligatoria, estado, created_by, effective_at | Una venta puede tener varias devoluciones. |
+| `returns` | sale_id, operation_id, razón, reducción comercial, reembolso calculado, approved_by, effective_at, versión resultante | Una venta puede tener varias devoluciones confirmadas e idempotentes. |
 | `return_lines` | return_id, sale_line_id, cantidad, importe comercial, product_returns, return_location_id opcional, condición opcional, costo atribuido | Permite devolver dinero con o sin retorno físico del producto. |
-| `return_refunds` | return_id, importe, método, registered_by, effective_at | Una devolución tiene exactamente un reembolso monetario. |
+| `return_refunds` | return_id, importe, método, registered_by, effective_at | Una devolución tiene como máximo un reembolso monetario, únicamente si existe exceso pagado. |
 | `sale_closures` | sale_id, tipo completa/incompleta, importe condonado, razón, closed_by, effective_at | Como máximo un cierre definitivo por venta. |
 | `sale_cancellations` | sale_id, razón, cancelled_by, effective_at | Como máximo una cancelación por venta. |
 | `sale_cancellation_lines` | cancellation_id, sale_line_id, cantidad liberada, cantidad retornada, cantidad no retornada | Conserva el resultado físico por línea al cancelar. |
@@ -86,8 +86,8 @@ Reglas estructurales importantes:
 - Cambiar el total crea `sale_total_adjustments`; no altera el total original.
 - Entrega, pago y cierre son dimensiones distintas. Pagar no implica entregar y
   entregar no implica completar el pago.
-- Una devolución completa incluye producto y dinero; el modelo también conserva
-  explícitamente los casos excepcionales donde el producto no retorna.
+- Una devolución reduce el total comercial y puede combinar un eventual reembolso
+  con retorno físico o sin él; ambas decisiones quedan explícitas.
 - Las correcciones generan hechos compensatorios y el correspondiente movimiento
   financiero; no eliminan pagos ni devoluciones.
 

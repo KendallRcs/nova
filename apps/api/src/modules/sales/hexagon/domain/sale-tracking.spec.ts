@@ -9,6 +9,7 @@ describe('sale tracking', () => {
         lifecycle: 'confirmed',
         currentTotalCents: 5_000,
         paymentAmountsCents: [1_000, 500],
+        refundAmountsCents: [],
         forgivenAmountCents: 0,
         lineQuantities: [
           { quantity: 2, deliveredQuantity: 1 },
@@ -32,6 +33,7 @@ describe('sale tracking', () => {
         lifecycle: 'draft',
         currentTotalCents: 2_000,
         paymentAmountsCents: [],
+        refundAmountsCents: [],
         forgivenAmountCents: 0,
         lineQuantities: [{ quantity: 1, deliveredQuantity: 1 }],
         dueDate: '2026-09-01',
@@ -50,6 +52,7 @@ describe('sale tracking', () => {
         lifecycle: 'finalized',
         currentTotalCents: 5_000,
         paymentAmountsCents: [3_500],
+        refundAmountsCents: [],
         forgivenAmountCents: 1_500,
         lineQuantities: [{ quantity: 1, deliveredQuantity: 1 }],
         dueDate: '2026-09-01',

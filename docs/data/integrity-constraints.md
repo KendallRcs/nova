@@ -168,12 +168,13 @@ cuando sea útil, se añade además una protección SQL diferible o un bloqueo.
 ### Devoluciones
 
 - Toda devolución tiene una razón no vacía y aprobación administrativa.
-- Una devolución confirmada tiene al menos una línea y exactamente un reembolso.
-- Cantidad e importe reembolsado son mayores que cero.
+- Una devolución confirmada tiene al menos una línea y como máximo un reembolso.
+- La cantidad devuelta es positiva; el importe reembolsado también lo es cuando
+  existe reembolso.
 - La suma devuelta por línea no puede superar la cantidad efectivamente entregada
   y todavía no devuelta.
-- El reembolso acumulado no puede superar el importe comercial atribuible a las
-  cantidades seleccionadas, salvo un ajuste administrativo explícito del acuerdo.
+- El reembolso, cuando existe, equivale al exceso positivo entre el pago neto
+  previo y el nuevo total comercial; sin exceso no existe reembolso ni caja.
 - Si `product_returns` es verdadero, la ubicación de retorno es obligatoria; si es
   falso, debe estar vacía y no se genera entrada física.
 - El método de reembolso refleja la salida real y no necesita coincidir con el

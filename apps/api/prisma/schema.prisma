@@ -84,6 +84,13 @@ enum SaleClosureType {
   @@map("sale_closure_type")
 }
 
+enum ReturnCondition {
+  AVAILABLE @map("available")
+  REVIEW    @map("review")
+
+  @@map("return_condition")
+}
+
 enum InventoryReservationStatus {
   ACTIVE             @map("active")
   PARTIALLY_CONSUMED @map("partially_consumed")
@@ -206,6 +213,8 @@ model UserAccount {
   cashMovements        CashMovement[]
   saleTotalAdjustments SaleTotalAdjustment[]
   saleClosures         SaleClosure[]
+  approvedReturns      SaleReturn[]
+  registeredRefunds    ReturnRefund[]
 
   @@index([profileId, status], map: "idx_user_accounts_profile_status")
   @@map("user_accounts")
@@ -366,6 +375,7 @@ model Location {
   incomingTransfers     InventoryTransfer[]    @relation("TransferDestination")
   saleLines             SaleLine[]
   inventoryReservations InventoryReservation[]
+  returnLines           ReturnLine[]
 
   @@index([status, name], map: "idx_locations_status_name")
   @@map("locations")
@@ -396,6 +406,7 @@ model Sale {
   payments                Payment[]
   totalAdjustments        SaleTotalAdjustment[]
   closure                 SaleClosure?
+  returns                 SaleReturn[]
 
   @@index([createdBy, lifecycleStatus, updatedAt(sort: Desc), id(sort: Desc)], map: "idx_sales_creator_status_date")
   @@index([customerId, confirmedAt(sort: Desc), id(sort: Desc)], map: "idx_sales_customer_date")
@@ -438,6 +449,64 @@ model SaleClosure {
 
   @@index([closedBy, effectiveAt(sort: Desc), id(sort: Desc)], map: "idx_sale_closures_actor_date")
   @@map("sale_closures")
+}
+
+model SaleReturn {
+  id                         String        @id @db.Uuid
+  saleId                     String        @map("sale_id") @db.Uuid
+  operationId                String        @unique(map: "uq_returns_operation") @map("operation_id") @db.Uuid
+  requestFingerprint         String        @map("request_fingerprint")
+  reason                     String
+  commercialReductionCents   BigInt        @map("commercial_reduction_cents")
+  refundAmountCents          BigInt        @map("refund_amount_cents")
+  resultingCurrentTotalCents BigInt        @map("resulting_current_total_cents")
+  resultingPaidCents         BigInt        @map("resulting_paid_cents")
+  resultingBalanceCents      BigInt        @map("resulting_balance_cents")
+  approvedBy                 String        @map("approved_by") @db.Uuid
+  effectiveAt                DateTime      @map("effective_at") @db.Timestamptz(3)
+  resultingSaleVersion       Int           @map("resulting_sale_version")
+  sale                       Sale          @relation(fields: [saleId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_returns_sale")
+  approver                   UserAccount   @relation(fields: [approvedBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_returns_approver")
+  lines                      ReturnLine[]
+  refund                     ReturnRefund?
+
+  @@index([saleId, effectiveAt, id], map: "idx_returns_sale_date")
+  @@map("returns")
+}
+
+model ReturnLine {
+  id                       String              @id @db.Uuid
+  returnId                 String              @map("return_id") @db.Uuid
+  saleLineId               String              @map("sale_line_id") @db.Uuid
+  quantity                 Int
+  commercialReductionCents BigInt              @map("commercial_reduction_cents")
+  productReturns           Boolean             @map("product_returns")
+  returnLocationId         String?             @map("return_location_id") @db.Uuid
+  condition                ReturnCondition?
+  attributedCostCents      BigInt              @map("attributed_cost_cents")
+  saleReturn               SaleReturn          @relation(fields: [returnId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_return_lines_return")
+  saleLine                 SaleLine            @relation(fields: [saleLineId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_return_lines_sale_line")
+  returnLocation           Location?           @relation(fields: [returnLocationId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_return_lines_location")
+  inventoryMovements       InventoryMovement[]
+
+  @@unique([returnId, saleLineId], map: "uq_return_lines_return_sale_line")
+  @@index([saleLineId], map: "idx_return_lines_sale_line")
+  @@map("return_lines")
+}
+
+model ReturnRefund {
+  id           String        @id @db.Uuid
+  returnId     String        @unique(map: "uq_return_refunds_return") @map("return_id") @db.Uuid
+  amountCents  BigInt        @map("amount_cents")
+  method       PaymentMethod
+  registeredBy String        @map("registered_by") @db.Uuid
+  effectiveAt  DateTime      @map("effective_at") @db.Timestamptz(3)
+  saleReturn   SaleReturn    @relation(fields: [returnId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_return_refunds_return")
+  registrar    UserAccount   @relation(fields: [registeredBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_return_refunds_registrar")
+  cashMovement CashMovement?
+
+  @@index([registeredBy, effectiveAt(sort: Desc), id(sort: Desc)], map: "idx_return_refunds_registrar_date")
+  @@map("return_refunds")
 }
 
 model Payment {
@@ -495,10 +564,12 @@ model CashMovement {
   reason              String
   paymentId           String?               @unique(map: "uq_cash_movements_payment") @map("payment_id") @db.Uuid
   paymentCorrectionId String?               @unique(map: "uq_cash_movements_payment_correction") @map("payment_correction_id") @db.Uuid
+  returnRefundId      String?               @unique(map: "uq_cash_movements_return_refund") @map("return_refund_id") @db.Uuid
   createdAt           DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
   registrar           UserAccount           @relation(fields: [registeredBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_cash_movements_registrar")
   payment             Payment?              @relation(fields: [paymentId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_cash_movements_payment")
   paymentCorrection   PaymentCorrection?    @relation(fields: [paymentCorrectionId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_cash_movements_payment_correction")
+  returnRefund        ReturnRefund?         @relation(fields: [returnRefundId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_cash_movements_return_refund")
 
   @@index([effectiveAt(sort: Desc), id(sort: Desc)], map: "idx_cash_movements_date")
   @@index([method, effectiveAt(sort: Desc), id(sort: Desc)], map: "idx_cash_movements_method_date")
@@ -533,6 +604,7 @@ model SaleLine {
   inventoryReservations       InventoryReservation[]
   inventoryMovements          InventoryMovement[]
   costAllocations             SaleCostAllocation[]
+  returnLines                 ReturnLine[]
 
   @@unique([saleId, productId], map: "uq_sale_lines_sale_product")
   @@index([productId, saleId], map: "idx_sale_lines_product_sale")
@@ -596,6 +668,7 @@ model InventoryMovement {
   reason                    String?
   transferId                String?                          @map("transfer_id") @db.Uuid
   saleLineId                String?                          @map("sale_line_id") @db.Uuid
+  returnLineId              String?                          @map("return_line_id") @db.Uuid
   operationId               String?                          @unique(map: "uq_inventory_movements_operation") @map("operation_id") @db.Uuid
   expectedPositionVersion   Int?                             @map("expected_position_version")
   administrativeCategory    InventoryAdministrativeCategory? @map("administrative_category")
@@ -604,11 +677,13 @@ model InventoryMovement {
   actor                     UserAccount                      @relation(fields: [actorId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_inventory_movements_actor")
   transfer                  InventoryTransfer?               @relation(fields: [transferId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_inventory_movements_transfer")
   saleLine                  SaleLine?                        @relation(fields: [saleLineId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_inventory_movements_sale_line")
+  returnLine                ReturnLine?                      @relation(fields: [returnLineId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_inventory_movements_return_line")
   costMovement              CostMovement?
 
   @@index([productId, locationId, effectiveAt(sort: Desc), id(sort: Desc)], map: "idx_inventory_movements_product_location_date")
   @@index([transferId], map: "idx_inventory_movements_transfer")
   @@index([saleLineId, effectiveAt, id], map: "idx_inventory_movements_sale_line_date")
+  @@index([returnLineId, effectiveAt, id], map: "idx_inventory_movements_return_line_date")
   @@map("inventory_movements")
 }
 

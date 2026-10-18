@@ -55,6 +55,14 @@ export type ReserveAvailableCostResult =
       readonly availableQuantity?: number;
     };
 
+export type ReturnCostResult =
+  | {
+      readonly ok: true;
+      readonly before: ProductCostSnapshot;
+      readonly after: ProductCostSnapshot;
+    }
+  | { readonly ok: false; readonly reason: 'invalid-quantity' | 'invalid-cost' };
+
 export class ProductCostPosition {
   private constructor(private properties: ProductCostPositionProperties) {}
 
@@ -169,6 +177,37 @@ export class ProductCostPosition {
       updatedAt: now,
     };
     return { ok: true, before, after: this.snapshot(), addedValueCents };
+  }
+
+  receiveHistoricalReturn(
+    quantity: number,
+    valueCents: number,
+    condition: 'available' | 'review',
+    now: Date,
+  ): ReturnCostResult {
+    const before = this.snapshot();
+    if (!Number.isSafeInteger(quantity) || quantity <= 0) {
+      return { ok: false, reason: 'invalid-quantity' };
+    }
+    if (!Number.isSafeInteger(valueCents) || valueCents < 0) {
+      return { ok: false, reason: 'invalid-cost' };
+    }
+    this.properties = {
+      ...this.properties,
+      availableQuantity:
+        condition === 'available' ? before.availableQuantity + quantity : before.availableQuantity,
+      availableValueCents:
+        condition === 'available'
+          ? before.availableValueCents + valueCents
+          : before.availableValueCents,
+      reviewQuantity:
+        condition === 'review' ? before.reviewQuantity + quantity : before.reviewQuantity,
+      reviewValueCents:
+        condition === 'review' ? before.reviewValueCents + valueCents : before.reviewValueCents,
+      version: before.version + 1,
+      updatedAt: now,
+    };
+    return { ok: true, before, after: this.snapshot() };
   }
 }
 

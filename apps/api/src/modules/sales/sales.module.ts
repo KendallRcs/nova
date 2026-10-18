@@ -6,6 +6,7 @@ import { PrismaSaleConfirmationBook } from './adapters/driven/prisma/prisma-sale
 import { PrismaSalePaymentBook } from './adapters/driven/prisma/prisma-sale-payment-book';
 import { PrismaSaleActivitySource } from './adapters/driven/prisma/prisma-sale-activity-source';
 import { PrismaSaleFinancialBook } from './adapters/driven/prisma/prisma-sale-financial-book';
+import { PrismaSaleReturnBook } from './adapters/driven/prisma/prisma-sale-return-book';
 import {
   SystemSaleClock,
   UuidV7SaleIdGenerator,
@@ -18,6 +19,8 @@ import type { SaleConfirmationBook } from './hexagon/application/sale-confirmati
 import type { SalePaymentBook } from './hexagon/application/sale-payment-book';
 import { ListSales, type SaleActivitySource } from './hexagon/application/sale-activity';
 import { GetSaleDetail, type SaleDetailSource } from './hexagon/application/sale-detail';
+import { ApproveSaleReturn } from './hexagon/application/approve-sale-return';
+import type { SaleReturnBook } from './hexagon/application/sale-return-book';
 import {
   AdjustSaleTotal,
   CorrectSalePayment,
@@ -42,6 +45,7 @@ const SALE_DETAIL_SOURCE = Symbol('SALE_DETAIL_SOURCE');
 const SALE_TOTAL_ADJUSTMENT_BOOK = Symbol('SALE_TOTAL_ADJUSTMENT_BOOK');
 const SALE_CLOSURE_BOOK = Symbol('SALE_CLOSURE_BOOK');
 const PAYMENT_CORRECTION_BOOK = Symbol('PAYMENT_CORRECTION_BOOK');
+const SALE_RETURN_BOOK = Symbol('SALE_RETURN_BOOK');
 
 @Module({
   controllers: [SalesController],
@@ -52,6 +56,7 @@ const PAYMENT_CORRECTION_BOOK = Symbol('PAYMENT_CORRECTION_BOOK');
     PrismaSalePaymentBook,
     PrismaSaleActivitySource,
     PrismaSaleFinancialBook,
+    PrismaSaleReturnBook,
     SystemSaleClock,
     UuidV7SaleIdGenerator,
     { provide: SALE_DRAFT_REPOSITORY, useExisting: PrismaSaleDraftRepository },
@@ -63,6 +68,7 @@ const PAYMENT_CORRECTION_BOOK = Symbol('PAYMENT_CORRECTION_BOOK');
     { provide: SALE_TOTAL_ADJUSTMENT_BOOK, useExisting: PrismaSaleFinancialBook },
     { provide: SALE_CLOSURE_BOOK, useExisting: PrismaSaleFinancialBook },
     { provide: PAYMENT_CORRECTION_BOOK, useExisting: PrismaSaleFinancialBook },
+    { provide: SALE_RETURN_BOOK, useExisting: PrismaSaleReturnBook },
     {
       provide: CreateSaleDraft,
       inject: [
@@ -133,6 +139,12 @@ const PAYMENT_CORRECTION_BOOK = Symbol('PAYMENT_CORRECTION_BOOK');
       inject: [PAYMENT_CORRECTION_BOOK, SystemSaleClock],
       useFactory: (book: PaymentCorrectionBook, clock: SystemSaleClock) =>
         new CorrectSalePayment(book, clock),
+    },
+    {
+      provide: ApproveSaleReturn,
+      inject: [SALE_RETURN_BOOK, SystemSaleClock],
+      useFactory: (book: SaleReturnBook, clock: SystemSaleClock) =>
+        new ApproveSaleReturn(book, clock),
     },
   ],
 })

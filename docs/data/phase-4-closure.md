@@ -34,7 +34,8 @@ modelo del negocio en `docs/domain/`; los documentos de datos no los sustituyen.
 - Dinero en céntimos enteros de 64 bits y cantidades físicas enteras.
 - Costo promedio móvil global por producto, con costo de venta congelado y puerta
   de evolución a FIFO desde una fecha de corte.
-- Atribución proporcional de pagos para devoluciones parciales.
+- Pagos asociados a la venta completa, sin prorrateo por línea; una devolución
+  solo reembolsa el exceso pagado sobre el nuevo total comercial.
 - Instantes UTC, reportes en `America/Lima` y vencimientos como fecha civil.
 - Historial explícito y operaciones compensatorias en vez de borrado destructivo.
 - Stock físico por tienda/almacén y costo global independiente de ubicación.

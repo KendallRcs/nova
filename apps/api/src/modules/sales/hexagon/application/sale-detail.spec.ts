@@ -51,6 +51,7 @@ function record(): SaleDetailRecord {
     dueDate: '2026-10-01',
     paymentAgreementNote: null,
     paymentAmountsCents: [1_000],
+    refundAmountsCents: [],
     forgivenAmountCents: 0,
     lines: [
       {
@@ -87,6 +88,7 @@ function record(): SaleDetailRecord {
     ],
     totalAdjustments: [],
     closure: null,
+    returns: [],
     version: 3,
     confirmedAt: new Date('2026-10-01T14:00:00.000Z'),
     finalizedAt: null,

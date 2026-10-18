@@ -16,6 +16,7 @@ import { ConfirmSale } from '../../src/modules/sales/hexagon/application/confirm
 import { RecordSalePayment } from '../../src/modules/sales/hexagon/application/record-sale-payment';
 import { ListSales } from '../../src/modules/sales/hexagon/application/sale-activity';
 import { GetSaleDetail } from '../../src/modules/sales/hexagon/application/sale-detail';
+import { ApproveSaleReturn } from '../../src/modules/sales/hexagon/application/approve-sale-return';
 import {
   AdjustSaleTotal,
   CorrectSalePayment,
@@ -145,6 +146,7 @@ describe('Sales HTTP contract', () => {
                   lines: [],
                   payments: [],
                   totalAdjustments: [],
+                  returns: [],
                   closure: null,
                   version: 3,
                   confirmedAt: new Date('2026-09-15T21:00:00.000Z'),
@@ -223,6 +225,34 @@ describe('Sales HTTP contract', () => {
                   reason: command.reason,
                   correctedBy: ACTOR_ID,
                   effectiveAt: new Date('2026-09-17T15:30:00.000Z'),
+                },
+              }),
+          },
+        },
+        {
+          provide: ApproveSaleReturn,
+          useValue: {
+            execute: (command: {
+              operationId: string;
+              saleId: string;
+              refundMethod: 'cash' | 'yape' | 'plin' | 'pos' | null;
+            }) =>
+              Promise.resolve({
+                ok: true,
+                replayed: false,
+                saleReturn: {
+                  returnId: '0199ef04-1b00-7000-8000-000000000097',
+                  operationId: command.operationId,
+                  saleId: command.saleId,
+                  saleVersion: 7,
+                  commercialReductionCents: 1_500,
+                  refundAmountCents: 500,
+                  refundMethod: command.refundMethod,
+                  currentTotalCents: 2_000,
+                  paidCents: 2_000,
+                  balanceCents: 0,
+                  approvedBy: ACTOR_ID,
+                  effectiveAt: new Date('2026-09-18T15:00:00.000Z'),
                 },
               }),
           },
@@ -385,6 +415,34 @@ describe('Sales HTTP contract', () => {
       type: 'incomplete',
       forgivenAmountCents: 1_500,
       reason: 'Acuerdo de cierre',
+    });
+  });
+
+  it('approves a return and exposes only the calculated paid excess as refund', async () => {
+    const response = await request(httpServer)
+      .post(`/api/v1/sales/${SALE_ID}/returns`)
+      .set('Idempotency-Key', '0199ef04-1b00-7000-8000-000000000098')
+      .send({
+        expectedVersion: 6,
+        reason: 'Cliente cambió de opinión',
+        refundMethod: 'yape',
+        lines: [
+          {
+            saleLineId: LINE_ID,
+            quantity: 1,
+            productReturns: false,
+          },
+        ],
+      })
+      .expect(200);
+    expect(response.body).toMatchObject({
+      saleVersion: 7,
+      commercialReductionCents: 1_500,
+      refundAmountCents: 500,
+      refundMethod: 'yape',
+      currentTotalCents: 2_000,
+      paidCents: 2_000,
+      balanceCents: 0,
     });
   });
 });

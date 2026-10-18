@@ -23,6 +23,7 @@ export interface SaleActivityRecord {
   readonly currentTotalCents: number;
   readonly dueDate: string | null;
   readonly paymentAmountsCents: readonly number[];
+  readonly refundAmountsCents: readonly number[];
   readonly forgivenAmountCents: number;
   readonly lines: readonly { quantity: number; deliveredQuantity: number }[];
   readonly version: number;
@@ -109,6 +110,7 @@ function toItem(record: SaleActivityRecord, todayInLima: string): SaleActivityIt
     lifecycle: record.lifecycle,
     currentTotalCents: record.currentTotalCents,
     paymentAmountsCents: record.paymentAmountsCents,
+    refundAmountsCents: record.refundAmountsCents,
     forgivenAmountCents: record.forgivenAmountCents,
     lineQuantities: record.lines,
     dueDate: record.dueDate,

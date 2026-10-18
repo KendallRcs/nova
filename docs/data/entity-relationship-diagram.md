@@ -156,7 +156,7 @@ erDiagram
     RETURN ||--|{ RETURN_LINE : contains
     SALE_LINE ||--o{ RETURN_LINE : returns
     LOCATION o|--o{ RETURN_LINE : returns_to
-    RETURN ||--|| RETURN_REFUND : refunds
+    RETURN ||--o| RETURN_REFUND : refunds
 
     SALE ||--o| SALE_CLOSURE : closes
     SALE ||--o| SALE_CANCELLATION : cancels
@@ -223,9 +223,13 @@ erDiagram
     RETURN {
         uuid id PK
         uuid sale_id FK
+        uuid operation_id UK
         string reason
-        uuid created_by FK
+        bigint commercial_reduction_cents
+        bigint refund_amount_cents
+        uuid approved_by FK
         datetime effective_at
+        int resulting_sale_version
     }
     RETURN_LINE {
         uuid id PK
@@ -234,6 +238,7 @@ erDiagram
         uuid return_location_id FK "optional"
         int quantity
         boolean product_returns
+        string condition "optional"
         bigint commercial_amount_cents
         bigint attributed_cost_cents
     }
@@ -243,6 +248,7 @@ erDiagram
         bigint amount_cents
         string method
         uuid registered_by FK
+        datetime effective_at
     }
     SALE_CLOSURE {
         uuid id PK

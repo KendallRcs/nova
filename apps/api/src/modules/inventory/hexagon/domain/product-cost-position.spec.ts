@@ -48,6 +48,28 @@ describe('ProductCostPosition', () => {
       version: 2,
     });
   });
+
+  it('restores the historical value to the condition selected for a return', () => {
+    const available = position(2, 500);
+    expect(available.receiveHistoricalReturn(1, 275, 'available', now)).toMatchObject({ ok: true });
+    expect(available.snapshot()).toMatchObject({
+      availableQuantity: 3,
+      availableValueCents: 775,
+      reviewQuantity: 0,
+      reviewValueCents: 0,
+      version: 2,
+    });
+
+    const review = position(2, 500);
+    expect(review.receiveHistoricalReturn(1, 275, 'review', now)).toMatchObject({ ok: true });
+    expect(review.snapshot()).toMatchObject({
+      availableQuantity: 2,
+      availableValueCents: 500,
+      reviewQuantity: 1,
+      reviewValueCents: 275,
+      version: 2,
+    });
+  });
 });
 
 function position(availableQuantity: number, availableValueCents: number): ProductCostPosition {
