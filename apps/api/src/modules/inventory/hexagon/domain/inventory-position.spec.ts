@@ -153,6 +153,14 @@ describe('InventoryPosition', () => {
       availableQuantity: 3,
     });
   });
+
+  it('receives purchased units as physical and available stock', () => {
+    const inventory = position('store', 2, 1, 0);
+    expect(inventory.receivePurchase(3, now)).toMatchObject({
+      ok: true,
+      after: { physicalQuantity: 5, reservedQuantity: 1, availableQuantity: 4, version: 2 },
+    });
+  });
 });
 
 function position(

@@ -30,6 +30,7 @@ import { PrismaInventoryAdministrationBook } from '../../../src/modules/inventor
 import { PrismaSupplierRepository } from '../../../src/modules/procurement/adapters/driven/prisma/prisma-supplier.repository';
 import { PrismaSupplierAdvanceBook } from '../../../src/modules/procurement/adapters/driven/prisma/prisma-supplier-advance-book';
 import { PrismaSupplierAdvanceResolutionBook } from '../../../src/modules/procurement/adapters/driven/prisma/prisma-supplier-advance-resolution-book';
+import { PrismaPurchaseBook } from '../../../src/modules/procurement/adapters/driven/prisma/prisma-purchase-book';
 import { Supplier } from '../../../src/modules/procurement/hexagon/domain/supplier';
 import { UuidV7IdGenerator } from '../../../src/modules/catalog/adapters/driven/system/uuid-v7-id-generator';
 import { AccountStatus } from '../../../src/generated/prisma/client';
@@ -52,6 +53,7 @@ describe('PrismaCategoryRepository', () => {
   let suppliers: PrismaSupplierRepository;
   let supplierAdvances: PrismaSupplierAdvanceBook;
   let supplierAdvanceResolutions: PrismaSupplierAdvanceResolutionBook;
+  let purchasesBook: PrismaPurchaseBook;
   let customers: PrismaCustomerRepository;
   let customerMerges: PrismaCustomerMergeBook;
   let customerAccounts: PrismaCustomerAccountSource;
@@ -85,6 +87,7 @@ describe('PrismaCategoryRepository', () => {
     suppliers = new PrismaSupplierRepository(prisma);
     supplierAdvances = new PrismaSupplierAdvanceBook(prisma);
     supplierAdvanceResolutions = new PrismaSupplierAdvanceResolutionBook(prisma);
+    purchasesBook = new PrismaPurchaseBook(prisma);
     customers = new PrismaCustomerRepository(prisma);
     customerMerges = new PrismaCustomerMergeBook(prisma);
     customerAccounts = new PrismaCustomerAccountSource(prisma);
@@ -109,6 +112,9 @@ describe('PrismaCategoryRepository', () => {
     await prisma?.deliveryLine.deleteMany();
     await prisma?.delivery.deleteMany();
     await prisma?.cashMovement.deleteMany();
+    await prisma?.advanceApplication.deleteMany();
+    await prisma?.purchaseLine.deleteMany();
+    await prisma?.purchase.deleteMany();
     await prisma?.advanceRefund.deleteMany();
     await prisma?.advanceLoss.deleteMany();
     await prisma?.supplierAdvance.deleteMany();
@@ -257,6 +263,174 @@ describe('PrismaCategoryRepository', () => {
       replayed: true,
       advance: { currentBalanceCents: 0, status: 'resolved', version: 3 },
     });
+  });
+
+  it('confirms a multi-product purchase with multiple advances, stock, cost and cash', async () => {
+    if (prisma === undefined) throw new Error('Prisma was not initialized.');
+    const now = new Date('2026-10-18T21:00:00.000Z');
+    const category = createCategory('Compras');
+    await repository.save(category);
+    const firstProduct = createProduct(category.toPrimitives().id, undefined, 'COMPRA-001');
+    const secondProduct = createProduct(category.toPrimitives().id, undefined, 'COMPRA-002');
+    await products.save(firstProduct);
+    await products.save(secondProduct);
+    const supplier = Supplier.register({
+      id: '0199ef04-1b00-7000-8000-0000000000e0',
+      name: 'Mayorista Central',
+      kind: 'registered',
+      now,
+    });
+    await suppliers.save(supplier);
+    const actorId = await createActor(prisma);
+    const store = await prisma.location.findUniqueOrThrow({ where: { code: 'STORE' } });
+    const warehouse = await prisma.location.findUniqueOrThrow({ where: { code: 'WAREHOUSE' } });
+    await prisma.inventoryPosition.create({
+      data: {
+        id: '0199ef04-1b00-7000-8000-0000000000e1',
+        productId: firstProduct.toPrimitives().id,
+        locationId: store.id,
+        physicalQuantity: 2,
+        createdAt: now,
+        updatedAt: now,
+      },
+    });
+    await prisma.productCostPosition.create({
+      data: {
+        id: '0199ef04-1b00-7000-8000-0000000000e2',
+        productId: firstProduct.toPrimitives().id,
+        availableQuantity: 2,
+        availableValueCents: 400,
+        createdAt: now,
+        updatedAt: now,
+      },
+    });
+    const firstAdvance = {
+      advanceId: '0199ef04-1b00-7000-8000-0000000000e3',
+      cashMovementId: '0199ef04-1b00-7000-8000-0000000000e4',
+      operationId: '0199ef04-1b00-7000-8000-0000000000e5',
+      supplierId: supplier.toPrimitives().id,
+      amountCents: 300,
+      method: 'yape' as const,
+      purpose: null,
+      actorId,
+      effectiveAt: now,
+    };
+    const secondAdvance = {
+      advanceId: '0199ef04-1b00-7000-8000-0000000000e6',
+      cashMovementId: '0199ef04-1b00-7000-8000-0000000000e7',
+      operationId: '0199ef04-1b00-7000-8000-0000000000e8',
+      supplierId: supplier.toPrimitives().id,
+      amountCents: 200,
+      method: 'cash' as const,
+      purpose: null,
+      actorId,
+      effectiveAt: now,
+    };
+    await supplierAdvances.register(firstAdvance);
+    await supplierAdvances.register(secondAdvance);
+    const command = {
+      purchaseId: '0199ef04-1b00-7000-8000-0000000000f0',
+      cashMovementId: '0199ef04-1b00-7000-8000-0000000000f1',
+      operationId: '0199ef04-1b00-7000-8000-0000000000f2',
+      supplierId: supplier.toPrimitives().id,
+      actorId,
+      lines: [
+        {
+          lineId: '0199ef04-1b00-7000-8000-0000000000f3',
+          inventoryMovementId: '0199ef04-1b00-7000-8000-0000000000f4',
+          costMovementId: '0199ef04-1b00-7000-8000-0000000000f5',
+          productId: firstProduct.toPrimitives().id,
+          destinationLocationId: store.id,
+          quantity: 2,
+          unitCostCents: 300,
+          subtotalCents: 600,
+        },
+        {
+          lineId: '0199ef04-1b00-7000-8000-0000000000f6',
+          inventoryMovementId: '0199ef04-1b00-7000-8000-0000000000f7',
+          costMovementId: '0199ef04-1b00-7000-8000-0000000000f8',
+          productId: secondProduct.toPrimitives().id,
+          destinationLocationId: warehouse.id,
+          quantity: 1,
+          unitCostCents: 400,
+          subtotalCents: 400,
+        },
+      ],
+      advanceApplications: [
+        {
+          applicationId: '0199ef04-1b00-7000-8000-0000000000f9',
+          advanceId: firstAdvance.advanceId,
+          expectedVersion: 1,
+          amountCents: 300,
+        },
+        {
+          applicationId: '0199ef04-1b00-7000-8000-0000000000fa',
+          advanceId: secondAdvance.advanceId,
+          expectedVersion: 1,
+          amountCents: 200,
+        },
+      ],
+      totalCents: 1_000,
+      advanceAppliedCents: 500,
+      newlyPaidCents: 500,
+      paymentMethod: 'pos' as const,
+      effectiveAt: new Date('2026-10-18T21:01:00.000Z'),
+    };
+
+    await expect(purchasesBook.confirm(command)).resolves.toMatchObject({
+      ok: true,
+      replayed: false,
+      purchase: {
+        totalCents: 1_000,
+        advanceAppliedCents: 500,
+        newlyPaidCents: 500,
+        lines: [
+          {
+            previousAverageUnitCostCents: 200,
+            resultingAverageUnitCostCents: 250,
+            priceReviewSuggested: true,
+          },
+          {
+            previousAverageUnitCostCents: null,
+            resultingAverageUnitCostCents: 400,
+            priceReviewSuggested: false,
+          },
+        ],
+      },
+    });
+    await expect(purchasesBook.confirm(command)).resolves.toMatchObject({
+      ok: true,
+      replayed: true,
+    });
+    await expect(
+      prisma.inventoryPosition.findMany({ orderBy: { productId: 'asc' } }),
+    ).resolves.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ productId: firstProduct.toPrimitives().id, physicalQuantity: 4 }),
+        expect.objectContaining({
+          productId: secondProduct.toPrimitives().id,
+          physicalQuantity: 1,
+        }),
+      ]),
+    );
+    await expect(
+      prisma.productCostPosition.findUniqueOrThrow({
+        where: { productId: firstProduct.toPrimitives().id },
+      }),
+    ).resolves.toMatchObject({ availableQuantity: 4, availableValueCents: 1_000n });
+    await expect(prisma.supplierAdvance.findMany()).resolves.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ currentBalanceCents: 0n, status: 'RESOLVED', version: 2 }),
+        expect.objectContaining({ currentBalanceCents: 0n, status: 'RESOLVED', version: 2 }),
+      ]),
+    );
+    await expect(
+      prisma.cashMovement.findUniqueOrThrow({ where: { purchaseId: command.purchaseId } }),
+    ).resolves.toMatchObject({ direction: 'OUTFLOW', amountCents: 500n, method: 'POS' });
+    await expect(prisma.cashMovement.count()).resolves.toBe(3);
+    await expect(prisma.advanceApplication.count()).resolves.toBe(2);
+    await expect(prisma.inventoryMovement.count()).resolves.toBe(2);
+    await expect(prisma.costMovement.count()).resolves.toBe(2);
   });
 
   it('persists customers and enforces canonical phone uniqueness', async () => {

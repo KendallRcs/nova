@@ -17,7 +17,8 @@ Nombre o descripción identificable son obligatorios; teléfono, documento y otr
 
 ## Agregado Compra
 
-`Compra` es la raíz e incluye líneas, aplicaciones de anticipos y la instantánea necesaria del proveedor.
+`Compra` es la raíz e incluye líneas, aplicaciones de anticipos y la referencia a
+la identidad estable del proveedor, sea registrado u ocasional.
 
 Cada `Línea de compra` conserva:
 
@@ -44,11 +45,10 @@ Cada `Línea de compra` conserva:
 
 ### Estados
 
-```mermaid
-stateDiagram-v2
-    [*] --> Borrador
-    Borrador --> Confirmada: confirmar compra y efectos
-```
+En el MVP la compra se persiste directamente como `Confirmada`: los datos que el
+administrador prepara en la interfaz todavía no constituyen un borrador de dominio
+ni producen efectos. `POST /purchases` confirma compra y efectos en una sola
+transacción. Un borrador persistente queda fuera del alcance actual.
 
 Una corrección posterior genera operaciones compensatorias; no devuelve la compra a borrador.
 
@@ -96,11 +96,15 @@ La forma de resolución puede ser aplicada, reembolsada, perdida o mixta y se de
 
 ## Cambio de costo
 
-Al confirmar una compra, Abastecimiento compara el nuevo costo con la referencia anterior disponible mediante un puerto. Si difiere, produce una sugerencia de revisión para Catálogo.
+Al confirmar una compra, Abastecimiento compara el costo entrante con el promedio
+disponible anterior del producto. Si difiere, produce una sugerencia de revisión
+para Catálogo.
 
 La sugerencia no es una orden: no modifica automáticamente precio mínimo, sugerido ni máximo.
 
-El método para atribuir unidades vendidas a costos históricos se decidirá antes del modelo de datos.
+La política vigente es promedio ponderado móvil sobre las unidades disponibles.
+La persistencia conserva `costing_policy` para permitir una migración futura a
+FIFO sin recalcular las ventas históricas ya confirmadas.
 
 ## Eventos de Abastecimiento
 

@@ -6,6 +6,9 @@
 ### User Story PUR-001 — Registrar una compra con varios productos
 
 - **Estado:** Confirmada
+- **Trazabilidad de implementación:** backend completo mediante una confirmación
+  atómica e idempotente. Registra proveedor con identidad estable, líneas, ingreso
+  físico por ubicación, costo promedio global y únicamente el nuevo egreso pagado.
 - **Como** administrador
 - **quiero** registrar una compra pagada al contado con varios productos
 - **para** ingresar mercancía y conservar sus costos reales.
@@ -13,7 +16,7 @@
 #### Criterios de aceptación
 
 - **Escenario:** Compra con proveedor registrado u ocasional
-- **Dado:** que indiqué un proveedor registrado o los datos de un proveedor ocasional
+- **Dado:** que indiqué la identidad estable de un proveedor registrado u ocasional
 - **Y dado:** que cada línea contiene producto, cantidad, costo y ubicación de ingreso
 - **Cuando:** confirmo la compra y su método de pago
 - **Entonces:** se conserva el costo de cada línea, se incrementa el inventario y se registra el egreso de caja como una sola operación consistente.
@@ -21,6 +24,9 @@
 ### User Story PUR-002 — Sugerir revisión de precios tras un cambio de costo
 
 - **Estado:** Confirmada
+- **Trazabilidad de implementación:** backend completo. Cada línea compara su costo
+  entrante con el costo promedio disponible anterior y devuelve una sugerencia no
+  vinculante; ningún precio del catálogo se modifica automáticamente.
 - **Como** administrador
 - **quiero** recibir una sugerencia cuando cambia el costo de reposición
 - **para** evaluar los precios de venta sin modificarlos automáticamente.
@@ -54,6 +60,9 @@
 ### User Story PUR-004 — Aplicar un anticipo al completar una compra
 
 - **Estado:** Confirmada
+- **Trazabilidad de implementación:** backend completo con control optimista de
+  versión. Una compra puede consumir varios anticipos del mismo proveedor, un
+  anticipo conserva el saldo no aplicado y solo el remanente pagado crea caja.
 - **Como** administrador
 - **quiero** aplicar anticipos existentes al registrar la compra definitiva
 - **para** pagar únicamente el saldo restante sin duplicar egresos.

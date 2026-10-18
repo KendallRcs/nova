@@ -1,5 +1,17 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsIn, IsInt, IsOptional, IsString, IsUUID, MaxLength, Min } from 'class-validator';
+import { Type } from 'class-transformer';
+import {
+  ArrayMinSize,
+  IsArray,
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  IsUUID,
+  MaxLength,
+  Min,
+  ValidateNested,
+} from 'class-validator';
 
 export class SupplierDataRequest {
   @ApiProperty() @IsString() @MaxLength(200) name!: string;
@@ -105,5 +117,66 @@ export class AdvanceResolutionResponse {
   @ApiProperty() advanceVersion!: number;
   @ApiProperty({ format: 'uuid' }) registeredBy!: string;
   @ApiProperty({ format: 'date-time' }) effectiveAt!: string;
+  @ApiProperty() replayed!: boolean;
+}
+
+export class PurchaseLineRequest {
+  @ApiProperty({ format: 'uuid' }) @IsUUID('7') productId!: string;
+  @ApiProperty({ format: 'uuid' }) @IsUUID('7') destinationLocationId!: string;
+  @ApiProperty({ minimum: 1 }) @IsInt() @Min(1) quantity!: number;
+  @ApiProperty({ minimum: 1 }) @IsInt() @Min(1) unitCostCents!: number;
+}
+
+export class PurchaseAdvanceApplicationRequest {
+  @ApiProperty({ format: 'uuid' }) @IsUUID('7') advanceId!: string;
+  @ApiProperty({ minimum: 1 }) @IsInt() @Min(1) expectedVersion!: number;
+  @ApiProperty({ minimum: 1 }) @IsInt() @Min(1) amountCents!: number;
+}
+
+export class ConfirmPurchaseRequest {
+  @ApiProperty({ format: 'uuid' }) @IsUUID('7') supplierId!: string;
+  @ApiProperty({ type: [PurchaseLineRequest] })
+  @IsArray()
+  @ArrayMinSize(1)
+  @ValidateNested({ each: true })
+  @Type(() => PurchaseLineRequest)
+  lines!: PurchaseLineRequest[];
+  @ApiProperty({ type: [PurchaseAdvanceApplicationRequest], required: false })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => PurchaseAdvanceApplicationRequest)
+  advanceApplications?: PurchaseAdvanceApplicationRequest[];
+  @ApiProperty({ enum: ['cash', 'yape', 'plin', 'pos'], required: false, nullable: true })
+  @IsOptional()
+  @IsIn(['cash', 'yape', 'plin', 'pos'])
+  paymentMethod?: 'cash' | 'yape' | 'plin' | 'pos' | null;
+}
+
+export class PurchaseLineResponse {
+  @ApiProperty({ format: 'uuid' }) id!: string;
+  @ApiProperty({ format: 'uuid' }) productId!: string;
+  @ApiProperty({ format: 'uuid' }) destinationLocationId!: string;
+  @ApiProperty() quantity!: number;
+  @ApiProperty() unitCostCents!: number;
+  @ApiProperty() subtotalCents!: number;
+  @ApiProperty({ nullable: true }) previousAverageUnitCostCents!: number | null;
+  @ApiProperty() resultingAverageUnitCostCents!: number;
+  @ApiProperty() priceReviewSuggested!: boolean;
+}
+
+export class PurchaseResponse {
+  @ApiProperty({ format: 'uuid' }) id!: string;
+  @ApiProperty({ format: 'uuid' }) operationId!: string;
+  @ApiProperty({ format: 'uuid' }) supplierId!: string;
+  @ApiProperty() totalCents!: number;
+  @ApiProperty() advanceAppliedCents!: number;
+  @ApiProperty() newlyPaidCents!: number;
+  @ApiProperty({ enum: ['cash', 'yape', 'plin', 'pos'], nullable: true })
+  paymentMethod!: 'cash' | 'yape' | 'plin' | 'pos' | null;
+  @ApiProperty({ format: 'uuid' }) createdBy!: string;
+  @ApiProperty({ format: 'uuid' }) confirmedBy!: string;
+  @ApiProperty({ format: 'date-time' }) effectiveAt!: string;
+  @ApiProperty({ type: [PurchaseLineResponse] }) lines!: PurchaseLineResponse[];
   @ApiProperty() replayed!: boolean;
 }

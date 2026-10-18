@@ -168,6 +168,12 @@ enum SupplierAdvanceStatus {
   @@map("supplier_advance_status")
 }
 
+enum PurchaseStatus {
+  CONFIRMED @map("confirmed")
+
+  @@map("purchase_status")
+}
+
 model AccessProfile {
   id             String              @id @db.Uuid
   name           String
@@ -235,6 +241,9 @@ model UserAccount {
   registeredAdvances   SupplierAdvance[]
   advanceRefunds       AdvanceRefund[]
   advanceLosses        AdvanceLoss[]
+  createdPurchases     Purchase[]               @relation("PurchaseCreator")
+  confirmedPurchases   Purchase[]               @relation("PurchaseConfirmer")
+  advanceApplications  AdvanceApplication[]
 
   @@index([profileId, status], map: "idx_user_accounts_profile_status")
   @@map("user_accounts")
@@ -315,6 +324,7 @@ model Supplier {
   createdAt      DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt      DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
   advances       SupplierAdvance[]
+  purchases      Purchase[]
 
   @@index([status, nameNormalized, id], map: "idx_suppliers_status_name")
   @@map("suppliers")
@@ -340,6 +350,7 @@ model SupplierAdvance {
   cashMovement        CashMovement?
   refunds             AdvanceRefund[]
   losses              AdvanceLoss[]
+  applications        AdvanceApplication[]
 
   @@index([supplierId, status, effectiveAt(sort: Desc), id(sort: Desc)], map: "idx_supplier_advances_supplier_status_date")
   @@index([registeredBy, effectiveAt(sort: Desc), id(sort: Desc)], map: "idx_supplier_advances_registrar_date")
@@ -381,6 +392,73 @@ model AdvanceLoss {
 
   @@index([advanceId, effectiveAt, id], map: "idx_advance_losses_advance_date")
   @@map("advance_losses")
+}
+
+model Purchase {
+  id                  String               @id @db.Uuid
+  operationId         String               @unique(map: "uq_purchases_operation") @map("operation_id") @db.Uuid
+  requestFingerprint  String               @map("request_fingerprint")
+  supplierId          String               @map("supplier_id") @db.Uuid
+  status              PurchaseStatus       @default(CONFIRMED)
+  totalCents          BigInt               @map("total_cents")
+  advanceAppliedCents BigInt               @map("advance_applied_cents")
+  newlyPaidCents      BigInt               @map("newly_paid_cents")
+  paymentMethod       PaymentMethod?       @map("payment_method")
+  createdBy           String               @map("created_by") @db.Uuid
+  confirmedBy         String               @map("confirmed_by") @db.Uuid
+  effectiveAt         DateTime             @map("effective_at") @db.Timestamptz(3)
+  createdAt           DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
+  supplier            Supplier             @relation(fields: [supplierId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_purchases_supplier")
+  creator             UserAccount          @relation("PurchaseCreator", fields: [createdBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_purchases_creator")
+  confirmer           UserAccount          @relation("PurchaseConfirmer", fields: [confirmedBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_purchases_confirmer")
+  lines               PurchaseLine[]
+  advanceApplications AdvanceApplication[]
+  cashMovement        CashMovement?
+
+  @@index([supplierId, effectiveAt(sort: Desc), id(sort: Desc)], map: "idx_purchases_supplier_date")
+  @@index([confirmedBy, effectiveAt(sort: Desc), id(sort: Desc)], map: "idx_purchases_confirmer_date")
+  @@map("purchases")
+}
+
+model PurchaseLine {
+  id                            String              @id @db.Uuid
+  purchaseId                    String              @map("purchase_id") @db.Uuid
+  productId                     String              @map("product_id") @db.Uuid
+  destinationLocationId         String              @map("destination_location_id") @db.Uuid
+  quantity                      Int
+  unitCostCents                 BigInt              @map("unit_cost_cents")
+  subtotalCents                 BigInt              @map("subtotal_cents")
+  previousAverageUnitCostCents  BigInt?             @map("previous_average_unit_cost_cents")
+  resultingAverageUnitCostCents BigInt              @map("resulting_average_unit_cost_cents")
+  priceReviewSuggested          Boolean             @map("price_review_suggested")
+  purchase                      Purchase            @relation(fields: [purchaseId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_purchase_lines_purchase")
+  product                       Product             @relation(fields: [productId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_purchase_lines_product")
+  destinationLocation           Location            @relation(fields: [destinationLocationId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_purchase_lines_location")
+  inventoryMovements            InventoryMovement[]
+
+  @@unique([purchaseId, productId, destinationLocationId], map: "uq_purchase_lines_purchase_product_location")
+  @@index([productId, purchaseId], map: "idx_purchase_lines_product_purchase")
+  @@index([destinationLocationId, purchaseId], map: "idx_purchase_lines_location_purchase")
+  @@map("purchase_lines")
+}
+
+model AdvanceApplication {
+  id                      String          @id @db.Uuid
+  advanceId               String          @map("advance_id") @db.Uuid
+  purchaseId              String          @map("purchase_id") @db.Uuid
+  amountCents             BigInt          @map("amount_cents")
+  expectedAdvanceVersion  Int             @map("expected_advance_version")
+  resultingBalanceCents   BigInt          @map("resulting_balance_cents")
+  resultingAdvanceVersion Int             @map("resulting_advance_version")
+  appliedBy               String          @map("applied_by") @db.Uuid
+  effectiveAt             DateTime        @map("effective_at") @db.Timestamptz(3)
+  advance                 SupplierAdvance @relation(fields: [advanceId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_advance_applications_advance")
+  purchase                Purchase        @relation(fields: [purchaseId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_advance_applications_purchase")
+  actor                   UserAccount     @relation(fields: [appliedBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_advance_applications_actor")
+
+  @@unique([advanceId, purchaseId], map: "uq_advance_applications_advance_purchase")
+  @@index([purchaseId, advanceId], map: "idx_advance_applications_purchase_advance")
+  @@map("advance_applications")
 }
 
 model Category {
@@ -433,6 +511,7 @@ model Product {
   costPosition        ProductCostPosition?
   costMovements       CostMovement[]
   saleLines           SaleLine[]
+  purchaseLines       PurchaseLine[]
 
   @@index([categoryId, status], map: "idx_products_category_status")
   @@index([searchName, id], map: "idx_products_search_name_id")
@@ -479,6 +558,7 @@ model Location {
   returnLines           ReturnLine[]
   cancellationLines     SaleCancellationLine[]
   deliveryLines         DeliveryLine[]
+  purchaseLines         PurchaseLine[]
 
   @@index([status, name], map: "idx_locations_status_name")
   @@map("locations")
@@ -729,6 +809,7 @@ model CashMovement {
   saleCancellationRefundId String?                 @unique(map: "uq_cash_movements_sale_cancellation_refund") @map("sale_cancellation_refund_id") @db.Uuid
   supplierAdvanceId        String?                 @unique(map: "uq_cash_movements_supplier_advance") @map("supplier_advance_id") @db.Uuid
   advanceRefundId          String?                 @unique(map: "uq_cash_movements_advance_refund") @map("advance_refund_id") @db.Uuid
+  purchaseId               String?                 @unique(map: "uq_cash_movements_purchase") @map("purchase_id") @db.Uuid
   createdAt                DateTime                @default(now()) @map("created_at") @db.Timestamptz(3)
   registrar                UserAccount             @relation(fields: [registeredBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_cash_movements_registrar")
   payment                  Payment?                @relation(fields: [paymentId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_cash_movements_payment")
@@ -737,6 +818,7 @@ model CashMovement {
   saleCancellationRefund   SaleCancellationRefund? @relation(fields: [saleCancellationRefundId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_cash_movements_sale_cancellation_refund")
   supplierAdvance          SupplierAdvance?        @relation(fields: [supplierAdvanceId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_cash_movements_supplier_advance")
   advanceRefund            AdvanceRefund?          @relation(fields: [advanceRefundId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_cash_movements_advance_refund")
+  purchase                 Purchase?               @relation(fields: [purchaseId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_cash_movements_purchase")
 
   @@index([effectiveAt(sort: Desc), id(sort: Desc)], map: "idx_cash_movements_date")
   @@index([method, effectiveAt(sort: Desc), id(sort: Desc)], map: "idx_cash_movements_method_date")
@@ -876,6 +958,7 @@ model InventoryMovement {
   returnLineId              String?                          @map("return_line_id") @db.Uuid
   cancellationLineId        String?                          @map("cancellation_line_id") @db.Uuid
   deliveryLineId            String?                          @map("delivery_line_id") @db.Uuid
+  purchaseLineId            String?                          @map("purchase_line_id") @db.Uuid
   operationId               String?                          @unique(map: "uq_inventory_movements_operation") @map("operation_id") @db.Uuid
   expectedPositionVersion   Int?                             @map("expected_position_version")
   administrativeCategory    InventoryAdministrativeCategory? @map("administrative_category")
@@ -887,6 +970,7 @@ model InventoryMovement {
   returnLine                ReturnLine?                      @relation(fields: [returnLineId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_inventory_movements_return_line")
   cancellationLine          SaleCancellationLine?            @relation(fields: [cancellationLineId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_inventory_movements_cancellation_line")
   deliveryLine              DeliveryLine?                    @relation(fields: [deliveryLineId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_inventory_movements_delivery_line")
+  purchaseLine              PurchaseLine?                    @relation(fields: [purchaseLineId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_inventory_movements_purchase_line")
   costMovement              CostMovement?
 
   @@index([productId, locationId, effectiveAt(sort: Desc), id(sort: Desc)], map: "idx_inventory_movements_product_location_date")
@@ -895,6 +979,7 @@ model InventoryMovement {
   @@index([returnLineId, effectiveAt, id], map: "idx_inventory_movements_return_line_date")
   @@index([cancellationLineId, effectiveAt, id], map: "idx_inventory_movements_cancellation_line_date")
   @@index([deliveryLineId, effectiveAt, id], map: "idx_inventory_movements_delivery_line_date")
+  @@index([purchaseLineId, effectiveAt, id], map: "idx_inventory_movements_purchase_line_date")
   @@map("inventory_movements")
 }
 

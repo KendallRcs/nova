@@ -14,6 +14,7 @@ import {
 } from '../../src/modules/procurement/hexagon/application/manage-suppliers';
 import { RegisterSupplierAdvance } from '../../src/modules/procurement/hexagon/application/register-supplier-advance';
 import { ResolveSupplierAdvance } from '../../src/modules/procurement/hexagon/application/resolve-supplier-advance';
+import { ConfirmPurchase } from '../../src/modules/procurement/hexagon/application/confirm-purchase';
 
 const SUPPLIER_ID = '0199ef04-1b00-7000-8000-000000000070';
 const ACTOR_ID = '0199ef04-1b00-7000-8000-000000000071';
@@ -107,6 +108,41 @@ describe('Procurement HTTP contract', () => {
               }),
           },
         },
+        {
+          provide: ConfirmPurchase,
+          useValue: {
+            execute: (command: { operationId: string }) =>
+              Promise.resolve({
+                ok: true,
+                replayed: false,
+                purchase: {
+                  id: '0199ef04-1b00-7000-8000-000000000078',
+                  operationId: command.operationId,
+                  supplierId: SUPPLIER_ID,
+                  totalCents: 1_000,
+                  advanceAppliedCents: 500,
+                  newlyPaidCents: 500,
+                  paymentMethod: 'pos',
+                  createdBy: ACTOR_ID,
+                  confirmedBy: ACTOR_ID,
+                  effectiveAt: now,
+                  lines: [
+                    {
+                      id: '0199ef04-1b00-7000-8000-000000000079',
+                      productId: '0199ef04-1b00-7000-8000-000000000080',
+                      destinationLocationId: '0199ef04-1b00-7000-8000-000000000081',
+                      quantity: 2,
+                      unitCostCents: 500,
+                      subtotalCents: 1_000,
+                      previousAverageUnitCostCents: 400,
+                      resultingAverageUnitCostCents: 450,
+                      priceReviewSuggested: true,
+                    },
+                  ],
+                },
+              }),
+          },
+        },
       ],
     }).compile();
     app = module.createNestApplication();
@@ -194,5 +230,38 @@ describe('Procurement HTTP contract', () => {
       .expect((response) => {
         expect(response.body).toMatchObject({ type: 'loss', status: 'resolved', method: null });
       });
+  });
+
+  it('confirms a purchase and exposes the non-binding price review suggestion', async () => {
+    const response = await request(httpServer)
+      .post('/api/v1/purchases')
+      .set('Idempotency-Key', '0199ef04-1b00-7000-8000-000000000082')
+      .send({
+        supplierId: SUPPLIER_ID,
+        lines: [
+          {
+            productId: '0199ef04-1b00-7000-8000-000000000080',
+            destinationLocationId: '0199ef04-1b00-7000-8000-000000000081',
+            quantity: 2,
+            unitCostCents: 500,
+          },
+        ],
+        advanceApplications: [
+          {
+            advanceId: '0199ef04-1b00-7000-8000-000000000072',
+            expectedVersion: 1,
+            amountCents: 500,
+          },
+        ],
+        paymentMethod: 'pos',
+      })
+      .expect(201);
+    expect(response.body).toMatchObject({
+      totalCents: 1_000,
+      advanceAppliedCents: 500,
+      newlyPaidCents: 500,
+      lines: [{ priceReviewSuggested: true }],
+      replayed: false,
+    });
   });
 });

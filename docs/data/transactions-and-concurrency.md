@@ -213,7 +213,8 @@ restante antes de decidir.
 
 ### Confirmar una compra
 
-1. Validar el borrador y ordenar los recursos involucrados.
+1. Validar el comando completo y ordenar los recursos involucrados; no se persiste
+   un borrador de compra en el MVP.
 2. Bloquear adelantos por UUID y verificar proveedor y saldo.
 3. Bloquear posiciones físicas por `(product_id, location_id)`.
 4. Bloquear posiciones de costo por producto.

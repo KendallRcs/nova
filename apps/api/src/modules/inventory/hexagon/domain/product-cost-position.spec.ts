@@ -126,6 +126,15 @@ describe('ProductCostPosition', () => {
     });
     expect(available.snapshot()).toMatchObject({ reviewQuantity: 0, reviewValueCents: 0 });
   });
+
+  it('adds a purchase at its declared acquisition cost', () => {
+    const cost = position(2, 401);
+    expect(cost.receivePurchase(3, 200, now)).toMatchObject({
+      ok: true,
+      addedValueCents: 600,
+      after: { availableQuantity: 5, availableValueCents: 1_001, version: 2 },
+    });
+  });
 });
 
 function position(availableQuantity: number, availableValueCents: number): ProductCostPosition {

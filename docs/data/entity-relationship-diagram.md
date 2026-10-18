@@ -416,7 +416,7 @@ transaccionales reconciliables.
 
 ```mermaid
 erDiagram
-    SUPPLIER o|--o{ PURCHASE : supplies
+    SUPPLIER ||--o{ PURCHASE : supplies
     PURCHASE ||--|{ PURCHASE_LINE : contains
     PRODUCT ||--o{ PURCHASE_LINE : replenishes
     LOCATION ||--o{ PURCHASE_LINE : enters_at
@@ -434,8 +434,8 @@ erDiagram
     }
     PURCHASE {
         uuid id PK
-        uuid supplier_id FK "optional"
-        string occasional_supplier_name "optional"
+        uuid operation_id UK
+        uuid supplier_id FK
         bigint total_cents
         bigint advance_applied_cents
         bigint newly_paid_cents
@@ -485,10 +485,9 @@ erDiagram
     }
 ```
 
-Una compra identifica un proveedor registrado o conserva la instantánea de uno
-ocasional, nunca ambos. Para registrar un anticipo, incluso un proveedor ocasional
-adquiere primero una identidad estable en `SUPPLIER`, pues su saldo debe poder
-aplicarse o resolverse posteriormente.
+Una compra siempre identifica una identidad estable en `SUPPLIER`, también cuando
+el proveedor se clasifica como ocasional. Esto permite vincular anticipos, historial
+y compras posteriores sin depender de una instantánea textual ambigua.
 `ADVANCE_APPLICATION` resuelve la relación N:M entre adelantos y compras.
 
 ## Finanzas y gastos

@@ -215,7 +215,7 @@ causa, actor, fecha y saldos anterior/resultante.
 
 **Entrada:** proveedor, estado, periodo y cursor.
 
-**Salida de compra:** proveedor registrado u ocasional, líneas, total, adelantos
+**Salida de compra:** proveedor estable registrado u ocasional, líneas, total, adelantos
 aplicados, pago nuevo, usuario y fecha. **Salida de adelanto:** importe original,
 aplicado, reembolsado, perdido, saldo y compras relacionadas.
 

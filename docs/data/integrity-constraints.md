@@ -257,17 +257,15 @@ cuando sea útil, se añade además una protección SQL diferible o un bloqueo.
 
 ### Compras
 
-- Una compra confirmada identifica un proveedor registrado o conserva un nombre
-  no vacío como instantánea del proveedor ocasional, además de al menos una línea,
-  autor, confirmador y fecha efectiva. Esas dos formas de identificación son
-  mutuamente excluyentes.
+- Una compra confirmada referencia la identidad estable de un proveedor registrado
+  u ocasional y contiene al menos una línea, autor, confirmador y fecha efectiva.
 - Cada línea tiene producto, ubicación de destino, cantidad positiva, costo
-  unitario no negativo y subtotal consistente.
+  unitario positivo y subtotal consistente.
 - Una misma compra puede repetir producto solo cuando cambia la ubicación; el par
   `(purchase_id, product_id, destination_location_id)` es único.
 - El total de compra coincide con la suma de sus líneas.
 - `advance_applied_cents + newly_paid_cents = total_cents`.
-- Una compra de proveedor ocasional no puede utilizar adelantos.
+- Todo anticipo aplicado pertenece al mismo proveedor estable de la compra.
 - Confirmar compra, aplicaciones de adelanto, nuevo egreso, inventario y costo es
   atómico.
 

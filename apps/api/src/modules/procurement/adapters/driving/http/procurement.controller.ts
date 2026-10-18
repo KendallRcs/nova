@@ -23,6 +23,10 @@ import {
   type SupplierView,
 } from '../../../hexagon/application/manage-suppliers';
 import { RegisterSupplierAdvance } from '../../../hexagon/application/register-supplier-advance';
+import {
+  ConfirmPurchase,
+  type ConfirmPurchaseResult,
+} from '../../../hexagon/application/confirm-purchase';
 import type { SupplierAdvanceResult } from '../../../hexagon/application/supplier-advance-book';
 import {
   InvalidAdvanceLossReasonError,
@@ -37,6 +41,8 @@ import {
   RefundSupplierAdvanceRequest,
   LoseSupplierAdvanceRequest,
   AdvanceResolutionResponse,
+  ConfirmPurchaseRequest,
+  PurchaseResponse,
   SupplierAdvanceResponse,
   SupplierDataRequest,
   SupplierListResponse,
@@ -52,6 +58,7 @@ export class ProcurementController {
     private readonly searchSuppliers: SearchSuppliers,
     private readonly registerAdvance: RegisterSupplierAdvance,
     private readonly resolveAdvance: ResolveSupplierAdvance,
+    private readonly confirmPurchase: ConfirmPurchase,
   ) {}
 
   @Post('suppliers')
@@ -175,6 +182,33 @@ export class ProcurementController {
       throwResolutionInput(error);
     }
   }
+
+  @Post('purchases')
+  @RequirePermission('purchases:manage')
+  @ApiOperation({ operationId: 'confirmPurchase' })
+  @ApiCreatedResponse({ type: PurchaseResponse })
+  async purchase(
+    @Headers('idempotency-key') operationId: string | undefined,
+    @Body() body: ConfirmPurchaseRequest,
+    @Req() request: AuthenticatedRequest,
+  ): Promise<PurchaseResponse> {
+    const context = operationContext(operationId, request);
+    const result = await this.confirmPurchase.execute({
+      operationId: context.operationId,
+      supplierId: body.supplierId,
+      actorId: context.actorId,
+      lines: body.lines,
+      advanceApplications: body.advanceApplications ?? [],
+      paymentMethod: body.paymentMethod ?? null,
+    });
+    if (!result.ok) throwPurchaseError(result);
+    return {
+      ...result.purchase,
+      lines: [...result.purchase.lines],
+      effectiveAt: result.purchase.effectiveAt.toISOString(),
+      replayed: result.replayed,
+    };
+  }
 }
 
 const UUID_V7 = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -257,5 +291,40 @@ function throwResolutionError(result: Exclude<AdvanceResolutionResult, { ok: tru
     ...(result.currentBalanceCents === undefined
       ? {}
       : { currentBalanceCents: result.currentBalanceCents }),
+  });
+}
+
+function throwPurchaseError(result: Exclude<ConfirmPurchaseResult, { ok: true }>): never {
+  if (
+    result.reason === 'supplier-not-found' ||
+    result.reason === 'product-not-found' ||
+    result.reason === 'location-not-found' ||
+    result.reason === 'advance-not-found'
+  ) {
+    throw new NotFoundException({
+      status: 404,
+      code: result.reason.toUpperCase().replaceAll('-', '_'),
+      referenceId: 'referenceId' in result ? result.referenceId : undefined,
+    });
+  }
+  if (
+    result.reason === 'advance-supplier-mismatch' ||
+    result.reason === 'advance-version-conflict' ||
+    result.reason === 'insufficient-advance-balance' ||
+    result.reason === 'idempotency-conflict' ||
+    result.reason === 'concurrency-conflict'
+  ) {
+    throw new ConflictException({
+      status: 409,
+      code: result.reason.toUpperCase().replaceAll('-', '_'),
+      ...('referenceId' in result ? { referenceId: result.referenceId } : {}),
+      ...('currentBalanceCents' in result
+        ? { currentBalanceCents: result.currentBalanceCents }
+        : {}),
+    });
+  }
+  throw new UnprocessableEntityException({
+    status: 422,
+    code: result.reason.toUpperCase().replaceAll('-', '_'),
   });
 }

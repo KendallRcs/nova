@@ -37,3 +37,4 @@
 | 2026-10-18 | INV-007 completó su backend: el administrador resuelve mercancía en revisión como apta o baja, preservando costo histórico, pérdida, razón, versión e idempotencia. |
 | 2026-10-18 | PUR-003 completó su backend: proveedores registrados u ocasionales conservan identidad estable y cada anticipo crea una salida de caja atómica e idempotente sin generar inventario ni gasto operativo. |
 | 2026-10-18 | PUR-005 completó su backend: reembolsos y pérdidas consumen de forma versionada e idempotente el saldo del anticipo; solo el reembolso real genera una entrada de caja. |
+| 2026-10-18 | PUR-001, PUR-002 y PUR-004 completaron su backend: la compra se confirma atómica e idempotentemente con proveedor estable, múltiples líneas y anticipos, inventario, costo promedio, pago restante y sugerencias no vinculantes de precio. |

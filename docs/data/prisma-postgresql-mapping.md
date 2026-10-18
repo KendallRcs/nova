@@ -176,10 +176,10 @@ que exista un repositorio por modelo.
 | Modelo Prisma | Tabla | Claves y relaciones principales |
 | --- | --- | --- |
 | `Supplier` | `suppliers` | identidad, clasificación registrada/ocasional y estado; implementado |
-| `Purchase` | `purchases` | proveedor registrado o snapshot ocasional |
-| `PurchaseLine` | `purchase_lines` | único `(purchaseId, productId, destinationLocationId)` |
+| `Purchase` | `purchases` | proveedor estable, operación idempotente, importes de anticipos/pago y estado confirmado; implementado |
+| `PurchaseLine` | `purchase_lines` | único `(purchaseId, productId, destinationLocationId)`, costo y sugerencia de revisión; implementado |
 | `SupplierAdvance` | `supplier_advances` | proveedor requerido, saldo, versión e idempotencia; registro implementado |
-| `AdvanceApplication` | `advance_applications` | único `(advanceId, purchaseId)` |
+| `AdvanceApplication` | `advance_applications` | único `(advanceId, purchaseId)`, versión y saldo resultantes; implementado |
 | `AdvanceRefund` | `advance_refunds` | adelanto, importe, método, versión resultante e idempotencia; implementado |
 | `AdvanceLoss` | `advance_losses` | adelanto, importe, razón, versión resultante e idempotencia; implementado |
 
@@ -298,7 +298,7 @@ siguientes garantías se añaden o verifican en la migración SQL:
 - saldos y valores de costo consistentes con cantidades cero;
 - diferencia de ajuste igual a total nuevo menos anterior;
 - campos condicionales de precio excepcional, retorno, cierre y estado;
-- proveedor registrado XOR snapshot ocasional;
+- proveedor estable obligatorio en compras y anticipos;
 - origen y destino distintos en transferencias;
 - exactamente una causa por movimiento financiero, físico o de costo;
 - dirección financiera compatible con su origen.

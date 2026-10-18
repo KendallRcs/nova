@@ -89,6 +89,15 @@ export type ResolveReviewCostResult =
       readonly reviewQuantity?: number;
     };
 
+export type ReceivePurchaseCostResult =
+  | {
+      readonly ok: true;
+      readonly before: ProductCostSnapshot;
+      readonly after: ProductCostSnapshot;
+      readonly addedValueCents: number;
+    }
+  | { readonly ok: false; readonly reason: 'invalid-quantity' | 'invalid-cost' };
+
 export class ProductCostPosition {
   private constructor(private properties: ProductCostPositionProperties) {}
 
@@ -195,6 +204,25 @@ export class ProductCostPosition {
       before.availableQuantity === 0
         ? safeMultiply(declaredUnitCostCents ?? 0, quantity)
         : proportionalValue(before.availableValueCents, quantity, before.availableQuantity);
+    this.properties = {
+      ...this.properties,
+      availableQuantity: before.availableQuantity + quantity,
+      availableValueCents: before.availableValueCents + addedValueCents,
+      version: before.version + 1,
+      updatedAt: now,
+    };
+    return { ok: true, before, after: this.snapshot(), addedValueCents };
+  }
+
+  receivePurchase(quantity: number, unitCostCents: number, now: Date): ReceivePurchaseCostResult {
+    const before = this.snapshot();
+    if (!Number.isSafeInteger(quantity) || quantity <= 0) {
+      return { ok: false, reason: 'invalid-quantity' };
+    }
+    if (!Number.isSafeInteger(unitCostCents) || unitCostCents <= 0) {
+      return { ok: false, reason: 'invalid-cost' };
+    }
+    const addedValueCents = safeMultiply(quantity, unitCostCents);
     this.properties = {
       ...this.properties,
       availableQuantity: before.availableQuantity + quantity,

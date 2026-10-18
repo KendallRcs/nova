@@ -128,6 +128,7 @@ POST   /api/v1/suppliers
 POST   /api/v1/supplier-advances
 POST   /api/v1/supplier-advances/{advanceId}/refunds
 POST   /api/v1/supplier-advances/{advanceId}/losses
+POST   /api/v1/purchases
 ```
 
 Las bajas y ajustes requieren `Idempotency-Key`. El ajuste envía además
@@ -155,6 +156,15 @@ Las devoluciones y pérdidas de anticipos requieren `expectedVersion`, importe e
 dinero y crea una entrada de caja; una pérdida exige razón y no crea otro movimiento
 monetario. Ninguna puede superar el saldo vigente, y saldo cero cambia la situación
 derivada a `resolved`.
+
+`POST /purchases` requiere `purchases:manage` e `Idempotency-Key`. Recibe un
+proveedor con identidad estable, una o más líneas con producto, ubicación, cantidad
+y costo unitario positivo, aplicaciones opcionales de anticipos con su versión
+observada y el método del pago nuevo. El método es obligatorio solo cuando queda
+saldo por pagar y se omite cuando los anticipos cubren todo. Compra, aplicaciones,
+stock, costo promedio y egreso restante se confirman atómicamente. La respuesta
+incluye por línea el promedio anterior, el resultante y una sugerencia no
+vinculante de revisión de precios.
 
 La fusión de clientes requiere `Idempotency-Key`, las versiones observadas de
 ambos registros y los datos finales resueltos. No reasigna ventas históricas: las
