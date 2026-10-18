@@ -147,6 +147,68 @@ export class SalePaymentResponse {
   @ApiProperty() replayed!: boolean;
 }
 
+export class AdjustSaleTotalRequest {
+  @ApiProperty({ minimum: 1 }) @IsInt() @Min(1) expectedVersion!: number;
+  @ApiProperty({ minimum: 0 }) @IsInt() @Min(0) newTotalCents!: number;
+  @ApiProperty({ maxLength: 500 }) @IsString() @MaxLength(500) reason!: string;
+}
+
+export class SaleTotalAdjustmentResponse {
+  @ApiProperty({ format: 'uuid' }) adjustmentId!: string;
+  @ApiProperty({ format: 'uuid' }) operationId!: string;
+  @ApiProperty({ format: 'uuid' }) saleId!: string;
+  @ApiProperty() saleVersion!: number;
+  @ApiProperty() previousTotalCents!: number;
+  @ApiProperty() currentTotalCents!: number;
+  @ApiProperty() differenceCents!: number;
+  @ApiProperty() reason!: string;
+  @ApiProperty({ format: 'uuid' }) changedBy!: string;
+  @ApiProperty({ format: 'date-time' }) effectiveAt!: string;
+  @ApiProperty() replayed!: boolean;
+}
+
+export class FinalizeSaleRequest {
+  @ApiProperty({ minimum: 1 }) @IsInt() @Min(1) expectedVersion!: number;
+  @ApiPropertyOptional({ nullable: true, maxLength: 500 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  reason?: string | null;
+}
+
+export class SaleClosureResponse {
+  @ApiProperty({ format: 'uuid' }) closureId!: string;
+  @ApiProperty({ format: 'uuid' }) operationId!: string;
+  @ApiProperty({ format: 'uuid' }) saleId!: string;
+  @ApiProperty() saleVersion!: number;
+  @ApiProperty({ enum: ['complete', 'incomplete'] }) type!: 'complete' | 'incomplete';
+  @ApiProperty() forgivenAmountCents!: number;
+  @ApiProperty({ nullable: true, type: String }) reason!: string | null;
+  @ApiProperty({ format: 'uuid' }) closedBy!: string;
+  @ApiProperty({ format: 'date-time' }) effectiveAt!: string;
+  @ApiProperty() replayed!: boolean;
+}
+
+export class CorrectSalePaymentRequest {
+  @ApiProperty({ minimum: 1 }) @IsInt() @Min(1) expectedVersion!: number;
+  @ApiProperty({ minimum: 1 }) @IsInt() @Min(1) amountCents!: number;
+  @ApiProperty({ maxLength: 500 }) @IsString() @MaxLength(500) reason!: string;
+}
+
+export class PaymentCorrectionResponse {
+  @ApiProperty({ format: 'uuid' }) correctionId!: string;
+  @ApiProperty({ format: 'uuid' }) operationId!: string;
+  @ApiProperty({ format: 'uuid' }) saleId!: string;
+  @ApiProperty({ format: 'uuid' }) paymentId!: string;
+  @ApiProperty() saleVersion!: number;
+  @ApiProperty() amountCents!: number;
+  @ApiProperty({ enum: PAYMENT_METHODS }) method!: PaymentMethodRequest;
+  @ApiProperty() reason!: string;
+  @ApiProperty({ format: 'uuid' }) correctedBy!: string;
+  @ApiProperty({ format: 'date-time' }) effectiveAt!: string;
+  @ApiProperty() replayed!: boolean;
+}
+
 const SALE_LIFECYCLES = ['draft', 'confirmed', 'finalized', 'cancelled'] as const;
 const SALE_DEBT_FILTERS = ['all', 'pending', 'paid', 'overdue'] as const;
 
@@ -185,8 +247,8 @@ export class SaleActivityItemResponse {
   @ApiProperty() currentTotalCents!: number;
   @ApiProperty() paidCents!: number;
   @ApiProperty() balanceCents!: number;
-  @ApiProperty({ enum: ['not-applicable', 'unpaid', 'partial', 'paid'] })
-  paymentSituation!: 'not-applicable' | 'unpaid' | 'partial' | 'paid';
+  @ApiProperty({ enum: ['not-applicable', 'unpaid', 'partial', 'paid', 'closed-with-balance'] })
+  paymentSituation!: 'not-applicable' | 'unpaid' | 'partial' | 'paid' | 'closed-with-balance';
   @ApiProperty({ enum: ['not-applicable', 'pending', 'partial', 'complete'] })
   deliverySituation!: 'not-applicable' | 'pending' | 'partial' | 'complete';
   @ApiProperty() overdue!: boolean;
@@ -206,4 +268,48 @@ export class SaleActivityPageInfoResponse {
 export class SaleActivityPageResponse {
   @ApiProperty({ type: [SaleActivityItemResponse] }) items!: SaleActivityItemResponse[];
   @ApiProperty({ type: SaleActivityPageInfoResponse }) pageInfo!: SaleActivityPageInfoResponse;
+}
+
+export class SaleDetailLineResponse {
+  @ApiProperty({ format: 'uuid' }) id!: string;
+  @ApiProperty({ format: 'uuid' }) productId!: string;
+  @ApiProperty({ format: 'uuid' }) locationId!: string;
+  @ApiProperty() locationCode!: string;
+  @ApiProperty() locationName!: string;
+  @ApiProperty() quantity!: number;
+  @ApiProperty() deliveryQuantity!: number;
+  @ApiProperty() reservationQuantity!: number;
+  @ApiProperty() activeReservationQuantity!: number;
+  @ApiProperty() agreedUnitPriceCents!: number;
+  @ApiProperty() originalSubtotalCents!: number;
+  @ApiProperty({ nullable: true, type: Object }) snapshot!: Record<string, unknown> | null;
+  @ApiProperty({ nullable: true, type: String }) priceExceptionReason!: string | null;
+  @ApiProperty({ nullable: true, type: String, format: 'uuid' }) priceApprovedBy!: string | null;
+  @ApiProperty({ nullable: true, type: Number }) allocatedCostCents!: number | null;
+}
+
+export class SaleDetailPaymentResponse {
+  @ApiProperty({ format: 'uuid' }) id!: string;
+  @ApiProperty() amountCents!: number;
+  @ApiProperty() correctedCents!: number;
+  @ApiProperty() netAmountCents!: number;
+  @ApiProperty({ enum: PAYMENT_METHODS }) method!: PaymentMethodRequest;
+  @ApiProperty({ enum: ['confirmed', 'partially-corrected', 'corrected'] })
+  status!: 'confirmed' | 'partially-corrected' | 'corrected';
+  @ApiProperty({ format: 'uuid' }) registeredBy!: string;
+  @ApiProperty() registrarUsername!: string;
+  @ApiProperty({ format: 'date-time' }) effectiveAt!: string;
+  @ApiProperty({ type: [Object] }) corrections!: Record<string, unknown>[];
+}
+
+export class SaleDetailResponse extends SaleActivityItemResponse {
+  @ApiProperty({ nullable: true, type: String }) paymentAgreementNote!: string | null;
+  @ApiProperty({ type: [SaleDetailLineResponse] }) lines!: SaleDetailLineResponse[];
+  @ApiProperty({ type: [SaleDetailPaymentResponse] }) payments!: SaleDetailPaymentResponse[];
+  @ApiProperty({ type: [Object] }) totalAdjustments!: Record<string, unknown>[];
+  @ApiProperty({ nullable: true, type: Object }) closure!: Record<string, unknown> | null;
+  @ApiProperty({ format: 'date-time', nullable: true, type: String })
+  finalizedAt!: string | null;
+  @ApiProperty({ format: 'date-time', nullable: true, type: String })
+  cancelledAt!: string | null;
 }

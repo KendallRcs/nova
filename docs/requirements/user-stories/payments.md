@@ -52,6 +52,10 @@
 ### User Story PAY-003 — Finalizar una venta con saldo no cobrado
 
 - **Estado:** Confirmada
+- **Trazabilidad de implementación:** backend completo mediante cierre atómico,
+  idempotente y versionado. Un cierre con saldo exige razón, registra el importe
+  condonado y se distingue de una venta pagada mediante el estado
+  `closed-with-balance`; un cierre sin saldo queda como completo.
 - **Como** administrador
 - **quiero** cerrar una venta sin cobrar todo el total acordado
 - **para** representar un acuerdo informal sin ocultar la diferencia.
@@ -82,6 +86,10 @@
 ### User Story PAY-005 — Corregir un pago sin borrar su historia
 
 - **Estado:** Confirmada
+- **Trazabilidad de implementación:** backend completo mediante correcciones
+  parciales o totales, acumulables, atómicas e idempotentes. El pago original se
+  conserva, su estado refleja la corrección y cada compensación crea una salida de
+  caja con el mismo método, razón, actor y fecha.
 - **Como** administrador
 - **quiero** anular o compensar un pago incorrecto con una razón
 - **para** corregir el saldo sin ocultar la operación original.

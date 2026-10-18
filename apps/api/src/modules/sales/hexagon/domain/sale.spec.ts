@@ -160,6 +160,92 @@ describe('Sale draft', () => {
       }),
     ).toEqual({ ok: false, reason: 'payment-exceeds-balance', balanceCents: 900 });
   });
+
+  it('preserves the financial audit trail when adjusting, correcting and closing with balance', () => {
+    const sale = confirmedSale();
+    const paid = sale.registerPayment({
+      payment: payment('payment-1', 600),
+      actorId: 'employee-1',
+      canRegisterAny: false,
+      now: new Date('2026-09-16T10:00:00.000Z'),
+    });
+    expect(paid.ok).toBe(true);
+
+    expect(
+      sale.adjustTotal({
+        adjustment: {
+          id: 'adjustment-1',
+          newTotalCents: 1_800,
+          reason: 'Acuerdo final con el cliente',
+          changedBy: 'admin-1',
+          effectiveAt: new Date('2026-09-16T11:00:00.000Z'),
+        },
+        canAdjust: true,
+        now: new Date('2026-09-16T11:00:00.000Z'),
+      }),
+    ).toMatchObject({ ok: true, previousTotalCents: 1_500, differenceCents: 300 });
+
+    expect(
+      sale.correctPayment({
+        paymentId: 'payment-1',
+        amountCents: 200,
+        reason: 'Cobro duplicado',
+        canCorrect: true,
+        now: new Date('2026-09-16T12:00:00.000Z'),
+      }),
+    ).toEqual({
+      ok: true,
+      correctedCents: 200,
+      remainingCorrectableCents: 400,
+      paidCents: 400,
+      balanceCents: 1_400,
+    });
+
+    expect(
+      sale.finalize({
+        closure: {
+          id: 'closure-1',
+          reason: 'Se acuerda no cobrar el saldo restante',
+          closedBy: 'admin-1',
+          effectiveAt: new Date('2026-09-16T13:00:00.000Z'),
+        },
+        canFinalize: true,
+        now: new Date('2026-09-16T13:00:00.000Z'),
+      }),
+    ).toEqual({ ok: true, closureType: 'incomplete', forgivenAmountCents: 1_400 });
+    expect(sale.toPrimitives()).toMatchObject({
+      lifecycle: 'finalized',
+      currentTotalCents: 1_800,
+      version: 6,
+      payments: [{ correctedCents: 200 }],
+      totalAdjustments: [{ previousTotalCents: 1_500, newTotalCents: 1_800 }],
+      closure: { type: 'incomplete', forgivenAmountCents: 1_400 },
+    });
+    expect(sale.balanceCents()).toBe(0);
+  });
+
+  it('does not allow the adjusted total below the net amount already paid', () => {
+    const sale = confirmedSale();
+    sale.registerPayment({
+      payment: payment('payment-1', 600),
+      actorId: 'employee-1',
+      canRegisterAny: false,
+      now: new Date(),
+    });
+    expect(
+      sale.adjustTotal({
+        adjustment: {
+          id: 'adjustment-1',
+          newTotalCents: 599,
+          reason: 'Monto final',
+          changedBy: 'admin-1',
+          effectiveAt: new Date(),
+        },
+        canAdjust: true,
+        now: new Date(),
+      }),
+    ).toEqual({ ok: false, reason: 'total-below-paid', paidCents: 600 });
+  });
 });
 
 function confirmedSale(): Sale {

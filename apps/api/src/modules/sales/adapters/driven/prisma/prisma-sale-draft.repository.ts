@@ -12,7 +12,12 @@ export class PrismaSaleDraftRepository implements SaleDraftRepository {
   async findById(id: string): Promise<Sale | null> {
     const row = await this.prisma.sale.findUnique({
       where: { id },
-      include: { lines: true, payments: true },
+      include: {
+        lines: true,
+        payments: { include: { corrections: true } },
+        totalAdjustments: true,
+        closure: true,
+      },
     });
     return row === null ? null : toSaleDomain(row);
   }
@@ -68,7 +73,14 @@ export class PrismaSaleDraftRepository implements SaleDraftRepository {
   }
 }
 
-type SaleRow = Prisma.SaleGetPayload<{ include: { lines: true; payments: true } }>;
+type SaleRow = Prisma.SaleGetPayload<{
+  include: {
+    lines: true;
+    payments: { include: { corrections: true } };
+    totalAdjustments: true;
+    closure: true;
+  };
+}>;
 export function toSaleDomain(row: SaleRow): Sale {
   return Sale.restore({
     id: row.id,
@@ -130,11 +142,37 @@ export function toSaleDomain(row: SaleRow): Sale {
             : payment.method === PaymentMethod.PLIN
               ? 'plin'
               : 'pos',
+      correctedCents: payment.corrections.reduce(
+        (sum, correction) => sum + safeSaleNumber(correction.amountCents),
+        0,
+      ),
       registeredBy: payment.registeredBy,
       effectiveAt: payment.effectiveAt,
     })),
+    totalAdjustments: row.totalAdjustments.map((adjustment) => ({
+      id: adjustment.id,
+      previousTotalCents: safeSaleNumber(adjustment.previousTotalCents),
+      newTotalCents: safeSaleNumber(adjustment.newTotalCents),
+      differenceCents: safeSignedSaleNumber(adjustment.differenceCents),
+      reason: adjustment.reason,
+      changedBy: adjustment.changedBy,
+      effectiveAt: adjustment.effectiveAt,
+    })),
+    closure:
+      row.closure === null
+        ? null
+        : {
+            id: row.closure.id,
+            type: row.closure.type === 'COMPLETE' ? 'complete' : 'incomplete',
+            forgivenAmountCents: safeSaleNumber(row.closure.forgivenAmountCents),
+            reason: row.closure.reason,
+            closedBy: row.closure.closedBy,
+            effectiveAt: row.closure.effectiveAt,
+          },
     version: row.version,
     confirmedAt: row.confirmedAt,
+    finalizedAt: row.finalizedAt,
+    cancelledAt: row.cancelledAt,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   });
@@ -158,6 +196,12 @@ function toDate(value: string | null): Date | null {
 }
 
 export function safeSaleNumber(value: bigint): number {
+  const number = Number(value);
+  if (!Number.isSafeInteger(number)) throw new Error('Sale money exceeds JSON safe integer range.');
+  return number;
+}
+
+export function safeSignedSaleNumber(value: bigint): number {
   const number = Number(value);
   if (!Number.isSafeInteger(number)) throw new Error('Sale money exceeds JSON safe integer range.');
   return number;

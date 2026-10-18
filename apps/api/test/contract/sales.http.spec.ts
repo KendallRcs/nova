@@ -15,6 +15,12 @@ import {
 import { ConfirmSale } from '../../src/modules/sales/hexagon/application/confirm-sale';
 import { RecordSalePayment } from '../../src/modules/sales/hexagon/application/record-sale-payment';
 import { ListSales } from '../../src/modules/sales/hexagon/application/sale-activity';
+import { GetSaleDetail } from '../../src/modules/sales/hexagon/application/sale-detail';
+import {
+  AdjustSaleTotal,
+  CorrectSalePayment,
+  FinalizeSale,
+} from '../../src/modules/sales/hexagon/application/manage-sale-financials';
 import { Sale } from '../../src/modules/sales/hexagon/domain/sale';
 
 const SALE_ID = '0199ef04-1b00-7000-8000-000000000080';
@@ -22,6 +28,7 @@ const LINE_ID = '0199ef04-1b00-7000-8000-000000000081';
 const ACTOR_ID = '0199ef04-1b00-7000-8000-000000000082';
 const PRODUCT_ID = '0199ef04-1b00-7000-8000-000000000083';
 const LOCATION_ID = '0199ef04-1b00-7000-8000-000000000084';
+const PAYMENT_ID = '0199ef04-1b00-7000-8000-000000000087';
 
 describe('Sales HTTP contract', () => {
   let app: INestApplication;
@@ -114,6 +121,112 @@ describe('Sales HTTP contract', () => {
               }),
           },
         },
+        {
+          provide: GetSaleDetail,
+          useValue: {
+            execute: () =>
+              Promise.resolve({
+                ok: true,
+                sale: {
+                  id: SALE_ID,
+                  createdBy: ACTOR_ID,
+                  creatorUsername: 'employee',
+                  customer: null,
+                  lifecycle: 'confirmed',
+                  originalTotalCents: 3_000,
+                  currentTotalCents: 3_000,
+                  paidCents: 1_000,
+                  balanceCents: 2_000,
+                  paymentSituation: 'partial',
+                  deliverySituation: 'partial',
+                  overdue: true,
+                  dueDate: '2026-09-15',
+                  paymentAgreementNote: null,
+                  lines: [],
+                  payments: [],
+                  totalAdjustments: [],
+                  closure: null,
+                  version: 3,
+                  confirmedAt: new Date('2026-09-15T21:00:00.000Z'),
+                  finalizedAt: null,
+                  cancelledAt: null,
+                  createdAt: new Date('2026-09-15T20:00:00.000Z'),
+                  updatedAt: new Date('2026-09-16T15:00:00.000Z'),
+                },
+              }),
+          },
+        },
+        {
+          provide: AdjustSaleTotal,
+          useValue: {
+            execute: (command: { operationId: string; saleId: string; newTotalCents: number }) =>
+              Promise.resolve({
+                ok: true,
+                replayed: false,
+                adjustment: {
+                  adjustmentId: '0199ef04-1b00-7000-8000-000000000091',
+                  operationId: command.operationId,
+                  saleId: command.saleId,
+                  saleVersion: 4,
+                  previousTotalCents: 3_000,
+                  currentTotalCents: command.newTotalCents,
+                  differenceCents: command.newTotalCents - 3_000,
+                  reason: 'Acuerdo final',
+                  changedBy: ACTOR_ID,
+                  effectiveAt: new Date('2026-09-17T15:00:00.000Z'),
+                },
+              }),
+          },
+        },
+        {
+          provide: FinalizeSale,
+          useValue: {
+            execute: (command: { operationId: string; saleId: string; reason: string | null }) =>
+              Promise.resolve({
+                ok: true,
+                replayed: false,
+                closure: {
+                  closureId: '0199ef04-1b00-7000-8000-000000000092',
+                  operationId: command.operationId,
+                  saleId: command.saleId,
+                  saleVersion: 6,
+                  type: 'incomplete',
+                  forgivenAmountCents: 1_500,
+                  reason: command.reason,
+                  closedBy: ACTOR_ID,
+                  effectiveAt: new Date('2026-09-17T16:00:00.000Z'),
+                },
+              }),
+          },
+        },
+        {
+          provide: CorrectSalePayment,
+          useValue: {
+            execute: (command: {
+              operationId: string;
+              saleId: string;
+              paymentId: string;
+              amountCents: number;
+              reason: string;
+            }) =>
+              Promise.resolve({
+                ok: true,
+                replayed: false,
+                correction: {
+                  correctionId: '0199ef04-1b00-7000-8000-000000000093',
+                  operationId: command.operationId,
+                  saleId: command.saleId,
+                  paymentId: command.paymentId,
+                  saleVersion: 5,
+                  amountCents: command.amountCents,
+                  method: 'yape',
+                  reason: command.reason,
+                  correctedBy: ACTOR_ID,
+                  effectiveAt: new Date('2026-09-17T15:30:00.000Z'),
+                },
+              }),
+          },
+        },
       ],
     }).compile();
     app = module.createNestApplication();
@@ -176,6 +289,17 @@ describe('Sales HTTP contract', () => {
     });
   });
 
+  it('returns the operational detail of a sale', async () => {
+    const response = await request(httpServer).get(`/api/v1/sales/${SALE_ID}`).expect(200);
+    expect(response.body).toMatchObject({
+      id: SALE_ID,
+      paymentSituation: 'partial',
+      balanceCents: 2_000,
+      totalAdjustments: [],
+      closure: null,
+    });
+  });
+
   it('replaces an owned draft using optimistic concurrency', async () => {
     const response = await request(httpServer)
       .put(`/api/v1/sales/${SALE_ID}`)
@@ -219,6 +343,48 @@ describe('Sales HTTP contract', () => {
       method: 'yape',
       balanceCents: 2_000,
       replayed: false,
+    });
+  });
+
+  it('adjusts the agreed total through an idempotent admin command', async () => {
+    const response = await request(httpServer)
+      .post(`/api/v1/sales/${SALE_ID}/total-adjustments`)
+      .set('Idempotency-Key', '0199ef04-1b00-7000-8000-000000000094')
+      .send({ expectedVersion: 3, newTotalCents: 3_500, reason: 'Acuerdo final' })
+      .expect(200);
+    expect(response.body).toMatchObject({
+      saleVersion: 4,
+      previousTotalCents: 3_000,
+      currentTotalCents: 3_500,
+      differenceCents: 500,
+    });
+  });
+
+  it('corrects a payment without deleting its original record', async () => {
+    const response = await request(httpServer)
+      .post(`/api/v1/sales/${SALE_ID}/payments/${PAYMENT_ID}/corrections`)
+      .set('Idempotency-Key', '0199ef04-1b00-7000-8000-000000000095')
+      .send({ expectedVersion: 4, amountCents: 500, reason: 'Cobro duplicado' })
+      .expect(200);
+    expect(response.body).toMatchObject({
+      paymentId: PAYMENT_ID,
+      saleVersion: 5,
+      amountCents: 500,
+      method: 'yape',
+    });
+  });
+
+  it('finalizes a sale and records the forgiven balance', async () => {
+    const response = await request(httpServer)
+      .post(`/api/v1/sales/${SALE_ID}/closure`)
+      .set('Idempotency-Key', '0199ef04-1b00-7000-8000-000000000096')
+      .send({ expectedVersion: 5, reason: 'Acuerdo de cierre' })
+      .expect(200);
+    expect(response.body).toMatchObject({
+      saleVersion: 6,
+      type: 'incomplete',
+      forgivenAmountCents: 1_500,
+      reason: 'Acuerdo de cierre',
     });
   });
 });

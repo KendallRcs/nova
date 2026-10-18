@@ -79,7 +79,9 @@
 - **Estado:** Confirmada
 - **Trazabilidad de implementación:** backend completo mediante listado paginado con
   cliente canónico, creador, totales, cobrado, saldo, estado de pago, estado de
-  entrega y atraso. El alcance del empleado se fuerza a su propia cuenta.
+  entrega y atraso. El detalle operativo expone líneas, instantáneas, reservas,
+  pagos, correcciones, ajustes y cierre; oculta el costo atribuido a quien no tiene
+  capacidad financiera. El alcance del empleado se fuerza a su propia cuenta.
 - **Como** empleado
 - **quiero** consultar las ventas que registré
 - **para** dar seguimiento a mis operaciones y pagos pendientes.
@@ -96,7 +98,7 @@
 - **Estado:** Confirmada
 - **Trazabilidad de implementación:** backend completo; el permiso `sales:read-any`
   habilita el listado general y los filtros por creador, cliente, ciclo de vida y
-  situación de deuda.
+  situación de deuda, además del detalle de cualquier venta.
 - **Como** administrador
 - **quiero** consultar ventas creadas por cualquier empleado
 - **para** supervisar las operaciones del negocio.
@@ -150,6 +152,10 @@
 ### User Story SAL-009 — Ajustar el total de una venta confirmada
 
 - **Estado:** Confirmada
+- **Trazabilidad de implementación:** backend completo mediante una operación
+  administrativa atómica, idempotente y versionada. Conserva el total anterior,
+  el nuevo total, la diferencia, la razón, el actor y la fecha; rechaza un total
+  inferior al cobro neto vigente y recalcula el seguimiento desde los hechos.
 - **Como** administrador
 - **quiero** ajustar justificadamente el total acordado de una venta confirmada
 - **para** representar un acuerdo posterior sin sobrescribir su valor original.

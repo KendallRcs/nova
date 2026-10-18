@@ -39,7 +39,12 @@ export class PrismaSaleConfirmationBook implements SaleConfirmationBook {
           if (repeated !== null) return replay(repeated, command, fingerprint);
           const row = await transaction.sale.findUnique({
             where: { id: command.saleId },
-            include: { lines: { include: { costAllocations: true } }, payments: true },
+            include: {
+              lines: { include: { costAllocations: true } },
+              payments: { include: { corrections: true } },
+              totalAdjustments: true,
+              closure: true,
+            },
           });
           if (row === null) reject({ ok: false, reason: 'sale-not-found' });
           if (row.lifecycleStatus !== SaleLifecycleStatus.DRAFT) {

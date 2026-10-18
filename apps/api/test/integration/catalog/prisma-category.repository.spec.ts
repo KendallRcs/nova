@@ -17,6 +17,7 @@ import { PrismaSaleDraftRepository } from '../../../src/modules/sales/adapters/d
 import { PrismaSaleConfirmationBook } from '../../../src/modules/sales/adapters/driven/prisma/prisma-sale-confirmation-book';
 import { PrismaSalePaymentBook } from '../../../src/modules/sales/adapters/driven/prisma/prisma-sale-payment-book';
 import { PrismaSaleActivitySource } from '../../../src/modules/sales/adapters/driven/prisma/prisma-sale-activity-source';
+import { PrismaSaleFinancialBook } from '../../../src/modules/sales/adapters/driven/prisma/prisma-sale-financial-book';
 import { ListSales } from '../../../src/modules/sales/hexagon/application/sale-activity';
 import { Sale } from '../../../src/modules/sales/hexagon/domain/sale';
 import { PrismaInventoryTransferBook } from '../../../src/modules/inventory/adapters/driven/prisma/prisma-inventory-transfer-book';
@@ -46,6 +47,7 @@ describe('PrismaCategoryRepository', () => {
   let saleConfirmations: PrismaSaleConfirmationBook;
   let salePayments: PrismaSalePaymentBook;
   let saleActivity: PrismaSaleActivitySource;
+  let saleFinancials: PrismaSaleFinancialBook;
 
   beforeAll(async () => {
     container = await new PostgreSqlContainer('postgres:18.6').start();
@@ -71,6 +73,7 @@ describe('PrismaCategoryRepository', () => {
     saleConfirmations = new PrismaSaleConfirmationBook(prisma);
     salePayments = new PrismaSalePaymentBook(prisma);
     saleActivity = new PrismaSaleActivitySource(prisma);
+    saleFinancials = new PrismaSaleFinancialBook(prisma);
   }, 120_000);
 
   beforeEach(async () => {
@@ -81,7 +84,10 @@ describe('PrismaCategoryRepository', () => {
     await prisma?.inventoryReservation.deleteMany();
     await prisma?.saleCostAllocation.deleteMany();
     await prisma?.cashMovement.deleteMany();
+    await prisma?.paymentCorrection.deleteMany();
     await prisma?.payment.deleteMany();
+    await prisma?.saleClosure.deleteMany();
+    await prisma?.saleTotalAdjustment.deleteMany();
     await prisma?.saleLine.deleteMany();
     await prisma?.sale.deleteMany();
     await prisma?.inventoryTransfer.deleteMany();
@@ -455,6 +461,72 @@ describe('PrismaCategoryRepository', () => {
         },
       ],
       nextSaleId: null,
+    });
+
+    await expect(
+      saleFinancials.adjust({
+        operationId: '0199ef04-1b00-7000-8000-00000000009c',
+        saleId: draft.sale.toPrimitives().id,
+        expectedVersion: 3,
+        actorId,
+        newTotalCents: 6_500,
+        reason: 'Acuerdo final con el cliente',
+        effectiveAt: new Date('2026-09-15T20:07:00.000Z'),
+      }),
+    ).resolves.toMatchObject({
+      ok: true,
+      replayed: false,
+      adjustment: { saleVersion: 4, previousTotalCents: 6_000, currentTotalCents: 6_500 },
+    });
+    const cashPayment = await prisma.payment.findUniqueOrThrow({
+      where: { operationId: paymentCommand.operationId },
+    });
+    const correctionCommand = {
+      operationId: '0199ef04-1b00-7000-8000-00000000009d',
+      saleId: draft.sale.toPrimitives().id,
+      paymentId: cashPayment.id,
+      expectedVersion: 4,
+      actorId,
+      amountCents: 500,
+      reason: 'Cobro duplicado',
+      effectiveAt: new Date('2026-09-15T20:08:00.000Z'),
+    };
+    await expect(saleFinancials.correct(correctionCommand)).resolves.toMatchObject({
+      ok: true,
+      replayed: false,
+      correction: { saleVersion: 5, amountCents: 500, method: 'cash' },
+    });
+    await expect(saleFinancials.correct(correctionCommand)).resolves.toMatchObject({
+      ok: true,
+      replayed: true,
+    });
+    await expect(
+      saleFinancials.close({
+        operationId: '0199ef04-1b00-7000-8000-00000000009e',
+        saleId: draft.sale.toPrimitives().id,
+        expectedVersion: 5,
+        actorId,
+        reason: 'Se acuerda cerrar sin cobrar el saldo',
+        effectiveAt: new Date('2026-09-15T20:09:00.000Z'),
+      }),
+    ).resolves.toMatchObject({
+      ok: true,
+      closure: { saleVersion: 6, type: 'incomplete', forgivenAmountCents: 4_500 },
+    });
+    await expect(prisma.cashMovement.count()).resolves.toBe(4);
+    await expect(
+      prisma.cashMovement.findUniqueOrThrow({
+        where: { paymentCorrectionId: (await prisma.paymentCorrection.findFirstOrThrow()).id },
+      }),
+    ).resolves.toMatchObject({ direction: 'OUTFLOW', amountCents: 500n, method: 'CASH' });
+    await expect(saleActivity.findById(draft.sale.toPrimitives().id)).resolves.toMatchObject({
+      lifecycle: 'finalized',
+      currentTotalCents: 6_500,
+      forgivenAmountCents: 4_500,
+      paymentAmountsCents: [1_000, 1_000],
+      totalAdjustments: [{ differenceCents: 500 }],
+      closure: { type: 'incomplete', forgivenAmountCents: 4_500 },
+      payments: [{ correctedCents: 0 }, { correctedCents: 500, netAmountCents: 1_000 }],
     });
   });
 

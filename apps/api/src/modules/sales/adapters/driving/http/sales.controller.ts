@@ -28,7 +28,18 @@ import {
 import { ConfirmSale } from '../../../hexagon/application/confirm-sale';
 import { RecordSalePayment } from '../../../hexagon/application/record-sale-payment';
 import { ListSales } from '../../../hexagon/application/sale-activity';
+import { GetSaleDetail } from '../../../hexagon/application/sale-detail';
+import {
+  AdjustSaleTotal,
+  CorrectSalePayment,
+  FinalizeSale,
+} from '../../../hexagon/application/manage-sale-financials';
 import type { SaleConfirmationResult } from '../../../hexagon/application/sale-confirmation-book';
+import type {
+  PaymentCorrectionResult,
+  SaleClosureResult,
+  SaleTotalAdjustmentResult,
+} from '../../../hexagon/application/sale-financial-book';
 import type { SalePaymentResult } from '../../../hexagon/application/sale-payment-book';
 import type { Sale } from '../../../hexagon/domain/sale';
 import {
@@ -40,6 +51,13 @@ import {
   RecordSalePaymentRequest,
   SalePaymentResponse,
   SaleActivityPageResponse,
+  SaleDetailResponse,
+  AdjustSaleTotalRequest,
+  SaleTotalAdjustmentResponse,
+  FinalizeSaleRequest,
+  SaleClosureResponse,
+  CorrectSalePaymentRequest,
+  PaymentCorrectionResponse,
   UpdateSaleDraftRequest,
 } from './sale.dto';
 
@@ -52,6 +70,10 @@ export class SalesController {
     private readonly confirmSale: ConfirmSale,
     private readonly recordPayment: RecordSalePayment,
     private readonly listSales: ListSales,
+    private readonly getSaleDetail: GetSaleDetail,
+    private readonly adjustSaleTotal: AdjustSaleTotal,
+    private readonly finalizeSale: FinalizeSale,
+    private readonly correctSalePayment: CorrectSalePayment,
   ) {}
 
   @Get()
@@ -85,6 +107,54 @@ export class SalesController {
         nextCursor: page.nextSaleId === null ? null : encodeSaleCursor(page.nextSaleId),
         hasNextPage: page.nextSaleId !== null,
       },
+    };
+  }
+
+  @Get(':saleId')
+  @RequirePermission('sales:read-own')
+  @ApiOperation({ operationId: 'getSaleDetail' })
+  @ApiOkResponse({ type: SaleDetailResponse })
+  async detail(
+    @Param('saleId', new ParseUUIDPipe({ version: '7' })) saleId: string,
+    @Req() request: AuthenticatedRequest,
+  ): Promise<SaleDetailResponse> {
+    const actor = requireActor(request);
+    const result = await this.getSaleDetail.execute({
+      saleId,
+      actorId: actor.userId,
+      canReadAny: actor.permissionCodes.includes('sales:read-any'),
+      canReadCost: actor.permissionCodes.includes('dashboards:financial'),
+    });
+    if (!result.ok) {
+      if (result.reason === 'not-owner') {
+        throw new ForbiddenException({ status: 403, code: 'SALE_NOT_OWNED' });
+      }
+      throw new NotFoundException({ status: 404, code: 'SALE_NOT_FOUND' });
+    }
+    return {
+      ...result.sale,
+      lines: result.sale.lines.map((line) => ({ ...line, snapshot: line.snapshot })),
+      payments: result.sale.payments.map((payment) => ({
+        ...payment,
+        effectiveAt: payment.effectiveAt.toISOString(),
+        corrections: payment.corrections.map((correction) => ({
+          ...correction,
+          effectiveAt: correction.effectiveAt.toISOString(),
+        })),
+      })),
+      totalAdjustments: result.sale.totalAdjustments.map((adjustment) => ({
+        ...adjustment,
+        effectiveAt: adjustment.effectiveAt.toISOString(),
+      })),
+      closure:
+        result.sale.closure === null
+          ? null
+          : { ...result.sale.closure, effectiveAt: result.sale.closure.effectiveAt.toISOString() },
+      confirmedAt: result.sale.confirmedAt?.toISOString() ?? null,
+      finalizedAt: result.sale.finalizedAt?.toISOString() ?? null,
+      cancelledAt: result.sale.cancelledAt?.toISOString() ?? null,
+      createdAt: result.sale.createdAt.toISOString(),
+      updatedAt: result.sale.updatedAt.toISOString(),
     };
   }
 
@@ -196,9 +266,103 @@ export class SalesController {
       replayed: result.replayed,
     };
   }
+
+  @Post(':saleId/total-adjustments')
+  @HttpCode(200)
+  @RequirePermission('sales:adjust-confirmed')
+  @ApiOperation({ operationId: 'adjustSaleTotal' })
+  @ApiOkResponse({ type: SaleTotalAdjustmentResponse })
+  async adjustTotal(
+    @Param('saleId', new ParseUUIDPipe({ version: '7' })) saleId: string,
+    @Headers('idempotency-key') operationId: string | undefined,
+    @Body() body: AdjustSaleTotalRequest,
+    @Req() request: AuthenticatedRequest,
+  ): Promise<SaleTotalAdjustmentResponse> {
+    requireIdempotencyKey(operationId);
+    const actor = requireActor(request);
+    const result = await this.adjustSaleTotal.execute({
+      operationId,
+      saleId,
+      expectedVersion: body.expectedVersion,
+      actorId: actor.userId,
+      newTotalCents: body.newTotalCents,
+      reason: body.reason,
+    });
+    if (!result.ok) throwFinancialError(result);
+    return {
+      ...result.adjustment,
+      effectiveAt: result.adjustment.effectiveAt.toISOString(),
+      replayed: result.replayed,
+    };
+  }
+
+  @Post(':saleId/closure')
+  @HttpCode(200)
+  @RequirePermission('sales:finalize-with-balance')
+  @ApiOperation({ operationId: 'finalizeSale' })
+  @ApiOkResponse({ type: SaleClosureResponse })
+  async finalize(
+    @Param('saleId', new ParseUUIDPipe({ version: '7' })) saleId: string,
+    @Headers('idempotency-key') operationId: string | undefined,
+    @Body() body: FinalizeSaleRequest,
+    @Req() request: AuthenticatedRequest,
+  ): Promise<SaleClosureResponse> {
+    requireIdempotencyKey(operationId);
+    const actor = requireActor(request);
+    const result = await this.finalizeSale.execute({
+      operationId,
+      saleId,
+      expectedVersion: body.expectedVersion,
+      actorId: actor.userId,
+      reason: body.reason ?? null,
+    });
+    if (!result.ok) throwFinancialError(result);
+    return {
+      ...result.closure,
+      effectiveAt: result.closure.effectiveAt.toISOString(),
+      replayed: result.replayed,
+    };
+  }
+
+  @Post(':saleId/payments/:paymentId/corrections')
+  @HttpCode(200)
+  @RequirePermission('payments:correct')
+  @ApiOperation({ operationId: 'correctSalePayment' })
+  @ApiOkResponse({ type: PaymentCorrectionResponse })
+  async correctPayment(
+    @Param('saleId', new ParseUUIDPipe({ version: '7' })) saleId: string,
+    @Param('paymentId', new ParseUUIDPipe({ version: '7' })) paymentId: string,
+    @Headers('idempotency-key') operationId: string | undefined,
+    @Body() body: CorrectSalePaymentRequest,
+    @Req() request: AuthenticatedRequest,
+  ): Promise<PaymentCorrectionResponse> {
+    requireIdempotencyKey(operationId);
+    const actor = requireActor(request);
+    const result = await this.correctSalePayment.execute({
+      operationId,
+      saleId,
+      paymentId,
+      expectedVersion: body.expectedVersion,
+      actorId: actor.userId,
+      amountCents: body.amountCents,
+      reason: body.reason,
+    });
+    if (!result.ok) throwFinancialError(result);
+    return {
+      ...result.correction,
+      effectiveAt: result.correction.effectiveAt.toISOString(),
+      replayed: result.replayed,
+    };
+  }
 }
 
 const UUID_V7 = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function requireIdempotencyKey(operationId: string | undefined): asserts operationId is string {
+  if (operationId === undefined || !UUID_V7.test(operationId)) {
+    throw new UnprocessableEntityException({ status: 422, code: 'INVALID_IDEMPOTENCY_KEY' });
+  }
+}
 
 function encodeSaleCursor(saleId: string): string {
   return Buffer.from(`v1:${saleId}`, 'utf8').toString('base64url');
@@ -348,4 +512,42 @@ function throwPaymentError(result: Exclude<SalePaymentResult, { ok: true }>): ne
     });
   }
   throw new UnprocessableEntityException({ status: 422, code: 'INVALID_PAYMENT' });
+}
+
+function throwFinancialError(
+  result: Exclude<
+    SaleTotalAdjustmentResult | SaleClosureResult | PaymentCorrectionResult,
+    { ok: true }
+  >,
+): never {
+  if (result.reason === 'sale-not-found' || result.reason === 'payment-not-found') {
+    throw new NotFoundException({
+      status: 404,
+      code: result.reason.toUpperCase().replaceAll('-', '_'),
+    });
+  }
+  if (result.reason === 'not-authorized') {
+    throw new ForbiddenException({ status: 403, code: 'OPERATION_NOT_AUTHORIZED' });
+  }
+  if (
+    result.reason === 'sale-not-adjustable' ||
+    result.reason === 'sale-not-finalizable' ||
+    result.reason === 'sale-not-correctable' ||
+    result.reason === 'version-conflict' ||
+    result.reason === 'total-below-paid' ||
+    result.reason === 'correction-exceeds-payment' ||
+    result.reason === 'idempotency-conflict' ||
+    result.reason === 'concurrency-conflict'
+  ) {
+    throw new ConflictException({
+      status: 409,
+      code: result.reason.toUpperCase().replaceAll('-', '_'),
+      ...('paidCents' in result ? { paidCents: result.paidCents } : {}),
+      ...('correctableCents' in result ? { correctableCents: result.correctableCents } : {}),
+    });
+  }
+  throw new UnprocessableEntityException({
+    status: 422,
+    code: result.reason.toUpperCase().replaceAll('-', '_'),
+  });
 }

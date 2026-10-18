@@ -26,3 +26,5 @@
 | 2026-09-15 | SAL-002, SAL-003, SAL-007 e INV-005 completaron la confirmación backend de ventas con entrega, reserva, costo histórico, aprobación de precio e idempotencia atómica. |
 | 2026-09-16 | PAY-001 y PAY-002 completaron su backend: cobros iniciales y posteriores actualizan saldo, versión y caja atómicamente, permiten ventas al contado sin cliente y evitan sobrepagos o duplicados por reintento. |
 | 2026-09-16 | SAL-004, SAL-005 y SAL-006 completaron su listado backend: aplica alcance por cuenta, resuelve clientes canónicos y deriva saldos, estados de pago/entrega y atrasos con fecha de Lima. |
+| 2026-10-18 | SAL-005 y SAL-006 incorporaron el detalle operativo backend con líneas, reservas, pagos, correcciones, ajustes y cierre, protegiendo el costo según capacidad. |
+| 2026-10-18 | SAL-009, PAY-003 y PAY-005 completaron su backend: ajuste de total, cierre completo o con saldo condonado y corrección compensatoria de cobros se ejecutan con auditoría, versión, idempotencia y caja atómica. |

@@ -1,6 +1,7 @@
 import type { SaleLifecycle } from './sale';
 
-export type TrackedPaymentSituation = 'not-applicable' | 'unpaid' | 'partial' | 'paid';
+export type TrackedPaymentSituation =
+  'not-applicable' | 'unpaid' | 'partial' | 'paid' | 'closed-with-balance';
 export type DeliverySituation = 'not-applicable' | 'pending' | 'partial' | 'complete';
 
 export interface SaleTracking {
@@ -15,20 +16,24 @@ export function deriveSaleTracking(input: {
   lifecycle: SaleLifecycle;
   currentTotalCents: number;
   paymentAmountsCents: readonly number[];
+  forgivenAmountCents: number;
   lineQuantities: readonly { quantity: number; deliveredQuantity: number }[];
   dueDate: string | null;
   todayInLima: string;
 }): SaleTracking {
   const paidCents = safeSum(input.paymentAmountsCents);
-  const balanceCents = Math.max(0, input.currentTotalCents - paidCents);
+  const forgivenAmountCents = safeSum([input.forgivenAmountCents]);
+  const balanceCents = Math.max(0, input.currentTotalCents - paidCents - forgivenAmountCents);
   const active = input.lifecycle === 'confirmed' || input.lifecycle === 'finalized';
   const paymentSituation: TrackedPaymentSituation = !active
     ? 'not-applicable'
-    : balanceCents === 0
-      ? 'paid'
-      : paidCents === 0
-        ? 'unpaid'
-        : 'partial';
+    : input.lifecycle === 'finalized' && forgivenAmountCents > 0
+      ? 'closed-with-balance'
+      : balanceCents === 0
+        ? 'paid'
+        : paidCents === 0
+          ? 'unpaid'
+          : 'partial';
   const totalQuantity = safeSum(input.lineQuantities.map(({ quantity }) => quantity));
   const deliveredQuantity = safeSum(
     input.lineQuantities.map(({ deliveredQuantity: quantity }) => quantity),

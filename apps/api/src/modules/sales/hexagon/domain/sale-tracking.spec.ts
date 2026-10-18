@@ -9,6 +9,7 @@ describe('sale tracking', () => {
         lifecycle: 'confirmed',
         currentTotalCents: 5_000,
         paymentAmountsCents: [1_000, 500],
+        forgivenAmountCents: 0,
         lineQuantities: [
           { quantity: 2, deliveredQuantity: 1 },
           { quantity: 1, deliveredQuantity: 0 },
@@ -31,6 +32,7 @@ describe('sale tracking', () => {
         lifecycle: 'draft',
         currentTotalCents: 2_000,
         paymentAmountsCents: [],
+        forgivenAmountCents: 0,
         lineQuantities: [{ quantity: 1, deliveredQuantity: 1 }],
         dueDate: '2026-09-01',
         todayInLima: '2026-09-16',
@@ -38,6 +40,25 @@ describe('sale tracking', () => {
     ).toMatchObject({
       paymentSituation: 'not-applicable',
       deliverySituation: 'not-applicable',
+      overdue: false,
+    });
+  });
+
+  it('distinguishes a finalized sale with a forgiven balance from a fully paid sale', () => {
+    expect(
+      deriveSaleTracking({
+        lifecycle: 'finalized',
+        currentTotalCents: 5_000,
+        paymentAmountsCents: [3_500],
+        forgivenAmountCents: 1_500,
+        lineQuantities: [{ quantity: 1, deliveredQuantity: 1 }],
+        dueDate: '2026-09-01',
+        todayInLima: '2026-09-16',
+      }),
+    ).toMatchObject({
+      paidCents: 3_500,
+      balanceCents: 0,
+      paymentSituation: 'closed-with-balance',
       overdue: false,
     });
   });

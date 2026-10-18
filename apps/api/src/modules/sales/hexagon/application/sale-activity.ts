@@ -23,6 +23,7 @@ export interface SaleActivityRecord {
   readonly currentTotalCents: number;
   readonly dueDate: string | null;
   readonly paymentAmountsCents: readonly number[];
+  readonly forgivenAmountCents: number;
   readonly lines: readonly { quantity: number; deliveredQuantity: number }[];
   readonly version: number;
   readonly confirmedAt: Date | null;
@@ -108,6 +109,7 @@ function toItem(record: SaleActivityRecord, todayInLima: string): SaleActivityIt
     lifecycle: record.lifecycle,
     currentTotalCents: record.currentTotalCents,
     paymentAmountsCents: record.paymentAmountsCents,
+    forgivenAmountCents: record.forgivenAmountCents,
     lineQuantities: record.lines,
     dueDate: record.dueDate,
     todayInLima,
@@ -139,7 +141,7 @@ function matchesDebt(item: SaleActivityItem, debt: SaleDebtFilter): boolean {
   );
 }
 
-function limaCivilDate(date: Date): string {
+export function limaCivilDate(date: Date): string {
   return new Intl.DateTimeFormat('en-CA', {
     timeZone: 'America/Lima',
     year: 'numeric',

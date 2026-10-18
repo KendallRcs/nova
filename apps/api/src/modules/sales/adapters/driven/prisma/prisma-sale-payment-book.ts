@@ -30,7 +30,12 @@ export class PrismaSalePaymentBook implements SalePaymentBook {
         if (repeated !== null) return replay(repeated, command, fingerprint);
         const row = await transaction.sale.findUnique({
           where: { id: command.saleId },
-          include: { lines: true, payments: true },
+          include: {
+            lines: true,
+            payments: { include: { corrections: true } },
+            totalAdjustments: true,
+            closure: true,
+          },
         });
         if (row === null) reject({ ok: false, reason: 'sale-not-found' });
         if (row.version !== command.expectedVersion) {

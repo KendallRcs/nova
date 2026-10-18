@@ -110,10 +110,14 @@ POST   /api/v1/customers
 PUT    /api/v1/customers/{customerId}
 POST   /api/v1/customers/merges
 GET    /api/v1/sales?customerId=&createdBy=&lifecycle=&debt=&cursor=
+GET    /api/v1/sales/{saleId}
 POST   /api/v1/sales
 PUT    /api/v1/sales/{saleId}
 POST   /api/v1/sales/{saleId}/confirmation
 POST   /api/v1/sales/{saleId}/payments
+POST   /api/v1/sales/{saleId}/total-adjustments
+POST   /api/v1/sales/{saleId}/closure
+POST   /api/v1/sales/{saleId}/payments/{paymentId}/corrections
 POST   /api/v1/sales/{saleId}/cancellations
 POST   /api/v1/returns
 ```
@@ -156,6 +160,26 @@ atraso. `debt` acepta `all`, `pending`, `paid` u `overdue`; también se puede fi
 por cliente, ciclo de vida y, con `sales:read-any`, creador. El empleado siempre
 queda limitado a ventas propias aunque envíe otro `createdBy`. El cursor es opaco y
 la fecha de atraso se calcula en `America/Lima` sin persistir una transición.
+
+`GET /sales/{saleId}` devuelve la vista operativa de una venta: cabecera, cliente
+canónico e histórico, creador, líneas e instantáneas, cumplimiento, pagos con sus
+correcciones, ajustes del total y cierre. El empleado solo consulta ventas propias;
+el administrador puede consultar cualquiera. El costo atribuido de las líneas se
+entrega únicamente con capacidad financiera.
+
+`POST /sales/{saleId}/total-adjustments` requiere permiso administrativo,
+`Idempotency-Key`, `expectedVersion`, el nuevo total y una razón. No modifica el
+total original ni acepta un importe menor que el cobro neto vigente.
+
+`POST /sales/{saleId}/payments/{paymentId}/corrections` requiere permiso
+administrativo, `Idempotency-Key`, `expectedVersion`, importe positivo y razón.
+Conserva el cobro original y crea una compensación y salida de caja con el mismo
+método; la suma de correcciones no puede exceder el pago.
+
+`POST /sales/{saleId}/closure` requiere permiso administrativo,
+`Idempotency-Key` y `expectedVersion`. Si existe saldo, la razón es obligatoria y
+el saldo se registra como condonado; si no existe, el cierre queda completo. En
+ambos casos la venta pasa a `finalized` y ya no acepta cobros ni ajustes.
 
 Esto no confirma aún el inventario completo de endpoints. Cada módulo definirá sus
 operaciones a partir de capacidades e historias, no mediante la exposición
