@@ -486,7 +486,9 @@ erDiagram
 ```
 
 Una compra identifica un proveedor registrado o conserva la instantánea de uno
-ocasional, nunca ambos. Los adelantos solo pertenecen a proveedores registrados.
+ocasional, nunca ambos. Para registrar un anticipo, incluso un proveedor ocasional
+adquiere primero una identidad estable en `SUPPLIER`, pues su saldo debe poder
+aplicarse o resolverse posteriormente.
 `ADVANCE_APPLICATION` resuelve la relación N:M entre adelantos y compras.
 
 ## Finanzas y gastos

@@ -141,6 +141,10 @@
 ### User Story INV-007 — Revisar mercancía devuelta antes de venderla
 
 - **Estado:** Confirmada
+- **Trazabilidad de implementación:** backend completo mediante una resolución
+  administrativa idempotente y versionada. Permite habilitar unidades revisadas
+  para venta conservando su costo histórico o darlas de baja con categoría, razón,
+  pérdida de costo, responsable y fecha.
 - **Como** administrador
 - **quiero** clasificar el estado de un producto que retorna
 - **para** impedir que una unidad defectuosa vuelva accidentalmente al stock vendible.
@@ -156,5 +160,15 @@
 - **Dado:** que revisé una unidad retornada
 - **Cuando:** la clasifico como apta para venta
 - **Entonces:** la unidad se incorpora al stock disponible de la ubicación elegida.
+
+- **Escenario:** Producto retornado no apto para venta
+- **Dado:** que una unidad retornada permanece pendiente de revisión
+- **Cuando:** el administrador confirma su baja con categoría y razón
+- **Entonces:** disminuyen la existencia física y la cantidad en revisión, y se registra la pérdida de su costo histórico.
+
+- **Escenario:** Resolución basada en información desactualizada
+- **Dado:** que el inventario cambió después de consultar la unidad en revisión
+- **Cuando:** intento confirmar su resolución con una versión anterior
+- **Entonces:** la operación se rechaza sin modificar cantidades ni costo.
 
 ---

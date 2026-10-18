@@ -175,13 +175,13 @@ que exista un repositorio por modelo.
 
 | Modelo Prisma | Tabla | Claves y relaciones principales |
 | --- | --- | --- |
-| `Supplier` | `suppliers` | identidad y estado |
+| `Supplier` | `suppliers` | identidad, clasificación registrada/ocasional y estado; implementado |
 | `Purchase` | `purchases` | proveedor registrado o snapshot ocasional |
 | `PurchaseLine` | `purchase_lines` | único `(purchaseId, productId, destinationLocationId)` |
-| `SupplierAdvance` | `supplier_advances` | proveedor requerido, saldo y versión |
+| `SupplierAdvance` | `supplier_advances` | proveedor requerido, saldo, versión e idempotencia; registro implementado |
 | `AdvanceApplication` | `advance_applications` | único `(advanceId, purchaseId)` |
-| `AdvanceRefund` | `advance_refunds` | adelanto, importe y método |
-| `AdvanceLoss` | `advance_losses` | adelanto, importe y razón |
+| `AdvanceRefund` | `advance_refunds` | adelanto, importe, método, versión resultante e idempotencia; implementado |
+| `AdvanceLoss` | `advance_losses` | adelanto, importe, razón, versión resultante e idempotencia; implementado |
 
 ### Finanzas e inicialización
 
@@ -294,6 +294,7 @@ siguientes garantías se añaden o verifican en la migración SQL:
 - dinero y cantidades no negativos o positivos según operación;
 - orden `minimum <= suggested <= maximum` entre precios presentes;
 - `reserved + review <= physical`;
+- resolver revisión mueve o retira cantidad y valor en proporción exacta, absorbiendo el residuo en la última unidad;
 - saldos y valores de costo consistentes con cantidades cero;
 - diferencia de ajuste igual a total nuevo menos anterior;
 - campos condicionales de precio excepcional, retorno, cierre y estado;

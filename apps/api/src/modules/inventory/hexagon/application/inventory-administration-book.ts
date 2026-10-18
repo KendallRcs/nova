@@ -24,15 +24,23 @@ export interface PreparedInventoryCountAdjustment extends PreparedInventoryAdmin
   declaredUnitCostCents: number | null;
 }
 
+export interface PreparedInventoryReviewResolution extends PreparedInventoryAdministration {
+  kind: 'review-resolution';
+  quantity: number;
+  expectedPositionVersion: number;
+  resolution: 'available' | 'write-off';
+  category: InventoryWriteOffCategory | null;
+}
+
 export type PreparedInventoryAdministrationCommand =
-  PreparedInventoryWriteOff | PreparedInventoryCountAdjustment;
+  PreparedInventoryWriteOff | PreparedInventoryCountAdjustment | PreparedInventoryReviewResolution;
 
 export interface InventoryAdministrationReceipt {
   movementId: string;
   operationId: string;
   productId: string;
   locationId: string;
-  type: 'write-off' | 'adjustment-in' | 'adjustment-out';
+  type: 'write-off' | 'adjustment-in' | 'adjustment-out' | 'review-approved' | 'review-write-off';
   physicalDelta: number;
   valueDeltaCents: number;
   physicalQuantity: number;
@@ -67,6 +75,7 @@ export type InventoryAdministrationResult =
         | 'unit-cost-required'
         | 'insufficient-stock'
         | 'protected-stock'
+        | 'insufficient-review'
         | 'no-difference'
         | 'cost-unavailable'
         | 'version-conflict'
@@ -74,6 +83,7 @@ export type InventoryAdministrationResult =
         | 'concurrency-conflict';
       readonly availableQuantity?: number;
       readonly minimumPhysicalQuantity?: number;
+      readonly reviewQuantity?: number;
     };
 
 export interface InventoryAdministrationBook {

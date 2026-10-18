@@ -34,3 +34,6 @@
 | 2026-10-18 | PAY-004 completó su backend: la cancelación administrativa trata cada línea, libera reservas, registra retornos o productos no retornados, conserva costo histórico y aplica únicamente el reembolso manual declarado con caja, versión e idempotencia atómicas. |
 | 2026-10-18 | CUS-003 completó su backend: la cuenta consolidada resuelve identidades fusionadas y muestra ventas, pagos netos, deuda activa, atrasos y vencimientos sin revelar costos ni márgenes. |
 | 2026-10-18 | SAL-002 e INV-005 completaron las entregas posteriores: consumen reservas, stock físico y costo congelado de forma parcial o total, idempotente y versionada, sin acoplar entrega y pago. |
+| 2026-10-18 | INV-007 completó su backend: el administrador resuelve mercancía en revisión como apta o baja, preservando costo histórico, pérdida, razón, versión e idempotencia. |
+| 2026-10-18 | PUR-003 completó su backend: proveedores registrados u ocasionales conservan identidad estable y cada anticipo crea una salida de caja atómica e idempotente sin generar inventario ni gasto operativo. |
+| 2026-10-18 | PUR-005 completó su backend: reembolsos y pérdidas consumen de forma versionada e idempotente el saldo del anticipo; solo el reembolso real genera una entrada de caja. |

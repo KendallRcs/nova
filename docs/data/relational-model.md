@@ -134,7 +134,7 @@ reconstruir compras históricas ni recalcular ventas ya confirmadas.
 | `suppliers` | nombre, contacto y descripción opcionales, estado | Un proveedor tiene muchas compras y adelantos. |
 | `purchases` | supplier_id opcional, instantánea opcional del proveedor ocasional, estado, total, importe cubierto por adelantos, importe nuevo pagado, created_by, confirmed_by, fechas | Una compra tiene una o más líneas al confirmarse y conserva quién la suministró, registrado u ocasional. |
 | `purchase_lines` | purchase_id, product_id, destination_location_id, cantidad, costo unitario, subtotal | Cada línea repone un producto en una ubicación y alimenta su costo global. |
-| `supplier_advances` | supplier_id, importe original, saldo vigente, método, propósito/descripción, estado, version, registered_by, effective_at | Un adelanto requiere proveedor registrado y puede reservar productos existentes, nuevos o todavía no detallados. |
+| `supplier_advances` | supplier_id, importe original, saldo vigente, método, propósito/descripción, estado, version, registered_by, effective_at | Un adelanto requiere una identidad estable de proveedor, registrado u ocasional, y puede reservar productos existentes, nuevos o todavía no detallados. |
 | `advance_applications` | advance_id, purchase_id, importe, applied_by, effective_at | Unión N:M: una compra usa varios adelantos y un adelanto puede aplicarse a varias compras. |
 | `advance_refunds` | advance_id, importe, método, registered_by, effective_at | Un adelanto puede tener varias devoluciones recibidas. |
 | `advance_losses` | advance_id, importe, razón, registered_by, effective_at | Registra la parte que se decide reconocer como pérdida. |

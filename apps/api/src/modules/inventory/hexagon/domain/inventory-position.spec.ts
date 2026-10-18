@@ -135,6 +135,24 @@ describe('InventoryPosition', () => {
       reason: 'insufficient-reserved',
     });
   });
+
+  it('resolves reviewed units as available or removes them physically', () => {
+    const available = position('store', 5, 0, 2);
+    expect(available.resolveReview(1, 'available', now)).toMatchObject({ ok: true });
+    expect(available.snapshot()).toMatchObject({
+      physicalQuantity: 5,
+      reviewQuantity: 1,
+      availableQuantity: 4,
+    });
+
+    const discarded = position('warehouse', 5, 0, 2);
+    expect(discarded.resolveReview(2, 'write-off', now)).toMatchObject({ ok: true });
+    expect(discarded.snapshot()).toMatchObject({
+      physicalQuantity: 3,
+      reviewQuantity: 0,
+      availableQuantity: 3,
+    });
+  });
 });
 
 function position(

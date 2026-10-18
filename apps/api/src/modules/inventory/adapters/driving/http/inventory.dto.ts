@@ -104,6 +104,28 @@ export class AdjustInventoryCountRequest {
   reason!: string;
 }
 
+export class ResolveInventoryReviewRequest {
+  @ApiProperty({ format: 'uuid' }) @IsUUID('7') productId!: string;
+  @ApiProperty({ format: 'uuid' }) @IsUUID('7') locationId!: string;
+  @ApiProperty({ minimum: 1 }) @IsInt() @Min(1) quantity!: number;
+  @ApiProperty({ minimum: 1, description: 'Versión recibida al consultar el stock.' })
+  @IsInt()
+  @Min(1)
+  expectedPositionVersion!: number;
+  @ApiProperty({ enum: ['available', 'write-off'] })
+  @IsIn(['available', 'write-off'])
+  resolution!: 'available' | 'write-off';
+  @ApiProperty({
+    required: false,
+    nullable: true,
+    enum: ['damaged', 'lost', 'defective', 'other'],
+  })
+  @IsOptional()
+  @IsIn(['damaged', 'lost', 'defective', 'other'])
+  category?: 'damaged' | 'lost' | 'defective' | 'other' | null;
+  @ApiProperty() @IsString() @MaxLength(500) reason!: string;
+}
+
 export class InventoryAdministrationResponse {
   @ApiProperty({ format: 'uuid' })
   id!: string;
@@ -113,8 +135,10 @@ export class InventoryAdministrationResponse {
   productId!: string;
   @ApiProperty({ format: 'uuid' })
   locationId!: string;
-  @ApiProperty({ enum: ['write-off', 'adjustment-in', 'adjustment-out'] })
-  type!: 'write-off' | 'adjustment-in' | 'adjustment-out';
+  @ApiProperty({
+    enum: ['write-off', 'adjustment-in', 'adjustment-out', 'review-approved', 'review-write-off'],
+  })
+  type!: 'write-off' | 'adjustment-in' | 'adjustment-out' | 'review-approved' | 'review-write-off';
   @ApiProperty()
   physicalDelta!: number;
   @ApiProperty()

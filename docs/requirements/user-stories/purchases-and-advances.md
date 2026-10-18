@@ -35,6 +35,10 @@
 ### User Story PUR-003 — Registrar un anticipo para reservar mercancía
 
 - **Estado:** Confirmada
+- **Trazabilidad de implementación:** backend completo para registrar y buscar la
+  identidad estable de proveedores registrados u ocasionales y crear el anticipo
+  idempotente junto con su salida de caja. El detalle esperado permanece flexible
+  y no genera inventario ni gasto operativo.
 - **Como** administrador
 - **quiero** registrar dinero adelantado a un proveedor
 - **para** controlar la reserva de mercancía y el saldo entregado antes de la compra.
@@ -81,6 +85,10 @@
 ### User Story PUR-005 — Resolver un anticipo no aplicado
 
 - **Estado:** Confirmada
+- **Trazabilidad de implementación:** backend completo para devolver o reconocer
+  como pérdida una parte o todo el saldo. Ambas operaciones son versionadas,
+  auditables e idempotentes; solo el dinero realmente devuelto genera ingreso de
+  caja y el anticipo se marca resuelto al llegar a saldo cero.
 - **Como** administrador
 - **quiero** registrar la resolución de un anticipo que no terminó en compra
 - **para** reflejar si el dinero fue recuperado o se convirtió en una pérdida.

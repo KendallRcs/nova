@@ -154,6 +154,20 @@ enum CostMovementType {
   @@map("cost_movement_type")
 }
 
+enum SupplierKind {
+  REGISTERED @map("registered")
+  OCCASIONAL @map("occasional")
+
+  @@map("supplier_kind")
+}
+
+enum SupplierAdvanceStatus {
+  PENDING  @map("pending")
+  RESOLVED @map("resolved")
+
+  @@map("supplier_advance_status")
+}
+
 model AccessProfile {
   id             String              @id @db.Uuid
   name           String
@@ -218,6 +232,9 @@ model UserAccount {
   saleCancellations    SaleCancellation[]
   cancellationRefunds  SaleCancellationRefund[]
   deliveries           Delivery[]
+  registeredAdvances   SupplierAdvance[]
+  advanceRefunds       AdvanceRefund[]
+  advanceLosses        AdvanceLoss[]
 
   @@index([profileId, status], map: "idx_user_accounts_profile_status")
   @@map("user_accounts")
@@ -283,6 +300,87 @@ model CustomerMerge {
 
   @@index([primaryCustomerId, mergedAt(sort: Desc), id(sort: Desc)], map: "idx_customer_merges_primary_date")
   @@map("customer_merges")
+}
+
+model Supplier {
+  id             String            @id @db.Uuid
+  name           String
+  nameNormalized String            @map("name_normalized")
+  kind           SupplierKind      @default(REGISTERED)
+  phone          String?
+  document       String?
+  description    String?
+  status         RecordStatus      @default(ACTIVE)
+  version        Int               @default(1)
+  createdAt      DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
+  advances       SupplierAdvance[]
+
+  @@index([status, nameNormalized, id], map: "idx_suppliers_status_name")
+  @@map("suppliers")
+}
+
+model SupplierAdvance {
+  id                  String                @id @db.Uuid
+  operationId         String                @unique(map: "uq_supplier_advances_operation") @map("operation_id") @db.Uuid
+  requestFingerprint  String                @map("request_fingerprint")
+  supplierId          String                @map("supplier_id") @db.Uuid
+  originalAmountCents BigInt                @map("original_amount_cents")
+  currentBalanceCents BigInt                @map("current_balance_cents")
+  method              PaymentMethod
+  purpose             String?
+  status              SupplierAdvanceStatus @default(PENDING)
+  version             Int                   @default(1)
+  registeredBy        String                @map("registered_by") @db.Uuid
+  effectiveAt         DateTime              @map("effective_at") @db.Timestamptz(3)
+  createdAt           DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt           DateTime              @updatedAt @map("updated_at") @db.Timestamptz(3)
+  supplier            Supplier              @relation(fields: [supplierId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_supplier_advances_supplier")
+  registrar           UserAccount           @relation(fields: [registeredBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_supplier_advances_registrar")
+  cashMovement        CashMovement?
+  refunds             AdvanceRefund[]
+  losses              AdvanceLoss[]
+
+  @@index([supplierId, status, effectiveAt(sort: Desc), id(sort: Desc)], map: "idx_supplier_advances_supplier_status_date")
+  @@index([registeredBy, effectiveAt(sort: Desc), id(sort: Desc)], map: "idx_supplier_advances_registrar_date")
+  @@map("supplier_advances")
+}
+
+model AdvanceRefund {
+  id                      String          @id @db.Uuid
+  operationId             String          @unique(map: "uq_advance_refunds_operation") @map("operation_id") @db.Uuid
+  requestFingerprint      String          @map("request_fingerprint")
+  advanceId               String          @map("advance_id") @db.Uuid
+  amountCents             BigInt          @map("amount_cents")
+  method                  PaymentMethod
+  resultingBalanceCents   BigInt          @map("resulting_balance_cents")
+  resultingAdvanceVersion Int             @map("resulting_advance_version")
+  registeredBy            String          @map("registered_by") @db.Uuid
+  effectiveAt             DateTime        @map("effective_at") @db.Timestamptz(3)
+  advance                 SupplierAdvance @relation(fields: [advanceId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_advance_refunds_advance")
+  registrar               UserAccount     @relation(fields: [registeredBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_advance_refunds_registrar")
+  cashMovement            CashMovement?
+
+  @@index([advanceId, effectiveAt, id], map: "idx_advance_refunds_advance_date")
+  @@map("advance_refunds")
+}
+
+model AdvanceLoss {
+  id                      String          @id @db.Uuid
+  operationId             String          @unique(map: "uq_advance_losses_operation") @map("operation_id") @db.Uuid
+  requestFingerprint      String          @map("request_fingerprint")
+  advanceId               String          @map("advance_id") @db.Uuid
+  amountCents             BigInt          @map("amount_cents")
+  reason                  String
+  resultingBalanceCents   BigInt          @map("resulting_balance_cents")
+  resultingAdvanceVersion Int             @map("resulting_advance_version")
+  registeredBy            String          @map("registered_by") @db.Uuid
+  effectiveAt             DateTime        @map("effective_at") @db.Timestamptz(3)
+  advance                 SupplierAdvance @relation(fields: [advanceId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_advance_losses_advance")
+  registrar               UserAccount     @relation(fields: [registeredBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_advance_losses_registrar")
+
+  @@index([advanceId, effectiveAt, id], map: "idx_advance_losses_advance_date")
+  @@map("advance_losses")
 }
 
 model Category {
@@ -629,12 +727,16 @@ model CashMovement {
   paymentCorrectionId      String?                 @unique(map: "uq_cash_movements_payment_correction") @map("payment_correction_id") @db.Uuid
   returnRefundId           String?                 @unique(map: "uq_cash_movements_return_refund") @map("return_refund_id") @db.Uuid
   saleCancellationRefundId String?                 @unique(map: "uq_cash_movements_sale_cancellation_refund") @map("sale_cancellation_refund_id") @db.Uuid
+  supplierAdvanceId        String?                 @unique(map: "uq_cash_movements_supplier_advance") @map("supplier_advance_id") @db.Uuid
+  advanceRefundId          String?                 @unique(map: "uq_cash_movements_advance_refund") @map("advance_refund_id") @db.Uuid
   createdAt                DateTime                @default(now()) @map("created_at") @db.Timestamptz(3)
   registrar                UserAccount             @relation(fields: [registeredBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_cash_movements_registrar")
   payment                  Payment?                @relation(fields: [paymentId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_cash_movements_payment")
   paymentCorrection        PaymentCorrection?      @relation(fields: [paymentCorrectionId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_cash_movements_payment_correction")
   returnRefund             ReturnRefund?           @relation(fields: [returnRefundId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_cash_movements_return_refund")
   saleCancellationRefund   SaleCancellationRefund? @relation(fields: [saleCancellationRefundId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_cash_movements_sale_cancellation_refund")
+  supplierAdvance          SupplierAdvance?        @relation(fields: [supplierAdvanceId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_cash_movements_supplier_advance")
+  advanceRefund            AdvanceRefund?          @relation(fields: [advanceRefundId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_cash_movements_advance_refund")
 
   @@index([effectiveAt(sort: Desc), id(sort: Desc)], map: "idx_cash_movements_date")
   @@index([method, effectiveAt(sort: Desc), id(sort: Desc)], map: "idx_cash_movements_method_date")

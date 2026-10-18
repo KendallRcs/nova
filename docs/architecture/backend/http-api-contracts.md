@@ -105,6 +105,7 @@ GET    /api/v1/inventory/locations
 POST   /api/v1/inventory/transfers
 POST   /api/v1/inventory/write-offs
 POST   /api/v1/inventory/count-adjustments
+POST   /api/v1/inventory/review-resolutions
 GET    /api/v1/customers?query=
 POST   /api/v1/customers
 PUT    /api/v1/customers/{customerId}
@@ -122,12 +123,38 @@ POST   /api/v1/sales/{saleId}/closure
 POST   /api/v1/sales/{saleId}/payments/{paymentId}/corrections
 POST   /api/v1/sales/{saleId}/returns
 POST   /api/v1/sales/{saleId}/cancellations
+GET    /api/v1/suppliers?query=
+POST   /api/v1/suppliers
+POST   /api/v1/supplier-advances
+POST   /api/v1/supplier-advances/{advanceId}/refunds
+POST   /api/v1/supplier-advances/{advanceId}/losses
 ```
 
 Las bajas y ajustes requieren `Idempotency-Key`. El ajuste envía además
 `expectedPositionVersion`, obtenido del campo `version` del stock por ubicación;
 una versión desactualizada produce `409 Conflict`. El costo unitario declarado es
 opcional salvo al aumentar un producto que no tiene costo vigente.
+
+`POST /inventory/review-resolutions` requiere `inventory:inspect-return`,
+`Idempotency-Key`, `expectedPositionVersion`, producto, ubicación, cantidad, razón
+y una resolución `available` o `write-off`. Habilitar para venta mueve cantidad y
+costo histórico desde revisión hacia disponible sin cambiar el stock físico. La
+baja exige además categoría, reduce el stock físico y registra la pérdida del costo
+en revisión. Una versión obsoleta o cantidad superior a la pendiente se rechaza
+sin efectos parciales.
+
+`POST /suppliers` registra una identidad reutilizable clasificada como
+`registered` u `occasional`; teléfono, documento y descripción son opcionales.
+`POST /supplier-advances` requiere `purchases:manage`, `Idempotency-Key`, proveedor
+activo, importe positivo y método real. Crea en una única transacción el anticipo
+con saldo inicial completo y su egreso de caja; el propósito es opcional y no
+produce inventario ni gasto operativo.
+
+Las devoluciones y pérdidas de anticipos requieren `expectedVersion`, importe e
+`Idempotency-Key`. Una devolución exige el método por el que realmente regresó el
+dinero y crea una entrada de caja; una pérdida exige razón y no crea otro movimiento
+monetario. Ninguna puede superar el saldo vigente, y saldo cero cambia la situación
+derivada a `resolved`.
 
 La fusión de clientes requiere `Idempotency-Key`, las versiones observadas de
 ambos registros y los datos finales resueltos. No reasigna ventas históricas: las

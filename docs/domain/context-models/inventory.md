@@ -48,6 +48,7 @@ Solo las reservas activas forman parte de la frontera cargada por `Existencia`. 
 - `entregarReserva()`;
 - `recibirRetornoEnRevision()`;
 - `aprobarRetornoParaVenta()`;
+- `descartarRetornoRevisado()`;
 - `darDeBaja()`;
 - `ajustarAlConteo()`.
 
@@ -62,9 +63,10 @@ Solo las reservas activas forman parte de la frontera cargada por `Existencia`. 
 7. Una baja ordinaria solo consume unidades disponibles. Si alcanzaría una reserva o unidades en revisión, primero debe resolverse explícitamente su situación.
 8. Un retorno pendiente de revisión aumenta cantidad física y cantidad en revisión, pero no disponibilidad.
 9. Aprobar un retorno apto reduce cantidad en revisión y aumenta disponibilidad sin cambiar cantidad física.
-10. Un ajuste de conteo registra cantidad observada, diferencia, razón, actor y fecha; nunca sobrescribe silenciosamente el valor anterior.
-11. Si un conteo resultaría menor que las cantidades reservadas y en revisión, el ajuste se bloquea hasta resolverlas explícitamente.
-12. Dos comandos no pueden consumir la misma disponibilidad o reserva usando una versión obsoleta.
+10. Descartar un retorno no apto reduce cantidad física y en revisión en la misma magnitud, exige categoría y razón y reconoce como pérdida su costo histórico proporcional.
+11. Un ajuste de conteo registra cantidad observada, diferencia, razón, actor y fecha; nunca sobrescribe silenciosamente el valor anterior.
+12. Si un conteo resultaría menor que las cantidades reservadas y en revisión, el ajuste se bloquea hasta resolverlas explícitamente.
+13. Dos comandos no pueden consumir la misma disponibilidad, reserva o cantidad en revisión usando una versión obsoleta.
 
 ## Agregado Movimiento de inventario
 
@@ -132,6 +134,7 @@ No se crea un único agregado que contenga todas las existencias de la tienda: e
 | `InventarioEntregado` | Unidades salieron físicamente hacia un cliente |
 | `RetornoRecibidoEnRevision` | Unidades retornaron sin quedar disponibles todavía |
 | `RetornoHabilitadoParaVenta` | Unidades revisadas quedaron disponibles |
+| `RetornoDescartado` | Unidades revisadas no aptas salieron de la existencia y su costo se reconoció como pérdida |
 | `InventarioTrasladado` | Salida e ingreso entre ubicaciones se confirmaron juntos |
 | `InventarioDadoDeBaja` | Unidades no vendibles salieron de la existencia |
 | `InventarioAjustado` | Un conteo corrigió una diferencia de existencia |

@@ -17,6 +17,7 @@ import { RequirePermission } from '../../../../identity-access/adapters/driving/
 import { ListInventoryLocations } from '../../../hexagon/application/inventory-catalog';
 import {
   AdjustInventoryCount,
+  ResolveInventoryReview,
   WriteOffInventory,
 } from '../../../hexagon/application/administer-inventory';
 import type { InventoryAdministrationResult } from '../../../hexagon/application/inventory-administration-book';
@@ -29,6 +30,7 @@ import {
   InventoryTransferResponse,
   TransferInventoryRequest,
   WriteOffInventoryRequest,
+  ResolveInventoryReviewRequest,
 } from './inventory.dto';
 
 @ApiTags('inventory')
@@ -39,6 +41,7 @@ export class InventoryController {
     private readonly transfers: TransferInventory,
     private readonly writeOffs: WriteOffInventory,
     private readonly adjustments: AdjustInventoryCount,
+    private readonly reviewResolutions: ResolveInventoryReview,
   ) {}
 
   @Get('locations')
@@ -125,6 +128,30 @@ export class InventoryController {
       observedPhysicalQuantity: body.observedPhysicalQuantity,
       expectedPositionVersion: body.expectedPositionVersion,
       declaredUnitCostCents: body.declaredUnitCostCents ?? null,
+      reason: body.reason,
+    });
+    return administrationResponse(result);
+  }
+
+  @Post('review-resolutions')
+  @RequirePermission('inventory:inspect-return')
+  @ApiOperation({ operationId: 'resolveInventoryReview' })
+  @ApiCreatedResponse({ type: InventoryAdministrationResponse })
+  async resolveReview(
+    @Headers('idempotency-key') operationId: string | undefined,
+    @Body() body: ResolveInventoryReviewRequest,
+    @Req() request: AuthenticatedRequest,
+  ): Promise<InventoryAdministrationResponse> {
+    const context = operationContext(operationId, request);
+    const result = await this.reviewResolutions.execute({
+      operationId: context.operationId,
+      actorId: context.actorId,
+      productId: body.productId,
+      locationId: body.locationId,
+      quantity: body.quantity,
+      expectedPositionVersion: body.expectedPositionVersion,
+      resolution: body.resolution,
+      category: body.category ?? null,
       reason: body.reason,
     });
     return administrationResponse(result);
@@ -224,7 +251,9 @@ function throwAdministrationError(
           ? `Solo hay ${String(result.availableQuantity ?? 0)} unidades disponibles.`
           : result.reason === 'protected-stock'
             ? `El conteo no puede ser menor que ${String(result.minimumPhysicalQuantity ?? 0)} unidades reservadas o en revisión.`
-            : 'La operación no cumple las reglas del inventario.',
+            : result.reason === 'insufficient-review'
+              ? `Solo hay ${String(result.reviewQuantity ?? 0)} unidades pendientes de revisión.`
+              : 'La operación no cumple las reglas del inventario.',
   });
 }
 

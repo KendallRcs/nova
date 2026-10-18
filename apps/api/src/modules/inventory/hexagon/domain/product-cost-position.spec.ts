@@ -102,6 +102,30 @@ describe('ProductCostPosition', () => {
       version: 2,
     });
   });
+
+  it('moves reviewed cost to available or recognizes its loss', () => {
+    const available = ProductCostPosition.restore({
+      ...position(2, 500).snapshot(),
+      reviewQuantity: 2,
+      reviewValueCents: 501,
+    });
+    expect(available.resolveReview(1, 'available', now)).toMatchObject({
+      ok: true,
+      resolvedValueCents: 250,
+    });
+    expect(available.snapshot()).toMatchObject({
+      availableQuantity: 3,
+      availableValueCents: 750,
+      reviewQuantity: 1,
+      reviewValueCents: 251,
+    });
+
+    expect(available.resolveReview(1, 'write-off', now)).toMatchObject({
+      ok: true,
+      resolvedValueCents: 251,
+    });
+    expect(available.snapshot()).toMatchObject({ reviewQuantity: 0, reviewValueCents: 0 });
+  });
 });
 
 function position(availableQuantity: number, availableValueCents: number): ProductCostPosition {

@@ -16,6 +16,7 @@ import type { InventoryTransferBook } from './hexagon/application/inventory-tran
 import type { InventoryAdministrationBook } from './hexagon/application/inventory-administration-book';
 import {
   AdjustInventoryCount,
+  ResolveInventoryReview,
   WriteOffInventory,
 } from './hexagon/application/administer-inventory';
 import { TransferInventory } from './hexagon/application/transfer-inventory';
@@ -58,6 +59,15 @@ const INVENTORY_ADMINISTRATION_BOOK = Symbol('INVENTORY_ADMINISTRATION_BOOK');
         ids: UuidV7InventoryIdGenerator,
         clock: SystemInventoryClock,
       ): AdjustInventoryCount => new AdjustInventoryCount(book, ids, clock),
+    },
+    {
+      provide: ResolveInventoryReview,
+      inject: [INVENTORY_ADMINISTRATION_BOOK, UuidV7InventoryIdGenerator, SystemInventoryClock],
+      useFactory: (
+        book: InventoryAdministrationBook,
+        ids: UuidV7InventoryIdGenerator,
+        clock: SystemInventoryClock,
+      ): ResolveInventoryReview => new ResolveInventoryReview(book, ids, clock),
     },
     {
       provide: TransferInventory,

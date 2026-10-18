@@ -26,6 +26,18 @@ export interface AdjustInventoryCountCommand {
   actorId: string;
 }
 
+export interface ResolveInventoryReviewCommand {
+  operationId: string;
+  productId: string;
+  locationId: string;
+  quantity: number;
+  expectedPositionVersion: number;
+  resolution: 'available' | 'write-off';
+  category: InventoryWriteOffCategory | null;
+  reason: string;
+  actorId: string;
+}
+
 export class WriteOffInventory {
   constructor(
     private readonly book: InventoryAdministrationBook,
@@ -81,6 +93,42 @@ export class AdjustInventoryCount {
       ...command,
       reason,
       kind: 'count-adjustment',
+      movementId: this.ids.generate(),
+      costMovementId: this.ids.generate(),
+      effectiveAt: this.clock.now(),
+    });
+  }
+}
+
+export class ResolveInventoryReview {
+  constructor(
+    private readonly book: InventoryAdministrationBook,
+    private readonly ids: InventoryIdGenerator,
+    private readonly clock: InventoryClock,
+  ) {}
+
+  execute(command: ResolveInventoryReviewCommand): Promise<InventoryAdministrationResult> {
+    if (
+      !Number.isSafeInteger(command.quantity) ||
+      command.quantity <= 0 ||
+      !Number.isSafeInteger(command.expectedPositionVersion) ||
+      command.expectedPositionVersion <= 0
+    ) {
+      return Promise.resolve({ ok: false, reason: 'invalid-quantity' });
+    }
+    if (
+      (command.resolution === 'available' && command.category !== null) ||
+      (command.resolution === 'write-off' &&
+        (command.category === null || !WRITE_OFF_CATEGORIES.has(command.category)))
+    ) {
+      return Promise.resolve({ ok: false, reason: 'invalid-category' });
+    }
+    const reason = command.reason.trim();
+    if (reason.length === 0) return Promise.resolve({ ok: false, reason: 'invalid-reason' });
+    return this.book.execute({
+      ...command,
+      reason,
+      kind: 'review-resolution',
       movementId: this.ids.generate(),
       costMovementId: this.ids.generate(),
       effectiveAt: this.clock.now(),

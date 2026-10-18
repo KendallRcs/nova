@@ -11,6 +11,7 @@ import type { AuthenticatedRequest } from '../../src/modules/identity-access/ada
 import { ListInventoryLocations } from '../../src/modules/inventory/hexagon/application/inventory-catalog';
 import {
   AdjustInventoryCount,
+  ResolveInventoryReview,
   WriteOffInventory,
 } from '../../src/modules/inventory/hexagon/application/administer-inventory';
 import { TransferInventory } from '../../src/modules/inventory/hexagon/application/transfer-inventory';
@@ -68,6 +69,10 @@ describe('Inventory HTTP contract', () => {
           provide: AdjustInventoryCount,
           useValue: { execute: administrationResult('adjustment-in', 2, 500) },
         },
+        {
+          provide: ResolveInventoryReview,
+          useValue: { execute: administrationResult('review-approved', 0, 250) },
+        },
       ],
     }).compile();
     app = module.createNestApplication();
@@ -83,6 +88,7 @@ describe('Inventory HTTP contract', () => {
           'inventory:transfer',
           'inventory:write-off',
           'inventory:adjust',
+          'inventory:inspect-return',
         ],
         requiresPasswordChange: false,
       };
@@ -182,10 +188,32 @@ describe('Inventory HTTP contract', () => {
       replayed: false,
     });
   });
+
+  it('approves reviewed stock for sale with optimistic concurrency', async () => {
+    const response = await request(httpServer)
+      .post('/api/v1/inventory/review-resolutions')
+      .set('Idempotency-Key', '0199ef04-1b00-7000-8000-000000000023')
+      .send({
+        productId: PRODUCT_ID,
+        locationId: STORE_ID,
+        quantity: 1,
+        expectedPositionVersion: 4,
+        resolution: 'available',
+        reason: 'Producto revisado y apto',
+      })
+      .expect(201);
+    expect(response.body).toMatchObject({
+      type: 'review-approved',
+      physicalDelta: 0,
+      valueDeltaCents: 250,
+      category: null,
+      replayed: false,
+    });
+  });
 });
 
 function administrationResult(
-  type: 'write-off' | 'adjustment-in',
+  type: 'write-off' | 'adjustment-in' | 'review-approved',
   physicalDelta: number,
   valueDeltaCents: number,
 ) {

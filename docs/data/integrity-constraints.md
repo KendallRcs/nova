@@ -243,6 +243,12 @@ cuando sea útil, se añade además una protección SQL diferible o un bloqueo.
 - Liberar una reserva reincorpora cantidad y valor al promedio disponible.
 - Un retorno físico entra primero a revisión o directamente a disponible según la
   decisión administrativa documentada.
+- Resolver una revisión nunca consume más unidades que las pendientes. Si quedan
+  aptas, cantidad y valor pasan de revisión a disponible sin alterar la existencia
+  física; si se descartan, cantidad física, cantidad en revisión y valor histórico
+  disminuyen conjuntamente.
+- La baja de una unidad revisada exige categoría, razón, actor, versión esperada y
+  conserva un movimiento distinto de la baja ordinaria de stock disponible.
 - Las posiciones de costo y de inventario deben reconciliar las unidades físicas
   disponibles, reservadas y en revisión, aunque el costo sea global y el stock se
   distribuya por ubicación.

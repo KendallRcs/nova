@@ -84,6 +84,14 @@ export type ReleaseReservedPositionResult =
 
 export type DeliverReservedPositionResult = ReleaseReservedPositionResult;
 
+export type ResolveReviewPositionResult =
+  | {
+      readonly ok: true;
+      readonly before: InventoryPositionSnapshot;
+      readonly after: InventoryPositionSnapshot;
+    }
+  | { readonly ok: false; readonly reason: 'invalid-quantity' | 'insufficient-review' };
+
 export class InventoryPosition {
   private constructor(private properties: InventoryPositionProperties) {}
 
@@ -261,6 +269,29 @@ export class InventoryPosition {
       ...this.properties,
       physicalQuantity: before.physicalQuantity - quantity,
       reservedQuantity: before.reservedQuantity - quantity,
+      version: before.version + 1,
+      updatedAt: now,
+    };
+    return { ok: true, before, after: this.snapshot() };
+  }
+
+  resolveReview(
+    quantity: number,
+    resolution: 'available' | 'write-off',
+    now: Date,
+  ): ResolveReviewPositionResult {
+    const before = this.snapshot();
+    if (!Number.isSafeInteger(quantity) || quantity <= 0) {
+      return { ok: false, reason: 'invalid-quantity' };
+    }
+    if (quantity > before.reviewQuantity) {
+      return { ok: false, reason: 'insufficient-review' };
+    }
+    this.properties = {
+      ...this.properties,
+      physicalQuantity:
+        resolution === 'write-off' ? before.physicalQuantity - quantity : before.physicalQuantity,
+      reviewQuantity: before.reviewQuantity - quantity,
       version: before.version + 1,
       updatedAt: now,
     };

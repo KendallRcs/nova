@@ -56,7 +56,7 @@ export class PrismaInventoryAdministrationBook implements InventoryAdministratio
             select: { version: true },
           });
           if (
-            command.kind === 'count-adjustment' &&
+            command.kind !== 'write-off' &&
             command.expectedPositionVersion !== (previousPosition?.version ?? 0)
           ) {
             reject({ ok: false, reason: 'version-conflict' });
@@ -136,15 +136,20 @@ export class PrismaInventoryAdministrationBook implements InventoryAdministratio
               id: command.movementId,
               operationId: command.operationId,
               expectedPositionVersion:
-                command.kind === 'count-adjustment' ? command.expectedPositionVersion : null,
+                command.kind === 'write-off' ? null : command.expectedPositionVersion,
               productId: command.productId,
               locationId: command.locationId,
               type: movementType.inventory,
               administrativeCategory:
-                command.kind === 'write-off' ? CATEGORY_TO_PRISMA[command.category] : null,
+                command.kind === 'write-off'
+                  ? CATEGORY_TO_PRISMA[command.category]
+                  : command.kind === 'review-resolution' && command.category !== null
+                    ? CATEGORY_TO_PRISMA[command.category]
+                    : null,
               physicalDelta: changed.physicalDelta,
               reservedDelta: 0,
-              reviewDelta: 0,
+              reviewDelta:
+                changed.inventoryAfter.reviewQuantity - changed.inventoryBefore.reviewQuantity,
               previousPhysicalQuantity: changed.inventoryBefore.physicalQuantity,
               resultingPhysicalQuantity: changed.inventoryAfter.physicalQuantity,
               previousReservedQuantity: changed.inventoryBefore.reservedQuantity,
@@ -159,8 +164,7 @@ export class PrismaInventoryAdministrationBook implements InventoryAdministratio
                   id: command.costMovementId,
                   productId: command.productId,
                   type: movementType.cost,
-                  quantityDelta:
-                    changed.costAfter.availableQuantity - changed.costBefore.availableQuantity,
+                  quantityDelta: changed.quantityDelta,
                   valueDeltaCents: BigInt(changed.valueDeltaCents),
                   previousAvailableQuantity: changed.costBefore.availableQuantity,
                   resultingAvailableQuantity: changed.costAfter.availableQuantity,
@@ -297,7 +301,7 @@ function applyChange(
     }
     const costResult = cost.removeAvailable(command.quantity, command.effectiveAt);
     if (!costResult.ok) reject({ ok: false, reason: 'cost-unavailable' });
-  } else {
+  } else if (command.kind === 'count-adjustment') {
     const inventoryResult = inventory.adjustToPhysicalCount(
       command.observedPhysicalQuantity,
       command.effectiveAt,
@@ -328,6 +332,33 @@ function applyChange(
             : 'cost-unavailable',
       });
     }
+  } else {
+    const inventoryResult = inventory.resolveReview(
+      command.quantity,
+      command.resolution,
+      command.effectiveAt,
+    );
+    if (!inventoryResult.ok) {
+      reject({
+        ok: false,
+        reason: inventoryResult.reason,
+        reviewQuantity: inventoryBefore.reviewQuantity,
+      });
+    }
+    const costResult = cost.resolveReview(
+      command.quantity,
+      command.resolution,
+      command.effectiveAt,
+    );
+    if (!costResult.ok) {
+      reject({
+        ok: false,
+        reason: costResult.reason,
+        ...(costResult.reviewQuantity === undefined
+          ? {}
+          : { reviewQuantity: costResult.reviewQuantity }),
+      });
+    }
   }
   const inventoryAfter = inventory.snapshot();
   const costAfter = cost.snapshot();
@@ -337,7 +368,14 @@ function applyChange(
     costBefore,
     costAfter,
     physicalDelta: inventoryAfter.physicalQuantity - inventoryBefore.physicalQuantity,
-    valueDeltaCents: costAfter.availableValueCents - costBefore.availableValueCents,
+    quantityDelta:
+      command.kind === 'review-resolution' && command.resolution === 'write-off'
+        ? -command.quantity
+        : costAfter.availableQuantity - costBefore.availableQuantity,
+    valueDeltaCents:
+      command.kind === 'review-resolution' && command.resolution === 'write-off'
+        ? costAfter.reviewValueCents - costBefore.reviewValueCents
+        : costAfter.availableValueCents - costBefore.availableValueCents,
   };
 }
 
@@ -348,6 +386,19 @@ function movementTypeFor(command: PreparedInventoryAdministrationCommand, physic
       cost: CostMovementType.WRITE_OFF,
       label: 'write-off' as const,
     };
+  }
+  if (command.kind === 'review-resolution') {
+    return command.resolution === 'available'
+      ? {
+          inventory: InventoryMovementType.RETURN_AVAILABLE,
+          cost: CostMovementType.RETURN_AVAILABLE,
+          label: 'review-approved' as const,
+        }
+      : {
+          inventory: InventoryMovementType.WRITE_OFF,
+          cost: CostMovementType.WRITE_OFF,
+          label: 'review-write-off' as const,
+        };
   }
   return physicalDelta > 0
     ? {
@@ -392,7 +443,12 @@ function receipt(
     actorId: command.actorId,
     effectiveAt: command.effectiveAt,
     reason: command.reason,
-    category: command.kind === 'write-off' ? command.category : null,
+    category:
+      command.kind === 'write-off'
+        ? command.category
+        : command.kind === 'review-resolution'
+          ? command.category
+          : null,
     declaredUnitCostCents:
       command.kind === 'count-adjustment' ? command.declaredUnitCostCents : null,
   };
@@ -420,10 +476,21 @@ function replay(
       ? isWriteOff &&
         existing.physicalDelta === -command.quantity &&
         existing.administrativeCategory === CATEGORY_TO_PRISMA[command.category]
-      : !isWriteOff &&
-        existing.resultingPhysicalQuantity === command.observedPhysicalQuantity &&
-        existing.expectedPositionVersion === command.expectedPositionVersion &&
-        safeNullableNumber(cost?.declaredUnitCostCents) === command.declaredUnitCostCents;
+      : command.kind === 'count-adjustment'
+        ? !isWriteOff &&
+          existing.resultingPhysicalQuantity === command.observedPhysicalQuantity &&
+          existing.expectedPositionVersion === command.expectedPositionVersion &&
+          safeNullableNumber(cost?.declaredUnitCostCents) === command.declaredUnitCostCents
+        : existing.expectedPositionVersion === command.expectedPositionVersion &&
+          existing.reviewDelta === -command.quantity &&
+          (command.resolution === 'available'
+            ? existing.type === InventoryMovementType.RETURN_AVAILABLE &&
+              existing.physicalDelta === 0 &&
+              existing.administrativeCategory === null
+            : existing.type === InventoryMovementType.WRITE_OFF &&
+              existing.physicalDelta === -command.quantity &&
+              command.category !== null &&
+              existing.administrativeCategory === CATEGORY_TO_PRISMA[command.category]);
   if (
     !sameKind ||
     cost === null ||
@@ -436,11 +503,15 @@ function replay(
     return { ok: false, reason: 'idempotency-conflict' };
 
   const type =
-    existing.type === InventoryMovementType.WRITE_OFF
-      ? 'write-off'
-      : existing.type === InventoryMovementType.ADJUSTMENT_IN
-        ? 'adjustment-in'
-        : 'adjustment-out';
+    command.kind === 'review-resolution'
+      ? command.resolution === 'available'
+        ? 'review-approved'
+        : 'review-write-off'
+      : existing.type === InventoryMovementType.WRITE_OFF
+        ? 'write-off'
+        : existing.type === InventoryMovementType.ADJUSTMENT_IN
+          ? 'adjustment-in'
+          : 'adjustment-out';
   return {
     ok: true,
     movement: {
@@ -463,7 +534,12 @@ function replay(
       actorId: existing.actorId,
       effectiveAt: existing.effectiveAt,
       reason: existing.reason,
-      category: command.kind === 'write-off' ? command.category : null,
+      category:
+        command.kind === 'write-off'
+          ? command.category
+          : command.kind === 'review-resolution'
+            ? command.category
+            : null,
       declaredUnitCostCents: safeNullableNumber(cost.declaredUnitCostCents),
     },
     replayed: true,

@@ -148,6 +148,7 @@ modificado, aunque su contrato continúe usando lenguaje del negocio y no SQL.
 | Trasladar stock | posiciones de origen y destino | transferencia, salida, entrada y ambas posiciones |
 | Dar de baja | posición física y costo | baja, movimiento físico, pérdida de costo y auditoría |
 | Ajustar por conteo | posición física y costo cuando corresponda | ajuste, posición, movimiento y razón administrativa |
+| Resolver revisión | posición física y costo | habilitación para venta o baja, costo histórico y movimientos |
 | Confirmar compra | adelantos usados; posiciones físicas y costo por producto | compra, aplicaciones, nuevo egreso, caja, inventario, costo y sugerencias de revisión |
 | Registrar adelanto | — o proveedor si se necesita validar vigencia | adelanto, saldo inicial y salida de caja |
 | Aplicar/devolver/perder adelanto | adelanto; compra si corresponde | aplicación o cierre de saldo, entrada de caja solo si hay devolución |
@@ -199,6 +200,16 @@ después de que el primero confirme y se rechaza si ya no cabe.
 La entrega no registra pagos ni cambia el total comercial. Dos entregas
 concurrentes sobre la misma venta se serializan; la segunda relee la reserva
 restante antes de decidir.
+
+### Resolver mercancía en revisión
+
+1. Validar permiso, razón, resolución y versión observada de la posición.
+2. Bloquear la posición física por producto y ubicación y la posición global de costo.
+3. Verificar que la cantidad pendiente de revisión sea suficiente.
+4. Si es apta, mover cantidad y valor histórico de revisión a disponible sin variar
+   la existencia física; si no es apta, retirar físicamente y reconocer la pérdida.
+5. Registrar los movimientos de inventario y costo e incrementar ambas versiones.
+6. Confirmar todo en una única transacción idempotente.
 
 ### Confirmar una compra
 

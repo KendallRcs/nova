@@ -6,7 +6,11 @@ import type {
   InventoryAdministrationResult,
   PreparedInventoryAdministrationCommand,
 } from './inventory-administration-book';
-import { AdjustInventoryCount, WriteOffInventory } from './administer-inventory';
+import {
+  AdjustInventoryCount,
+  ResolveInventoryReview,
+  WriteOffInventory,
+} from './administer-inventory';
 
 class RecordingBook implements InventoryAdministrationBook {
   commands: PreparedInventoryAdministrationCommand[] = [];
@@ -54,6 +58,25 @@ describe('inventory administration use cases', () => {
       actorId: 'admin-1',
     });
     expect(result).toEqual({ ok: false, reason: 'invalid-count' });
+    expect(book.commands).toEqual([]);
+  });
+
+  it('requires an explicit write-off category when reviewed stock is discarded', async () => {
+    const book = new RecordingBook();
+    const resolver = new ResolveInventoryReview(book, { generate: () => 'generated-id' }, clock);
+    await expect(
+      resolver.execute({
+        operationId: 'operation-1',
+        productId: 'product-1',
+        locationId: 'store',
+        quantity: 1,
+        expectedPositionVersion: 2,
+        resolution: 'write-off',
+        category: null,
+        reason: 'No es vendible',
+        actorId: 'admin-1',
+      }),
+    ).resolves.toEqual({ ok: false, reason: 'invalid-category' });
     expect(book.commands).toEqual([]);
   });
 });

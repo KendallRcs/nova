@@ -12,6 +12,7 @@ import { IdentityAccessModule } from './modules/identity-access/identity-access.
 import { InventoryModule } from './modules/inventory/inventory.module';
 import { CustomersModule } from './modules/customers/customers.module';
 import { SalesModule } from './modules/sales/sales.module';
+import { ProcurementModule } from './modules/procurement/procurement.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { SalesModule } from './modules/sales/sales.module';
     InventoryModule,
     CustomersModule,
     SalesModule,
+    ProcurementModule,
   ],
   controllers: [HealthController],
   providers: [CsrfTokens, { provide: APP_GUARD, useClass: CsrfGuard }],
