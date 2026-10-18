@@ -73,9 +73,9 @@ existen clientes fusionados se concreta en las restricciones.
 | `return_lines` | return_id, sale_line_id, cantidad, importe comercial, product_returns, return_location_id opcional, condición opcional, costo atribuido | Permite devolver dinero con o sin retorno físico del producto. |
 | `return_refunds` | return_id, importe, método, registered_by, effective_at | Una devolución tiene como máximo un reembolso monetario, únicamente si existe exceso pagado. |
 | `sale_closures` | sale_id, tipo completa/incompleta, importe condonado, razón, closed_by, effective_at | Como máximo un cierre definitivo por venta. |
-| `sale_cancellations` | sale_id, razón, cancelled_by, effective_at | Como máximo una cancelación por venta. |
-| `sale_cancellation_lines` | cancellation_id, sale_line_id, cantidad liberada, cantidad retornada, cantidad no retornada | Conserva el resultado físico por línea al cancelar. |
-| `sale_cancellation_refunds` | cancellation_id, importe, método, registered_by, effective_at | Registra el dinero devuelto al cancelar, si lo hubo. |
+| `sale_cancellations` | sale_id, operation_id, huella de solicitud, razón, reembolso manual, pago neto resultante, cancelled_by, effective_at, versión resultante | Como máximo una cancelación por venta; la operación es idempotente. |
+| `sale_cancellation_lines` | cancellation_id, sale_line_id, cantidades liberada/retornada/no retornada, ubicación y condición opcionales, costos liberado y retornado | Conserva el resultado físico y de valoración por línea al cancelar. |
+| `sale_cancellation_refunds` | cancellation_id, importe, método, registered_by, effective_at | Existe solo cuando el reembolso manual es mayor que cero y origina una salida de caja. |
 
 Reglas estructurales importantes:
 
@@ -88,6 +88,8 @@ Reglas estructurales importantes:
   entregar no implica completar el pago.
 - Una devolución reduce el total comercial y puede combinar un eventual reembolso
   con retorno físico o sin él; ambas decisiones quedan explícitas.
+- Una cancelación conserva el total comercial histórico, libera toda reserva activa
+  y exige decidir si cada unidad entregada retorna o permanece con el cliente.
 - Las correcciones generan hechos compensatorios y el correspondiente movimiento
   financiero; no eliminan pagos ni devoluciones.
 

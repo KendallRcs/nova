@@ -345,6 +345,7 @@ const saleInclude = {
   totalAdjustments: true,
   closure: true,
   returns: { include: { lines: true, refund: true } },
+  cancellation: { include: { lines: true, refund: true } },
 } satisfies Prisma.SaleInclude;
 
 type ExistingReturn = Prisma.SaleReturnGetPayload<{ include: { lines: true; refund: true } }>;

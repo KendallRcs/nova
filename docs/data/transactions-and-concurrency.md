@@ -208,6 +208,20 @@ después de que el primero confirme y se rechaza si ya no cabe.
    sin retorno no modifica inventario ni reincorpora costo.
 6. Confirmar todos los efectos e incrementar versiones.
 
+### Cancelar una venta
+
+1. Bloquear la venta y releer líneas, reservas, asignaciones de costo, pagos,
+   correcciones y devoluciones anteriores.
+2. Validar versión, tratamiento completo de líneas y que el reembolso manual no
+   supere el pago neto vigente.
+3. Bloquear las posiciones físicas y de costo involucradas en orden estable.
+4. Liberar las reservas activas con su costo exacto; reincorporar las unidades que
+   realmente retornan a `available` o `review` con costo histórico.
+5. Crear cancelación, líneas y, solo si el importe es positivo, reembolso y salida
+   de caja.
+6. Marcar la venta como cancelada, incrementar su versión y confirmar todos los
+   efectos juntos.
+
 ## Idempotencia
 
 Toda orden monetaria o de inventario que el usuario pueda reenviar recibe un

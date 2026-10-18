@@ -52,16 +52,17 @@
 47. Un pago no puede superar el saldo vigente; si cambia el acuerdo, primero se registra un ajuste del total.
 48. Una devolución puede realizarse en cualquier momento y no posee cancelación automática por antigüedad.
 49. El reembolso de una devolución equivale al exceso positivo entre el pago neto y el nuevo total comercial; si no existe exceso, no se mueve dinero.
-50. El método del reembolso se registra según la salida real de dinero y puede diferir del pago original.
-51. En el MVP, los conteos posteriores se resuelven por producto mediante ajustes auditables; no existe una jornada masiva de inventario.
-52. Los acuerdos con clientes de confianza se modelan como acuerdos informales de pago dentro de ventas con saldo pendiente.
-53. Nova no genera ni administra pagarés o títulos valores con efectos legales.
-54. Cada pago pertenece exactamente a una venta; no existen pagos generales de cliente pendientes de distribución ni pagos repartidos entre varias ventas.
-55. Una baja de inventario exige una razón y una categoría entre dañado, perdido, defectuoso u otro; solo consume unidades disponibles.
-56. Un ajuste positivo usa el costo promedio vigente de las unidades actuales; si no existe costo anterior, el administrador debe indicar el costo unitario.
-57. Bajas y ajustes actualizan existencia, valoración y movimientos de auditoría en una única transacción idempotente.
-58. Los celulares peruanos de nueve dígitos se normalizan al formato internacional `+51`; DNI y dirección del cliente son opcionales y un DNI presente contiene ocho dígitos.
-59. Fusionar clientes conserva las referencias históricas, resuelve un único cliente principal activo y registra duplicado, datos elegidos, administrador y fecha sin crear cadenas de fusiones.
-60. Crear o editar un borrador de venta valida referencias activas y calcula sus totales, pero no reserva, entrega, valoriza ni registra dinero hasta confirmar la venta.
-61. Confirmar una venta es idempotente y atómico: congela referencias comerciales y costo, y confirma todas sus entregas y reservas iniciales o no confirma ningún efecto.
-62. Cada cobro crea de forma atómica e idempotente un pago inmutable, una entrada de caja y una nueva versión de la venta; una venta sin cliente solo puede confirmarse cuando su pago inicial cubre el total.
+50. Al cancelar una venta, el administrador declara manualmente el importe realmente reembolsado, desde cero hasta el pago neto vigente; Nova no presume una devolución total del dinero.
+51. El método del reembolso se registra según la salida real de dinero y puede diferir del pago original.
+52. En el MVP, los conteos posteriores se resuelven por producto mediante ajustes auditables; no existe una jornada masiva de inventario.
+53. Los acuerdos con clientes de confianza se modelan como acuerdos informales de pago dentro de ventas con saldo pendiente.
+54. Nova no genera ni administra pagarés o títulos valores con efectos legales.
+55. Cada pago pertenece exactamente a una venta; no existen pagos generales de cliente pendientes de distribución ni pagos repartidos entre varias ventas.
+56. Una baja de inventario exige una razón y una categoría entre dañado, perdido, defectuoso u otro; solo consume unidades disponibles.
+57. Un ajuste positivo usa el costo promedio vigente de las unidades actuales; si no existe costo anterior, el administrador debe indicar el costo unitario.
+58. Bajas y ajustes actualizan existencia, valoración y movimientos de auditoría en una única transacción idempotente.
+59. Los celulares peruanos de nueve dígitos se normalizan al formato internacional `+51`; DNI y dirección del cliente son opcionales y un DNI presente contiene ocho dígitos.
+60. Fusionar clientes conserva las referencias históricas, resuelve un único cliente principal activo y registra duplicado, datos elegidos, administrador y fecha sin crear cadenas de fusiones.
+61. Crear o editar un borrador de venta valida referencias activas y calcula sus totales, pero no reserva, entrega, valoriza ni registra dinero hasta confirmar la venta.
+62. Confirmar una venta es idempotente y atómico: congela referencias comerciales y costo, y confirma todas sus entregas y reservas iniciales o no confirma ningún efecto.
+63. Cada cobro crea de forma atómica e idempotente un pago inmutable, una entrada de caja y una nueva versión de la venta; una venta sin cliente solo puede confirmarse cuando su pago inicial cubre el total.

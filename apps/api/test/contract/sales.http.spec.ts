@@ -17,6 +17,7 @@ import { RecordSalePayment } from '../../src/modules/sales/hexagon/application/r
 import { ListSales } from '../../src/modules/sales/hexagon/application/sale-activity';
 import { GetSaleDetail } from '../../src/modules/sales/hexagon/application/sale-detail';
 import { ApproveSaleReturn } from '../../src/modules/sales/hexagon/application/approve-sale-return';
+import { CancelSale } from '../../src/modules/sales/hexagon/application/cancel-sale';
 import {
   AdjustSaleTotal,
   CorrectSalePayment,
@@ -147,6 +148,7 @@ describe('Sales HTTP contract', () => {
                   payments: [],
                   totalAdjustments: [],
                   returns: [],
+                  cancellation: null,
                   closure: null,
                   version: 3,
                   confirmedAt: new Date('2026-09-15T21:00:00.000Z'),
@@ -253,6 +255,35 @@ describe('Sales HTTP contract', () => {
                   balanceCents: 0,
                   approvedBy: ACTOR_ID,
                   effectiveAt: new Date('2026-09-18T15:00:00.000Z'),
+                },
+              }),
+          },
+        },
+        {
+          provide: CancelSale,
+          useValue: {
+            execute: (command: {
+              operationId: string;
+              saleId: string;
+              refundAmountCents: number;
+              refundMethod: 'cash' | 'yape' | 'plin' | 'pos' | null;
+            }) =>
+              Promise.resolve({
+                ok: true,
+                replayed: false,
+                cancellation: {
+                  cancellationId: '0199ef04-1b00-7000-8000-000000000099',
+                  operationId: command.operationId,
+                  saleId: command.saleId,
+                  saleVersion: 7,
+                  refundAmountCents: command.refundAmountCents,
+                  refundMethod: command.refundMethod,
+                  paidCents: 500,
+                  releasedQuantity: 1,
+                  returnedQuantity: 0,
+                  notReturnedQuantity: 1,
+                  cancelledBy: ACTOR_ID,
+                  effectiveAt: new Date('2026-09-18T16:00:00.000Z'),
                 },
               }),
           },
@@ -443,6 +474,35 @@ describe('Sales HTTP contract', () => {
       currentTotalCents: 2_000,
       paidCents: 2_000,
       balanceCents: 0,
+    });
+  });
+
+  it('cancels a sale using the manually declared refund', async () => {
+    const response = await request(httpServer)
+      .post(`/api/v1/sales/${SALE_ID}/cancellations`)
+      .set('Idempotency-Key', '0199ef04-1b00-7000-8000-00000000009a')
+      .send({
+        expectedVersion: 6,
+        reason: 'Acuerdo de cancelación',
+        refundAmountCents: 500,
+        refundMethod: 'yape',
+        lines: [
+          {
+            saleLineId: LINE_ID,
+            returnedQuantity: 0,
+            notReturnedQuantity: 1,
+          },
+        ],
+      })
+      .expect(200);
+    expect(response.body).toMatchObject({
+      saleVersion: 7,
+      refundAmountCents: 500,
+      refundMethod: 'yape',
+      paidCents: 500,
+      releasedQuantity: 1,
+      returnedQuantity: 0,
+      notReturnedQuantity: 1,
     });
   });
 });

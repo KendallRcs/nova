@@ -36,6 +36,7 @@ export class PrismaSalePaymentBook implements SalePaymentBook {
             totalAdjustments: true,
             closure: true,
             returns: { include: { lines: true, refund: true } },
+            cancellation: { include: { lines: true, refund: true } },
           },
         });
         if (row === null) reject({ ok: false, reason: 'sale-not-found' });

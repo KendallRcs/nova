@@ -30,6 +30,7 @@ import { RecordSalePayment } from '../../../hexagon/application/record-sale-paym
 import { ListSales } from '../../../hexagon/application/sale-activity';
 import { GetSaleDetail } from '../../../hexagon/application/sale-detail';
 import { ApproveSaleReturn } from '../../../hexagon/application/approve-sale-return';
+import { CancelSale } from '../../../hexagon/application/cancel-sale';
 import {
   AdjustSaleTotal,
   CorrectSalePayment,
@@ -43,6 +44,7 @@ import type {
 } from '../../../hexagon/application/sale-financial-book';
 import type { SalePaymentResult } from '../../../hexagon/application/sale-payment-book';
 import type { SaleReturnResult } from '../../../hexagon/application/sale-return-book';
+import type { SaleCancellationResult } from '../../../hexagon/application/sale-cancellation-book';
 import type { Sale } from '../../../hexagon/domain/sale';
 import {
   ConfirmSaleRequest,
@@ -63,6 +65,8 @@ import {
   ApproveSaleReturnRequest,
   SaleReturnResponse,
   UpdateSaleDraftRequest,
+  CancelSaleRequest,
+  SaleCancellationResponse,
 } from './sale.dto';
 
 @ApiTags('sales')
@@ -79,6 +83,7 @@ export class SalesController {
     private readonly finalizeSale: FinalizeSale,
     private readonly correctSalePayment: CorrectSalePayment,
     private readonly approveSaleReturn: ApproveSaleReturn,
+    private readonly cancelSale: CancelSale,
   ) {}
 
   @Get()
@@ -155,6 +160,13 @@ export class SalesController {
         ...saleReturn,
         effectiveAt: saleReturn.effectiveAt.toISOString(),
       })),
+      cancellation:
+        result.sale.cancellation === null
+          ? null
+          : {
+              ...result.sale.cancellation,
+              effectiveAt: result.sale.cancellation.effectiveAt.toISOString(),
+            },
       closure:
         result.sale.closure === null
           ? null
@@ -399,6 +411,43 @@ export class SalesController {
       replayed: result.replayed,
     };
   }
+
+  @Post(':saleId/cancellations')
+  @HttpCode(200)
+  @RequirePermission('sales:cancel')
+  @ApiOperation({ operationId: 'cancelSale' })
+  @ApiOkResponse({ type: SaleCancellationResponse })
+  async cancel(
+    @Param('saleId', new ParseUUIDPipe({ version: '7' })) saleId: string,
+    @Headers('idempotency-key') operationId: string | undefined,
+    @Body() body: CancelSaleRequest,
+    @Req() request: AuthenticatedRequest,
+  ): Promise<SaleCancellationResponse> {
+    requireIdempotencyKey(operationId);
+    const actor = requireActor(request);
+    const result = await this.cancelSale.execute({
+      operationId,
+      saleId,
+      expectedVersion: body.expectedVersion,
+      actorId: actor.userId,
+      reason: body.reason,
+      refundAmountCents: body.refundAmountCents,
+      refundMethod: body.refundMethod ?? null,
+      lines: body.lines.map((line) => ({
+        saleLineId: line.saleLineId,
+        returnedQuantity: line.returnedQuantity,
+        notReturnedQuantity: line.notReturnedQuantity,
+        returnLocationId: line.returnLocationId ?? null,
+        condition: line.condition ?? null,
+      })),
+    });
+    if (!result.ok) throwCancellationError(result);
+    return {
+      ...result.cancellation,
+      effectiveAt: result.cancellation.effectiveAt.toISOString(),
+      replayed: result.replayed,
+    };
+  }
 }
 
 const UUID_V7 = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -625,6 +674,42 @@ function throwReturnError(result: Exclude<SaleReturnResult, { ok: true }>): neve
       code: result.reason.toUpperCase().replaceAll('-', '_'),
       ...('saleLineId' in result ? { saleLineId: result.saleLineId } : {}),
       ...('returnableQuantity' in result ? { returnableQuantity: result.returnableQuantity } : {}),
+    });
+  }
+  throw new UnprocessableEntityException({
+    status: 422,
+    code: result.reason.toUpperCase().replaceAll('-', '_'),
+    ...('saleLineId' in result ? { saleLineId: result.saleLineId } : {}),
+  });
+}
+
+function throwCancellationError(result: Exclude<SaleCancellationResult, { ok: true }>): never {
+  if (
+    result.reason === 'sale-not-found' ||
+    result.reason === 'sale-line-not-found' ||
+    result.reason === 'location-not-found'
+  ) {
+    throw new NotFoundException({
+      status: 404,
+      code: result.reason.toUpperCase().replaceAll('-', '_'),
+      ...('referenceId' in result ? { referenceId: result.referenceId } : {}),
+      ...('saleLineId' in result ? { saleLineId: result.saleLineId } : {}),
+    });
+  }
+  if (result.reason === 'not-authorized') {
+    throw new ForbiddenException({ status: 403, code: 'CANCELLATION_NOT_AUTHORIZED' });
+  }
+  if (
+    result.reason === 'sale-not-cancellable' ||
+    result.reason === 'version-conflict' ||
+    result.reason === 'refund-exceeds-paid' ||
+    result.reason === 'idempotency-conflict' ||
+    result.reason === 'concurrency-conflict'
+  ) {
+    throw new ConflictException({
+      status: 409,
+      code: result.reason.toUpperCase().replaceAll('-', '_'),
+      ...('paidCents' in result ? { paidCents: result.paidCents } : {}),
     });
   }
   throw new UnprocessableEntityException({

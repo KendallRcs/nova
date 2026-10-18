@@ -105,6 +105,10 @@ Exige:
 - decisión explícita sobre productos entregados y retornos;
 - registro de reembolsos y movimientos físicos que realmente ocurran.
 
+El importe reembolsado se declara manualmente y puede ser cero; nunca supera el
+pago neto vigente. El sistema no presume que cancelar implique devolver todo lo
+cobrado.
+
 La transición completa debe ser atómica. Si falla un movimiento necesario, la venta continúa confirmada.
 
 Una venta finalizada no se cancela: cualquier reversión posterior se representa mediante devolución total o parcial, preservando el cierre histórico.

@@ -258,6 +258,54 @@ export class SaleReturnResponse {
   @ApiProperty() replayed!: boolean;
 }
 
+export class CancelSaleLineRequest {
+  @ApiProperty({ format: 'uuid' }) @IsUUID('7') saleLineId!: string;
+  @ApiProperty({ minimum: 0 }) @IsInt() @Min(0) returnedQuantity!: number;
+  @ApiProperty({ minimum: 0 }) @IsInt() @Min(0) notReturnedQuantity!: number;
+  @ApiPropertyOptional({ format: 'uuid', nullable: true })
+  @IsOptional()
+  @IsUUID('7')
+  returnLocationId?: string | null;
+  @ApiPropertyOptional({ enum: ['available', 'review'], nullable: true })
+  @IsOptional()
+  @IsIn(['available', 'review'])
+  condition?: 'available' | 'review' | null;
+}
+
+export class CancelSaleRequest {
+  @ApiProperty({ minimum: 1 }) @IsInt() @Min(1) expectedVersion!: number;
+  @ApiProperty({ maxLength: 500 }) @IsString() @MaxLength(500) reason!: string;
+  @ApiProperty({ minimum: 0 }) @IsInt() @Min(0) refundAmountCents!: number;
+  @ApiPropertyOptional({ enum: PAYMENT_METHODS, nullable: true })
+  @IsOptional()
+  @IsIn(PAYMENT_METHODS)
+  refundMethod?: PaymentMethodRequest | null;
+  @ApiProperty({ type: [CancelSaleLineRequest] })
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(100)
+  @ValidateNested({ each: true })
+  @Type(() => CancelSaleLineRequest)
+  lines!: CancelSaleLineRequest[];
+}
+
+export class SaleCancellationResponse {
+  @ApiProperty({ format: 'uuid' }) cancellationId!: string;
+  @ApiProperty({ format: 'uuid' }) operationId!: string;
+  @ApiProperty({ format: 'uuid' }) saleId!: string;
+  @ApiProperty() saleVersion!: number;
+  @ApiProperty() refundAmountCents!: number;
+  @ApiProperty({ enum: PAYMENT_METHODS, nullable: true })
+  refundMethod!: PaymentMethodRequest | null;
+  @ApiProperty() paidCents!: number;
+  @ApiProperty() releasedQuantity!: number;
+  @ApiProperty() returnedQuantity!: number;
+  @ApiProperty() notReturnedQuantity!: number;
+  @ApiProperty({ format: 'uuid' }) cancelledBy!: string;
+  @ApiProperty({ format: 'date-time' }) effectiveAt!: string;
+  @ApiProperty() replayed!: boolean;
+}
+
 const SALE_LIFECYCLES = ['draft', 'confirmed', 'finalized', 'cancelled'] as const;
 const SALE_DEBT_FILTERS = ['all', 'pending', 'paid', 'overdue'] as const;
 
@@ -357,6 +405,7 @@ export class SaleDetailResponse extends SaleActivityItemResponse {
   @ApiProperty({ type: [SaleDetailPaymentResponse] }) payments!: SaleDetailPaymentResponse[];
   @ApiProperty({ type: [Object] }) totalAdjustments!: Record<string, unknown>[];
   @ApiProperty({ type: [Object] }) returns!: Record<string, unknown>[];
+  @ApiProperty({ nullable: true, type: Object }) cancellation!: Record<string, unknown> | null;
   @ApiProperty({ nullable: true, type: Object }) closure!: Record<string, unknown> | null;
   @ApiProperty({ format: 'date-time', nullable: true, type: String })
   finalizedAt!: string | null;

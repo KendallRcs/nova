@@ -68,6 +68,26 @@ export interface SaleDetailRecord extends Omit<SaleActivityRecord, 'lines'> {
       readonly attributedCostCents: number | null;
     }[];
   }[];
+  readonly cancellation: {
+    readonly id: string;
+    readonly reason: string;
+    readonly refundAmountCents: number;
+    readonly refundMethod: PaymentMethod | null;
+    readonly cancelledBy: string;
+    readonly actorUsername: string;
+    readonly effectiveAt: Date;
+    readonly lines: readonly {
+      readonly id: string;
+      readonly saleLineId: string;
+      readonly releasedQuantity: number;
+      readonly returnedQuantity: number;
+      readonly notReturnedQuantity: number;
+      readonly returnLocationId: string | null;
+      readonly condition: 'available' | 'review' | null;
+      readonly releasedCostCents: number | null;
+      readonly attributedReturnedCostCents: number | null;
+    }[];
+  } | null;
   readonly payments: readonly {
     readonly id: string;
     readonly amountCents: number;
@@ -157,6 +177,19 @@ export class GetSaleDetail {
             attributedCostCents: input.canReadCost ? line.attributedCostCents : null,
           })),
         })),
+        cancellation:
+          record.cancellation === null
+            ? null
+            : {
+                ...record.cancellation,
+                lines: record.cancellation.lines.map((line) => ({
+                  ...line,
+                  releasedCostCents: input.canReadCost ? line.releasedCostCents : null,
+                  attributedReturnedCostCents: input.canReadCost
+                    ? line.attributedReturnedCostCents
+                    : null,
+                })),
+              },
       },
     };
   }

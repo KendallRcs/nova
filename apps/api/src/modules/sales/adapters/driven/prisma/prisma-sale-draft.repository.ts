@@ -18,6 +18,7 @@ export class PrismaSaleDraftRepository implements SaleDraftRepository {
         totalAdjustments: true,
         closure: true,
         returns: { include: { lines: true, refund: true } },
+        cancellation: { include: { lines: true, refund: true } },
       },
     });
     return row === null ? null : toSaleDomain(row);
@@ -81,6 +82,7 @@ type SaleRow = Prisma.SaleGetPayload<{
     totalAdjustments: true;
     closure: true;
     returns: { include: { lines: true; refund: true } };
+    cancellation: { include: { lines: true; refund: true } };
   };
 }>;
 export function toSaleDomain(row: SaleRow): Sale {
@@ -192,6 +194,36 @@ export function toSaleDomain(row: SaleRow): Sale {
         attributedCostCents: safeSaleNumber(line.attributedCostCents),
       })),
     })),
+    cancellation:
+      row.cancellation === null
+        ? null
+        : {
+            id: row.cancellation.id,
+            reason: row.cancellation.reason,
+            refundAmountCents: safeSaleNumber(row.cancellation.refundAmountCents),
+            refundMethod:
+              row.cancellation.refund === null
+                ? null
+                : fromPrismaPaymentMethod(row.cancellation.refund.method),
+            cancelledBy: row.cancellation.cancelledBy,
+            effectiveAt: row.cancellation.effectiveAt,
+            lines: row.cancellation.lines.map((line) => ({
+              id: line.id,
+              saleLineId: line.saleLineId,
+              releasedQuantity: line.releasedQuantity,
+              returnedQuantity: line.returnedQuantity,
+              notReturnedQuantity: line.notReturnedQuantity,
+              returnLocationId: line.returnLocationId,
+              condition:
+                line.condition === null
+                  ? null
+                  : line.condition === 'AVAILABLE'
+                    ? 'available'
+                    : 'review',
+              releasedCostCents: safeSaleNumber(line.releasedCostCents),
+              attributedReturnedCostCents: safeSaleNumber(line.attributedReturnedCostCents),
+            })),
+          },
     version: row.version,
     confirmedAt: row.confirmedAt,
     finalizedAt: row.finalizedAt,

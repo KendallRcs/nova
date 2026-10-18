@@ -154,9 +154,9 @@ que exista un repositorio por modelo.
 | `ReturnLine` | `return_lines` | devolución, línea, decisión física y costo |
 | `ReturnRefund` | `return_refunds` | `returnId` único: relación 0:1 |
 | `SaleClosure` | `sale_closures` | `saleId` único: relación 0:1 |
-| `SaleCancellation` | `sale_cancellations` | `saleId` único: relación 0:1 |
-| `SaleCancellationLine` | `sale_cancellation_lines` | cancelación y línea afectada |
-| `SaleCancellationRefund` | `sale_cancellation_refunds` | `cancellationId` único |
+| `SaleCancellation` | `sale_cancellations` | `saleId` y `operationId` únicos; huella idempotente, reembolso manual y versión resultante |
+| `SaleCancellationLine` | `sale_cancellation_lines` | única por cancelación/línea; tratamiento físico y costo histórico |
+| `SaleCancellationRefund` | `sale_cancellation_refunds` | `cancellationId` único; existe solo para un reembolso positivo |
 
 ### Inventario y costo
 

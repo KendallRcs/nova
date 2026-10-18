@@ -163,9 +163,10 @@ la fecha de atraso se calcula en `America/Lima` sin persistir una transición.
 
 `GET /sales/{saleId}` devuelve la vista operativa de una venta: cabecera, cliente
 canónico e histórico, creador, líneas e instantáneas, cumplimiento, pagos con sus
-correcciones, ajustes del total, devoluciones y cierre. El empleado solo consulta
-ventas propias; el administrador puede consultar cualquiera. El costo atribuido de
-líneas y devoluciones se entrega únicamente con capacidad financiera.
+correcciones, ajustes del total, devoluciones, cierre y cancelación. El empleado
+solo consulta ventas propias; el administrador puede consultar cualquiera. El
+costo atribuido de líneas, devoluciones y cancelaciones se entrega únicamente con
+capacidad financiera.
 
 `POST /sales/{saleId}/total-adjustments` requiere permiso administrativo,
 `Idempotency-Key`, `expectedVersion`, el nuevo total y una razón. No modifica el
@@ -188,6 +189,15 @@ exceso positivo del pago neto sobre el nuevo total; el método se exige solo si 
 reembolso. Cada línea declara de forma independiente si el producto retorna y, en
 ese caso, su ubicación y condición `available` o `review`. Devolución, eventual
 salida de caja, inventario, costo histórico y versión se confirman atómicamente.
+
+`POST /sales/{saleId}/cancellations` requiere `sales:cancel`,
+`Idempotency-Key`, `expectedVersion`, razón, un importe de reembolso manual y el
+tratamiento de cada línea. Las reservas activas se liberan automáticamente; para
+cada unidad ya entregada se declara si retorna o permanece con el cliente. Un
+retorno exige ubicación y condición `available` o `review`. El reembolso puede ser
+cero y nunca supera el pago neto; el método solo se admite cuando existe una salida
+real de dinero. Cancelación, caja, inventario, costo histórico y versión se
+confirman en una única transacción.
 
 Esto no confirma aún el inventario completo de endpoints. Cada módulo definirá sus
 operaciones a partir de capacidades e historias, no mediante la exposición

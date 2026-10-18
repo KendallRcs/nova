@@ -312,7 +312,94 @@ describe('Sale draft', () => {
       returnableQuantity: 0,
     });
   });
+
+  it('cancels with the exact manually declared refund and explicit product treatment', () => {
+    const sale = returnableSale(8_000);
+
+    expect(
+      sale.cancel({
+        cancellation: cancellation(3_000, 'cash'),
+        canCancel: true,
+        now: new Date('2026-09-16T14:00:00.000Z'),
+      }),
+    ).toEqual({
+      ok: true,
+      refundAmountCents: 3_000,
+      paidCents: 5_000,
+      releasedQuantity: 0,
+      returnedQuantity: 1,
+      notReturnedQuantity: 1,
+    });
+    expect(sale.toPrimitives()).toMatchObject({
+      lifecycle: 'cancelled',
+      version: 3,
+      cancellation: {
+        refundAmountCents: 3_000,
+        refundMethod: 'cash',
+        lines: [
+          { saleLineId: 'line-a', attributedReturnedCostCents: 3_000 },
+          { saleLineId: 'line-b', attributedReturnedCostCents: 0 },
+        ],
+      },
+    });
+  });
+
+  it('allows cancellation without refund and rejects a refund above net paid', () => {
+    const excessive = returnableSale(5_000);
+    expect(
+      excessive.cancel({
+        cancellation: cancellation(5_001, 'yape'),
+        canCancel: true,
+        now: new Date('2026-09-16T14:00:00.000Z'),
+      }),
+    ).toEqual({ ok: false, reason: 'refund-exceeds-paid', paidCents: 5_000 });
+
+    const withoutRefund = returnableSale(5_000);
+    expect(
+      withoutRefund.cancel({
+        cancellation: cancellation(0, null),
+        canCancel: true,
+        now: new Date('2026-09-16T14:00:00.000Z'),
+      }),
+    ).toMatchObject({ ok: true, refundAmountCents: 0, paidCents: 5_000 });
+  });
 });
+
+function cancellation(
+  refundAmountCents: number,
+  refundMethod: 'cash' | 'yape' | 'plin' | 'pos' | null,
+) {
+  return {
+    id: 'cancellation-1',
+    reason: 'Acuerdo de cancelación con el cliente',
+    refundAmountCents,
+    refundMethod,
+    cancelledBy: 'admin-1',
+    effectiveAt: new Date('2026-09-16T14:00:00.000Z'),
+    lines: [
+      {
+        id: 'cancellation-line-a',
+        saleLineId: 'line-a',
+        releasedQuantity: 0,
+        returnedQuantity: 1,
+        notReturnedQuantity: 0,
+        returnLocationId: 'location-1',
+        condition: 'available' as const,
+        releasedCostCents: 0,
+      },
+      {
+        id: 'cancellation-line-b',
+        saleLineId: 'line-b',
+        releasedQuantity: 0,
+        returnedQuantity: 0,
+        notReturnedQuantity: 1,
+        returnLocationId: null,
+        condition: null,
+        releasedCostCents: 0,
+      },
+    ],
+  };
+}
 
 function returnableSale(initialPaymentCents: number): Sale {
   const created = Sale.createDraft({

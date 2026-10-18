@@ -71,6 +71,11 @@
 ### User Story PAY-004 — Cancelar una venta conservando sus efectos reales
 
 - **Estado:** Confirmada
+- **Trazabilidad de implementación:** backend completo mediante una operación
+  administrativa atómica, versionada e idempotente. La cancelación exige una
+  decisión explícita por cada línea, libera reservas, registra retornos físicos y
+  su costo histórico, conserva productos no retornados y crea una salida de caja
+  únicamente por el reembolso manual declarado.
 - **Como** administrador
 - **quiero** cancelar una venta indicando pagos, entregas y productos retornados
 - **para** revertir únicamente los efectos que realmente correspondan.
@@ -82,6 +87,31 @@
 - **Y dado:** que indiqué el tratamiento de los pagos recibidos
 - **Cuando:** confirmo la cancelación con una razón
 - **Entonces:** la venta queda cancelada, las unidades no entregadas se liberan y los movimientos monetarios permanecen trazables.
+
+- **Escenario:** Reembolso manual al cancelar
+- **Dado:** que la venta posee un pago neto vigente
+- **Cuando:** indico cuánto dinero se devolvió y confirmo la cancelación
+- **Entonces:** el sistema registra exactamente ese importe y su método, sin superar el pago neto ni calcular automáticamente un reembolso total.
+
+- **Escenario:** Cancelación sin devolución de dinero
+- **Dado:** que el acuerdo no incluyó devolver dinero al cliente
+- **Cuando:** confirmo la cancelación con reembolso igual a cero
+- **Entonces:** no se crea salida de caja y los cobros anteriores permanecen visibles.
+
+- **Escenario:** Producto entregado que retorna al negocio
+- **Dado:** que una unidad ya fue entregada al cliente
+- **Cuando:** indico que retorna, su ubicación y si queda disponible o en revisión
+- **Entonces:** el inventario y su costo histórico ingresan en la condición elegida.
+
+- **Escenario:** Producto entregado que no retorna
+- **Dado:** que una unidad ya fue entregada al cliente
+- **Cuando:** indico que no retorna al cancelar
+- **Entonces:** la cancelación conserva esa decisión sin incrementar inventario ni costo.
+
+- **Escenario:** Tratamiento incompleto de las líneas
+- **Dado:** que la venta contiene unidades entregadas o reservadas
+- **Cuando:** intento cancelar sin declarar el tratamiento de cada línea
+- **Entonces:** el sistema rechaza toda la operación sin efectos parciales.
 
 ### User Story PAY-005 — Corregir un pago sin borrar su historia
 

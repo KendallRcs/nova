@@ -51,6 +51,7 @@ export class PrismaSaleActivitySource implements SaleActivitySource, SaleDetailS
           select: { amountCents: true, corrections: { select: { amountCents: true } } },
         },
         returns: { select: { refundAmountCents: true } },
+        cancellation: { select: { refundAmountCents: true } },
         closure: { select: { forgivenAmountCents: true } },
         lines: { select: { quantity: true, deliveryQuantity: true } },
       },
@@ -93,6 +94,9 @@ export class PrismaSaleActivitySource implements SaleActivitySource, SaleDetailS
           include: { lines: true, refund: true },
           orderBy: [{ effectiveAt: 'asc' }, { id: 'asc' }],
         },
+        cancellation: {
+          include: { lines: true, refund: true, actor: { select: { usernameNormalized: true } } },
+        },
         closure: { include: { actor: { select: { usernameNormalized: true } } } },
       },
     });
@@ -129,6 +133,13 @@ type DetailRow = Prisma.SaleGetPayload<{
     };
     totalAdjustments: { include: { actor: { select: { usernameNormalized: true } } } };
     returns: { include: { lines: true; refund: true } };
+    cancellation: {
+      include: {
+        lines: true;
+        refund: true;
+        actor: { select: { usernameNormalized: true } };
+      };
+    };
     closure: { include: { actor: { select: { usernameNormalized: true } } } };
   };
 }>;
@@ -158,9 +169,11 @@ function toDetailRecord(row: DetailRow): SaleDetailRecord {
         safeSaleNumber(amountCents) -
         corrections.reduce((sum, correction) => sum + safeSaleNumber(correction.amountCents), 0),
     ),
-    refundAmountsCents: row.returns.map((saleReturn) =>
-      safeSaleNumber(saleReturn.refundAmountCents),
-    ),
+    refundAmountsCents: row.returns
+      .map((saleReturn) => safeSaleNumber(saleReturn.refundAmountCents))
+      .concat(
+        row.cancellation === null ? [] : [safeSaleNumber(row.cancellation.refundAmountCents)],
+      ),
     forgivenAmountCents: row.closure === null ? 0 : safeSaleNumber(row.closure.forgivenAmountCents),
     lines: row.lines.map((line) => ({
       id: line.id,
@@ -263,6 +276,37 @@ function toDetailRecord(row: DetailRow): SaleDetailRecord {
         attributedCostCents: safeSaleNumber(line.attributedCostCents),
       })),
     })),
+    cancellation:
+      row.cancellation === null
+        ? null
+        : {
+            id: row.cancellation.id,
+            reason: row.cancellation.reason,
+            refundAmountCents: safeSaleNumber(row.cancellation.refundAmountCents),
+            refundMethod:
+              row.cancellation.refund === null
+                ? null
+                : fromPrismaPaymentMethod(row.cancellation.refund.method),
+            cancelledBy: row.cancellation.cancelledBy,
+            actorUsername: row.cancellation.actor.usernameNormalized,
+            effectiveAt: row.cancellation.effectiveAt,
+            lines: row.cancellation.lines.map((line) => ({
+              id: line.id,
+              saleLineId: line.saleLineId,
+              releasedQuantity: line.releasedQuantity,
+              returnedQuantity: line.returnedQuantity,
+              notReturnedQuantity: line.notReturnedQuantity,
+              returnLocationId: line.returnLocationId,
+              condition:
+                line.condition === null
+                  ? null
+                  : line.condition === 'AVAILABLE'
+                    ? 'available'
+                    : 'review',
+              releasedCostCents: safeSaleNumber(line.releasedCostCents),
+              attributedReturnedCostCents: safeSaleNumber(line.attributedReturnedCostCents),
+            })),
+          },
     closure:
       row.closure === null
         ? null
@@ -304,6 +348,7 @@ type ActivityRow = Prisma.SaleGetPayload<{
       select: { amountCents: true; corrections: { select: { amountCents: true } } };
     };
     returns: { select: { refundAmountCents: true } };
+    cancellation: { select: { refundAmountCents: true } };
     closure: { select: { forgivenAmountCents: true } };
     lines: { select: { quantity: true; deliveryQuantity: true } };
   };
@@ -333,9 +378,11 @@ function toRecord(row: ActivityRow): SaleActivityRecord {
         safeSaleNumber(amountCents) -
         corrections.reduce((sum, correction) => sum + safeSaleNumber(correction.amountCents), 0),
     ),
-    refundAmountsCents: row.returns.map((saleReturn) =>
-      safeSaleNumber(saleReturn.refundAmountCents),
-    ),
+    refundAmountsCents: row.returns
+      .map((saleReturn) => safeSaleNumber(saleReturn.refundAmountCents))
+      .concat(
+        row.cancellation === null ? [] : [safeSaleNumber(row.cancellation.refundAmountCents)],
+      ),
     forgivenAmountCents: row.closure === null ? 0 : safeSaleNumber(row.closure.forgivenAmountCents),
     lines: row.lines.map(({ quantity, deliveryQuantity }) => ({
       quantity,

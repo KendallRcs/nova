@@ -43,6 +43,7 @@ export interface SaleProperties {
   totalAdjustments: readonly SaleTotalAdjustmentProperties[];
   closure: SaleClosureProperties | null;
   returns: readonly SaleReturnProperties[];
+  cancellation: SaleCancellationProperties | null;
   version: number;
   confirmedAt: Date | null;
   finalizedAt: Date | null;
@@ -99,6 +100,28 @@ export interface SaleReturnProperties {
   approvedBy: string;
   effectiveAt: Date;
   lines: readonly SaleReturnLineProperties[];
+}
+
+export interface SaleCancellationLineProperties {
+  id: string;
+  saleLineId: string;
+  releasedQuantity: number;
+  returnedQuantity: number;
+  notReturnedQuantity: number;
+  returnLocationId: string | null;
+  condition: 'available' | 'review' | null;
+  releasedCostCents: number;
+  attributedReturnedCostCents: number;
+}
+
+export interface SaleCancellationProperties {
+  id: string;
+  reason: string;
+  refundAmountCents: number;
+  refundMethod: PaymentMethod | null;
+  cancelledBy: string;
+  effectiveAt: Date;
+  lines: readonly SaleCancellationLineProperties[];
 }
 
 export type ComposeSaleDraftResult =
@@ -226,6 +249,35 @@ export type ApproveSaleReturnResult =
       readonly returnableQuantity?: number;
     };
 
+export type CancelSaleResult =
+  | {
+      readonly ok: true;
+      readonly refundAmountCents: number;
+      readonly paidCents: number;
+      readonly releasedQuantity: number;
+      readonly returnedQuantity: number;
+      readonly notReturnedQuantity: number;
+    }
+  | {
+      readonly ok: false;
+      readonly reason:
+        | 'sale-not-cancellable'
+        | 'not-authorized'
+        | 'reason-required'
+        | 'incomplete-line-treatment'
+        | 'duplicate-line'
+        | 'sale-line-not-found'
+        | 'invalid-quantity'
+        | 'invalid-return-treatment'
+        | 'invalid-release-cost'
+        | 'cost-unavailable'
+        | 'invalid-refund'
+        | 'refund-exceeds-paid'
+        | 'invalid-refund-treatment';
+      readonly saleLineId?: string;
+      readonly paidCents?: number;
+    };
+
 export class Sale {
   private constructor(private properties: SaleProperties) {}
 
@@ -250,6 +302,7 @@ export class Sale {
       totalAdjustments: [],
       closure: null,
       returns: [],
+      cancellation: null,
       version: 1,
       confirmedAt: null,
       finalizedAt: null,
@@ -270,6 +323,13 @@ export class Sale {
         ...saleReturn,
         lines: saleReturn.lines.map((line) => ({ ...line })),
       })),
+      cancellation:
+        properties.cancellation === null
+          ? null
+          : {
+              ...properties.cancellation,
+              lines: properties.cancellation.lines.map((line) => ({ ...line })),
+            },
     });
   }
 
@@ -654,6 +714,144 @@ export class Sale {
     };
   }
 
+  cancel(input: {
+    cancellation: {
+      id: string;
+      reason: string;
+      refundAmountCents: number;
+      refundMethod: PaymentMethod | null;
+      cancelledBy: string;
+      effectiveAt: Date;
+      lines: readonly {
+        id: string;
+        saleLineId: string;
+        releasedQuantity: number;
+        returnedQuantity: number;
+        notReturnedQuantity: number;
+        returnLocationId: string | null;
+        condition: 'available' | 'review' | null;
+        releasedCostCents: number;
+      }[];
+    };
+    canCancel: boolean;
+    now: Date;
+  }): CancelSaleResult {
+    if (this.properties.lifecycle !== 'confirmed') {
+      return { ok: false, reason: 'sale-not-cancellable' };
+    }
+    if (!input.canCancel) return { ok: false, reason: 'not-authorized' };
+    const reason = normalizeOptional(input.cancellation.reason);
+    if (reason === null) return { ok: false, reason: 'reason-required' };
+    if (input.cancellation.lines.length !== this.properties.lines.length) {
+      return { ok: false, reason: 'incomplete-line-treatment' };
+    }
+    const seen = new Set<string>();
+    const lines: SaleCancellationLineProperties[] = [];
+    for (const requested of input.cancellation.lines) {
+      if (seen.has(requested.saleLineId)) {
+        return { ok: false, reason: 'duplicate-line', saleLineId: requested.saleLineId };
+      }
+      seen.add(requested.saleLineId);
+      const saleLine = this.properties.lines.find(({ id }) => id === requested.saleLineId);
+      if (saleLine === undefined) {
+        return { ok: false, reason: 'sale-line-not-found', saleLineId: requested.saleLineId };
+      }
+      const quantities = [
+        requested.releasedQuantity,
+        requested.returnedQuantity,
+        requested.notReturnedQuantity,
+      ];
+      if (quantities.some((quantity) => !Number.isSafeInteger(quantity) || quantity < 0)) {
+        return { ok: false, reason: 'invalid-quantity', saleLineId: requested.saleLineId };
+      }
+      if (requested.releasedQuantity > saleLine.reservationQuantity) {
+        return { ok: false, reason: 'invalid-quantity', saleLineId: requested.saleLineId };
+      }
+      const previousLines = this.properties.returns.flatMap((saleReturn) => saleReturn.lines);
+      const previouslyReturnedQuantity = previousLines
+        .filter(({ saleLineId }) => saleLineId === requested.saleLineId)
+        .reduce((sum, line) => sum + line.quantity, 0);
+      const unresolvedDelivered = saleLine.deliveryQuantity - previouslyReturnedQuantity;
+      if (requested.returnedQuantity + requested.notReturnedQuantity !== unresolvedDelivered) {
+        return { ok: false, reason: 'invalid-quantity', saleLineId: requested.saleLineId };
+      }
+      if (
+        (requested.returnedQuantity > 0 &&
+          (requested.returnLocationId === null || requested.condition === null)) ||
+        (requested.returnedQuantity === 0 &&
+          (requested.returnLocationId !== null || requested.condition !== null))
+      ) {
+        return { ok: false, reason: 'invalid-return-treatment', saleLineId: requested.saleLineId };
+      }
+      if (
+        !Number.isSafeInteger(requested.releasedCostCents) ||
+        requested.releasedCostCents < 0 ||
+        (requested.releasedQuantity === 0 && requested.releasedCostCents !== 0)
+      ) {
+        return { ok: false, reason: 'invalid-release-cost', saleLineId: requested.saleLineId };
+      }
+      if (saleLine.allocatedCostCents === null) {
+        return { ok: false, reason: 'cost-unavailable', saleLineId: requested.saleLineId };
+      }
+      const previouslyReturnedCost = previousLines
+        .filter(({ saleLineId }) => saleLineId === requested.saleLineId)
+        .reduce((sum, line) => sum + line.attributedCostCents, 0);
+      const cumulativeReturnedCost = proportionalCents(
+        saleLine.allocatedCostCents,
+        previouslyReturnedQuantity + requested.returnedQuantity,
+        saleLine.deliveryQuantity + saleLine.reservationQuantity,
+      );
+      lines.push({
+        ...requested,
+        attributedReturnedCostCents: cumulativeReturnedCost - previouslyReturnedCost,
+      });
+    }
+    if (seen.size !== this.properties.lines.length) {
+      return { ok: false, reason: 'incomplete-line-treatment' };
+    }
+    const paidBeforeCents = this.netPaidCents();
+    if (
+      !Number.isSafeInteger(input.cancellation.refundAmountCents) ||
+      input.cancellation.refundAmountCents < 0
+    ) {
+      return { ok: false, reason: 'invalid-refund' };
+    }
+    if (input.cancellation.refundAmountCents > paidBeforeCents) {
+      return { ok: false, reason: 'refund-exceeds-paid', paidCents: paidBeforeCents };
+    }
+    if (
+      (input.cancellation.refundAmountCents > 0 && input.cancellation.refundMethod === null) ||
+      (input.cancellation.refundAmountCents === 0 && input.cancellation.refundMethod !== null)
+    ) {
+      return { ok: false, reason: 'invalid-refund-treatment' };
+    }
+    const cancellation: SaleCancellationProperties = {
+      id: input.cancellation.id,
+      reason,
+      refundAmountCents: input.cancellation.refundAmountCents,
+      refundMethod: input.cancellation.refundMethod,
+      cancelledBy: input.cancellation.cancelledBy,
+      effectiveAt: input.cancellation.effectiveAt,
+      lines,
+    };
+    this.properties = {
+      ...this.properties,
+      lifecycle: 'cancelled',
+      cancellation,
+      version: this.properties.version + 1,
+      cancelledAt: input.cancellation.effectiveAt,
+      updatedAt: input.now,
+    };
+    return {
+      ok: true,
+      refundAmountCents: cancellation.refundAmountCents,
+      paidCents: this.netPaidCents(),
+      releasedQuantity: lines.reduce((sum, line) => sum + line.releasedQuantity, 0),
+      returnedQuantity: lines.reduce((sum, line) => sum + line.returnedQuantity, 0),
+      notReturnedQuantity: lines.reduce((sum, line) => sum + line.notReturnedQuantity, 0),
+    };
+  }
+
   balanceCents(): number {
     return Math.max(
       0,
@@ -670,7 +868,8 @@ export class Sale {
     );
     return (
       payments -
-      this.properties.returns.reduce((sum, saleReturn) => sum + saleReturn.refundAmountCents, 0)
+      this.properties.returns.reduce((sum, saleReturn) => sum + saleReturn.refundAmountCents, 0) -
+      (this.properties.cancellation?.refundAmountCents ?? 0)
     );
   }
 
@@ -703,6 +902,13 @@ export class Sale {
         ...saleReturn,
         lines: saleReturn.lines.map((line) => ({ ...line })),
       })),
+      cancellation:
+        this.properties.cancellation === null
+          ? null
+          : {
+              ...this.properties.cancellation,
+              lines: this.properties.cancellation.lines.map((line) => ({ ...line })),
+            },
     };
   }
 }

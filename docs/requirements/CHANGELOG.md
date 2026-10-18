@@ -30,3 +30,5 @@
 | 2026-10-18 | SAL-009, PAY-003 y PAY-005 completaron su backend: ajuste de total, cierre completo o con saldo condonado y corrección compensatoria de cobros se ejecutan con auditoría, versión, idempotencia y caja atómica. |
 | 2026-10-18 | RET-001 y RET-002 aclararon el cálculo monetario: devolver unidades reduce el total comercial y solo genera un reembolso automático por el exceso entre pago neto y nuevo total; no se prorratean pagos por producto. |
 | 2026-10-18 | RET-001, RET-002 y RET-003 completaron su backend: devolución parcial o total, reembolso exacto por exceso, retorno físico opcional, costo histórico, caja, permisos, versión e idempotencia se resuelven atómicamente. |
+| 2026-10-18 | PAY-004 confirmó que el reembolso al cancelar una venta es un importe manual entre cero y el pago neto vigente, no un reembolso total automático. |
+| 2026-10-18 | PAY-004 completó su backend: la cancelación administrativa trata cada línea, libera reservas, registra retornos o productos no retornados, conserva costo histórico y aplica únicamente el reembolso manual declarado con caja, versión e idempotencia atómicas. |

@@ -101,6 +101,9 @@ claves primarias y restricciones únicas confirmadas no se duplican.
 | Entregas | `delivery_lines(sale_line_id)` | cantidades entregadas por línea |
 | Devoluciones | `returns(sale_id, effective_at, id)` | devoluciones de la venta |
 | Devoluciones | `return_lines(sale_line_id)` | cantidad e importe ya devueltos |
+| Cancelaciones | `sale_cancellations(sale_id)` único | impedir más de una cancelación por venta |
+| Cancelaciones | `sale_cancellations(operation_id)` único | reintento idempotente de la operación |
+| Cancelaciones | `sale_cancellation_lines(cancellation_id, sale_line_id)` único | un tratamiento por línea cancelada |
 | Inventario | `inventory_positions(product_id, location_id)` único | posición bloqueable y consulta por producto |
 | Inventario | `inventory_positions(location_id, product_id)` | listado de stock de una ubicación |
 | Inventario | `inventory_reservations(sale_line_id, location_id)` parcial activa | localizar y resolver reservas vigentes |
@@ -158,8 +161,9 @@ datos sensibles para ocultarlos solo con CSS.
 **Entrada:** sale_id y actor autenticado.
 
 **Salida:** cabecera, cliente canónico e identidad histórica, creador, líneas e
-instantáneas, pagos/correcciones, entregas, reservas, devoluciones, total original
-y vigente, saldo, situación de pago, situación de entrega y etiquetas.
+instantáneas, pagos/correcciones, entregas, reservas, devoluciones, cancelación,
+total original y vigente, saldo, situación de pago, situación de entrega y
+etiquetas.
 
 El saldo se deriva de hechos vigentes. `atrasada` significa: saldo mayor que cero,
 fecha de vencimiento anterior a la fecha actual de Lima y venta no cerrada ni
@@ -167,10 +171,11 @@ cancelada. Esta etiqueta no se persiste.
 
 El corte backend implementado incluye cabecera, cliente, creador, líneas,
 instantáneas, reservas activas, pagos y correcciones, ajustes del total,
-devoluciones y cierre. Los reembolsos reducen el pago neto mostrado; el costo
-atribuido a una devolución se protege con la misma capacidad financiera que el
-costo de las líneas. Las entregas posteriores se incorporarán al mismo modelo de
-lectura cuando su capacidad de escritura esté implementada.
+devoluciones, cierre y cancelación. Los reembolsos reducen el pago neto mostrado;
+el costo atribuido a una devolución o cancelación se protege con la misma
+capacidad financiera que el costo de las líneas. Las entregas posteriores se
+incorporarán al mismo modelo de lectura cuando su capacidad de escritura esté
+implementada.
 
 ### Ventas y actividad por cuenta
 

@@ -162,6 +162,7 @@ erDiagram
     SALE ||--o| SALE_CANCELLATION : cancels
     SALE_CANCELLATION ||--|{ SALE_CANCELLATION_LINE : resolves
     SALE_LINE ||--o{ SALE_CANCELLATION_LINE : affects
+    LOCATION o|--o{ SALE_CANCELLATION_LINE : returns_to
     SALE_CANCELLATION ||--o| SALE_CANCELLATION_REFUND : refunds
 
     SALE {
@@ -260,8 +261,13 @@ erDiagram
     SALE_CANCELLATION {
         uuid id PK
         uuid sale_id FK,UK
+        uuid operation_id UK
         string reason
+        bigint refund_amount_cents
+        bigint resulting_paid_cents
         uuid cancelled_by FK
+        datetime effective_at
+        int resulting_sale_version
     }
     SALE_CANCELLATION_LINE {
         uuid id PK
@@ -270,12 +276,18 @@ erDiagram
         int released_quantity
         int returned_quantity
         int not_returned_quantity
+        uuid return_location_id FK "optional"
+        string condition "optional"
+        bigint released_cost_cents
+        bigint attributed_returned_cost_cents
     }
     SALE_CANCELLATION_REFUND {
         uuid id PK
         uuid cancellation_id FK,UK
         bigint amount_cents
         string method
+        uuid registered_by FK
+        datetime effective_at
     }
     USER_ACCOUNT {
         uuid id PK

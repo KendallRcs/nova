@@ -19,6 +19,7 @@ import { PrismaSalePaymentBook } from '../../../src/modules/sales/adapters/drive
 import { PrismaSaleActivitySource } from '../../../src/modules/sales/adapters/driven/prisma/prisma-sale-activity-source';
 import { PrismaSaleFinancialBook } from '../../../src/modules/sales/adapters/driven/prisma/prisma-sale-financial-book';
 import { PrismaSaleReturnBook } from '../../../src/modules/sales/adapters/driven/prisma/prisma-sale-return-book';
+import { PrismaSaleCancellationBook } from '../../../src/modules/sales/adapters/driven/prisma/prisma-sale-cancellation-book';
 import { ListSales } from '../../../src/modules/sales/hexagon/application/sale-activity';
 import { Sale } from '../../../src/modules/sales/hexagon/domain/sale';
 import { PrismaInventoryTransferBook } from '../../../src/modules/inventory/adapters/driven/prisma/prisma-inventory-transfer-book';
@@ -50,6 +51,7 @@ describe('PrismaCategoryRepository', () => {
   let saleActivity: PrismaSaleActivitySource;
   let saleFinancials: PrismaSaleFinancialBook;
   let saleReturns: PrismaSaleReturnBook;
+  let saleCancellations: PrismaSaleCancellationBook;
 
   beforeAll(async () => {
     container = await new PostgreSqlContainer('postgres:18.6').start();
@@ -77,6 +79,7 @@ describe('PrismaCategoryRepository', () => {
     saleActivity = new PrismaSaleActivitySource(prisma);
     saleFinancials = new PrismaSaleFinancialBook(prisma);
     saleReturns = new PrismaSaleReturnBook(prisma);
+    saleCancellations = new PrismaSaleCancellationBook(prisma);
   }, 120_000);
 
   beforeEach(async () => {
@@ -87,7 +90,10 @@ describe('PrismaCategoryRepository', () => {
     await prisma?.inventoryReservation.deleteMany();
     await prisma?.saleCostAllocation.deleteMany();
     await prisma?.cashMovement.deleteMany();
+    await prisma?.saleCancellationRefund.deleteMany();
     await prisma?.returnRefund.deleteMany();
+    await prisma?.saleCancellationLine.deleteMany();
+    await prisma?.saleCancellation.deleteMany();
     await prisma?.returnLine.deleteMany();
     await prisma?.saleReturn.deleteMany();
     await prisma?.paymentCorrection.deleteMany();
@@ -609,6 +615,171 @@ describe('PrismaCategoryRepository', () => {
           ],
         },
       ],
+    });
+  });
+
+  it('cancels a sale atomically with a manual refund and explicit stock treatment', async () => {
+    if (prisma === undefined) throw new Error('Prisma was not initialized.');
+    const category = createCategory('Cancelaciones');
+    await repository.save(category);
+    const product = createProduct(category.toPrimitives().id, undefined, 'CANCEL-001');
+    await products.save(product);
+    const location = await prisma.location.findFirstOrThrow({ where: { status: 'ACTIVE' } });
+    const actorId = await createActor(prisma);
+    const customer = Customer.register({
+      id: '0199ef04-1b00-7000-8000-0000000000a0',
+      name: 'Cliente cancelación',
+      phone: '987654319',
+      now: new Date('2026-09-16T10:00:00.000Z'),
+    });
+    await customers.save(customer);
+    await expect(
+      inventoryAdministration.execute({
+        kind: 'count-adjustment',
+        movementId: '0199ef04-1b00-7000-8000-0000000000a1',
+        costMovementId: '0199ef04-1b00-7000-8000-0000000000a2',
+        operationId: '0199ef04-1b00-7000-8000-0000000000a3',
+        productId: product.toPrimitives().id,
+        locationId: location.id,
+        observedPhysicalQuantity: 3,
+        expectedPositionVersion: 0,
+        declaredUnitCostCents: 500,
+        reason: 'Inventario para probar cancelación',
+        actorId,
+        effectiveAt: new Date('2026-09-16T10:01:00.000Z'),
+      }),
+    ).resolves.toMatchObject({ ok: true });
+    const draft = Sale.createDraft({
+      id: '0199ef04-1b00-7000-8000-0000000000a4',
+      createdBy: actorId,
+      customerId: customer.toPrimitives().id,
+      lines: [
+        {
+          id: '0199ef04-1b00-7000-8000-0000000000a5',
+          productId: product.toPrimitives().id,
+          locationId: location.id,
+          quantity: 2,
+          deliveryQuantity: 1,
+          reservationQuantity: 1,
+          agreedUnitPriceCents: 2_000,
+        },
+      ],
+      now: new Date('2026-09-16T10:02:00.000Z'),
+    });
+    if (!draft.ok) throw new Error(draft.reason);
+    await saleDrafts.create(draft.sale);
+    await expect(
+      saleConfirmations.confirm({
+        operationId: '0199ef04-1b00-7000-8000-0000000000a6',
+        saleId: draft.sale.toPrimitives().id,
+        expectedVersion: 1,
+        actorId,
+        canConfirmAny: false,
+        canApprovePriceException: false,
+        priceExceptions: [],
+        initialPayment: { amountCents: 1_500, method: 'yape' },
+        effectiveAt: new Date('2026-09-16T10:03:00.000Z'),
+      }),
+    ).resolves.toMatchObject({ ok: true, confirmation: { version: 2 } });
+
+    const command = {
+      operationId: '0199ef04-1b00-7000-8000-0000000000a7',
+      saleId: draft.sale.toPrimitives().id,
+      expectedVersion: 2,
+      actorId,
+      reason: 'El cliente desistió de la compra',
+      refundAmountCents: 500,
+      refundMethod: 'cash' as const,
+      lines: [
+        {
+          saleLineId: '0199ef04-1b00-7000-8000-0000000000a5',
+          returnedQuantity: 1,
+          notReturnedQuantity: 0,
+          returnLocationId: location.id,
+          condition: 'review' as const,
+        },
+      ],
+      effectiveAt: new Date('2026-09-16T10:04:00.000Z'),
+    };
+    await expect(saleCancellations.cancel(command)).resolves.toMatchObject({
+      ok: true,
+      replayed: false,
+      cancellation: {
+        saleVersion: 3,
+        refundAmountCents: 500,
+        refundMethod: 'cash',
+        paidCents: 1_000,
+        releasedQuantity: 1,
+        returnedQuantity: 1,
+        notReturnedQuantity: 0,
+      },
+    });
+    await expect(saleCancellations.cancel(command)).resolves.toMatchObject({
+      ok: true,
+      replayed: true,
+    });
+    await expect(
+      prisma.inventoryPosition.findUniqueOrThrow({
+        where: {
+          productId_locationId: { productId: product.toPrimitives().id, locationId: location.id },
+        },
+      }),
+    ).resolves.toMatchObject({ physicalQuantity: 3, reservedQuantity: 0, reviewQuantity: 1 });
+    await expect(
+      prisma.productCostPosition.findUniqueOrThrow({
+        where: { productId: product.toPrimitives().id },
+      }),
+    ).resolves.toMatchObject({
+      availableQuantity: 2,
+      availableValueCents: 1_000n,
+      reservedQuantity: 0,
+      reservedValueCents: 0n,
+      reviewQuantity: 1,
+      reviewValueCents: 500n,
+    });
+    await expect(
+      prisma.sale.findUniqueOrThrow({ where: { id: draft.sale.toPrimitives().id } }),
+    ).resolves.toMatchObject({ lifecycleStatus: 'CANCELLED', version: 3 });
+    const cancellation = await prisma.saleCancellation.findUniqueOrThrow({
+      where: { saleId: draft.sale.toPrimitives().id },
+      include: { lines: true, refund: true },
+    });
+    expect(cancellation).toMatchObject({
+      refundAmountCents: 500n,
+      resultingPaidCents: 1_000n,
+      lines: [
+        {
+          releasedQuantity: 1,
+          returnedQuantity: 1,
+          notReturnedQuantity: 0,
+          releasedCostCents: 500n,
+          attributedReturnedCostCents: 500n,
+        },
+      ],
+      refund: { amountCents: 500n, method: 'CASH' },
+    });
+    if (cancellation.refund === null) throw new Error('Cancellation refund was not persisted.');
+    await expect(
+      prisma.cashMovement.findUniqueOrThrow({
+        where: { saleCancellationRefundId: cancellation.refund.id },
+      }),
+    ).resolves.toMatchObject({ direction: 'OUTFLOW', amountCents: 500n, method: 'CASH' });
+    await expect(saleActivity.findById(draft.sale.toPrimitives().id)).resolves.toMatchObject({
+      lifecycle: 'cancelled',
+      paymentAmountsCents: [1_500],
+      refundAmountsCents: [500],
+      cancellation: {
+        refundAmountCents: 500,
+        refundMethod: 'cash',
+        lines: [
+          {
+            releasedQuantity: 1,
+            returnedQuantity: 1,
+            notReturnedQuantity: 0,
+            attributedReturnedCostCents: 500,
+          },
+        ],
+      },
     });
   });
 

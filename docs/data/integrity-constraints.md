@@ -193,6 +193,8 @@ cuando sea útil, se añade además una protección SQL diferible o un bloqueo.
 - Por línea cancelada: `released + returned + not_returned` no puede exceder la
   cantidad pendiente de resolver.
 - Todo reembolso de cancelación tiene importe positivo y método real.
+- El reembolso de cancelación es manual, no puede superar el pago neto vigente y
+  no existe registro ni salida de caja cuando el importe declarado es cero.
 - La cancelación, liberaciones, retornos, costo y movimientos monetarios se
   confirman atómicamente.
 
