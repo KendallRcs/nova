@@ -19,6 +19,10 @@ import { ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestj
 import { RequirePermission } from '../../../../identity-access/adapters/driving/http/require-permission';
 import type { AuthenticatedRequest } from '../../../../identity-access/adapters/driving/http/permission.guard';
 import type { CustomerMergeResult } from '../../../hexagon/application/customer-merge-book';
+import {
+  GetCustomerAccount,
+  type CustomerAccount,
+} from '../../../hexagon/application/customer-account';
 import { CustomerPhoneAlreadyExistsError } from '../../../hexagon/application/customer.repository';
 import { MergeCustomers } from '../../../hexagon/application/merge-customers';
 import {
@@ -35,6 +39,7 @@ import {
 } from '../../../hexagon/domain/customer';
 import {
   CustomerDataRequest,
+  CustomerAccountResponse,
   CustomerListResponse,
   CustomerMergeResponse,
   CustomerResponse,
@@ -51,6 +56,7 @@ export class CustomersController {
     private readonly searchCustomers: SearchCustomers,
     private readonly updateCustomer: UpdateCustomer,
     private readonly mergeCustomers: MergeCustomers,
+    private readonly getCustomerAccount: GetCustomerAccount,
   ) {}
 
   @Post()
@@ -71,6 +77,20 @@ export class CustomersController {
   @ApiOkResponse({ type: CustomerListResponse })
   async search(@Query() query: CustomerSearchQuery): Promise<CustomerListResponse> {
     return { items: (await this.searchCustomers.execute(query.query)).map(present) };
+  }
+
+  @Get(':customerId/account')
+  @RequirePermission('customers:read')
+  @ApiOperation({ operationId: 'getCustomerAccount' })
+  @ApiOkResponse({ type: CustomerAccountResponse })
+  async account(
+    @Param('customerId', new ParseUUIDPipe({ version: '7' })) customerId: string,
+  ): Promise<CustomerAccountResponse> {
+    const result = await this.getCustomerAccount.execute(customerId);
+    if (!result.ok) {
+      throw new NotFoundException({ status: 404, code: 'CUSTOMER_NOT_FOUND' });
+    }
+    return presentAccount(result.account);
   }
 
   @Put(':customerId')
@@ -153,6 +173,26 @@ function present(view: CustomerView): CustomerResponse {
     ...view,
     createdAt: view.createdAt.toISOString(),
     updatedAt: view.updatedAt.toISOString(),
+  };
+}
+function presentAccount(account: CustomerAccount): CustomerAccountResponse {
+  return {
+    customer: { ...account.customer, mergedCustomerIds: [...account.customer.mergedCustomerIds] },
+    summary: {
+      ...account.summary,
+      lastPaymentAt: account.summary.lastPaymentAt?.toISOString() ?? null,
+    },
+    sales: account.sales.map((sale) => ({
+      ...sale,
+      lastPaymentAt: sale.lastPaymentAt?.toISOString() ?? null,
+      payments: sale.payments.map((payment) => ({
+        ...payment,
+        effectiveAt: payment.effectiveAt.toISOString(),
+      })),
+      confirmedAt: sale.confirmedAt.toISOString(),
+      finalizedAt: sale.finalizedAt?.toISOString() ?? null,
+      cancelledAt: sale.cancelledAt?.toISOString() ?? null,
+    })),
   };
 }
 function throwCustomerInput(error: unknown): never {

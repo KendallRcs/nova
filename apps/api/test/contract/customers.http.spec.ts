@@ -14,6 +14,7 @@ import {
   UpdateCustomer,
 } from '../../src/modules/customers/hexagon/application/manage-customers';
 import { MergeCustomers } from '../../src/modules/customers/hexagon/application/merge-customers';
+import { GetCustomerAccount } from '../../src/modules/customers/hexagon/application/customer-account';
 
 const CUSTOMER_ID = '0199ef04-1b00-7000-8000-000000000060';
 const DUPLICATE_ID = '0199ef04-1b00-7000-8000-000000000061';
@@ -69,6 +70,69 @@ describe('Customers HTTP contract', () => {
                   },
                   actorId: ACTOR_ID,
                   effectiveAt: new Date('2026-09-15T19:00:00.000Z'),
+                },
+              }),
+          },
+        },
+        {
+          provide: GetCustomerAccount,
+          useValue: {
+            execute: () =>
+              Promise.resolve({
+                ok: true,
+                account: {
+                  customer: {
+                    id: CUSTOMER_ID,
+                    name: 'María Pérez',
+                    phone: '+51987654321',
+                    dni: null,
+                    address: null,
+                    mergedCustomerIds: [DUPLICATE_ID],
+                  },
+                  summary: {
+                    salesCount: 1,
+                    activeDebtSalesCount: 1,
+                    overdueSalesCount: 1,
+                    totalPaidCents: 1_000,
+                    totalOutstandingCents: 2_000,
+                    overdueAmountCents: 2_000,
+                    nearestDueDate: '2026-09-14',
+                    lastPaymentAt: new Date('2026-09-15T20:00:00.000Z'),
+                  },
+                  sales: [
+                    {
+                      id: '0199ef04-1b00-7000-8000-000000000065',
+                      createdBy: ACTOR_ID,
+                      creatorUsername: 'admin',
+                      lifecycle: 'confirmed',
+                      originalTotalCents: 3_000,
+                      currentTotalCents: 3_000,
+                      paidCents: 1_000,
+                      refundedCents: 0,
+                      forgivenAmountCents: 0,
+                      balanceCents: 2_000,
+                      paymentSituation: 'partial',
+                      deliverySituation: 'complete',
+                      overdue: true,
+                      dueDate: '2026-09-14',
+                      lastPaymentAt: new Date('2026-09-15T20:00:00.000Z'),
+                      payments: [
+                        {
+                          id: '0199ef04-1b00-7000-8000-000000000066',
+                          amountCents: 1_000,
+                          correctedCents: 0,
+                          netAmountCents: 1_000,
+                          method: 'yape',
+                          registeredBy: ACTOR_ID,
+                          registrarUsername: 'admin',
+                          effectiveAt: new Date('2026-09-15T20:00:00.000Z'),
+                        },
+                      ],
+                      confirmedAt: new Date('2026-09-15T19:00:00.000Z'),
+                      finalizedAt: null,
+                      cancelledAt: null,
+                    },
+                  ],
                 },
               }),
           },
@@ -165,5 +229,30 @@ describe('Customers HTTP contract', () => {
       duplicateVersion: 2,
       replayed: false,
     });
+  });
+
+  it('returns a consolidated customer account without exposing costs or margins', async () => {
+    const response = await request(httpServer)
+      .get(`/api/v1/customers/${CUSTOMER_ID}/account`)
+      .expect(200);
+    expect(response.body).toMatchObject({
+      customer: { id: CUSTOMER_ID, mergedCustomerIds: [DUPLICATE_ID] },
+      summary: {
+        salesCount: 1,
+        totalPaidCents: 1_000,
+        totalOutstandingCents: 2_000,
+        lastPaymentAt: '2026-09-15T20:00:00.000Z',
+      },
+      sales: [
+        {
+          paymentSituation: 'partial',
+          balanceCents: 2_000,
+          payments: [{ method: 'yape', netAmountCents: 1_000 }],
+        },
+      ],
+    });
+    const body = response.body as { sales: Record<string, unknown>[] };
+    expect(body.sales[0]).not.toHaveProperty('allocatedCostCents');
+    expect(body.sales[0]).not.toHaveProperty('marginCents');
   });
 });

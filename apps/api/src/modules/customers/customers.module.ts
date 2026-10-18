@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 
 import { PrismaCustomerRepository } from './adapters/driven/prisma/prisma-customer.repository';
 import { PrismaCustomerMergeBook } from './adapters/driven/prisma/prisma-customer-merge-book';
+import { PrismaCustomerAccountSource } from './adapters/driven/prisma/prisma-customer-account-source';
 import {
   SystemCustomerClock,
   UuidV7CustomerIdGenerator,
@@ -11,6 +12,10 @@ import type { CustomerRepository } from './hexagon/application/customer.reposito
 import type { CustomerMergeBook } from './hexagon/application/customer-merge-book';
 import { MergeCustomers } from './hexagon/application/merge-customers';
 import {
+  GetCustomerAccount,
+  type CustomerAccountSource,
+} from './hexagon/application/customer-account';
+import {
   RegisterCustomer,
   SearchCustomers,
   UpdateCustomer,
@@ -18,15 +23,18 @@ import {
 
 const CUSTOMER_REPOSITORY = Symbol('CUSTOMER_REPOSITORY');
 const CUSTOMER_MERGE_BOOK = Symbol('CUSTOMER_MERGE_BOOK');
+const CUSTOMER_ACCOUNT_SOURCE = Symbol('CUSTOMER_ACCOUNT_SOURCE');
 @Module({
   controllers: [CustomersController],
   providers: [
     PrismaCustomerRepository,
     PrismaCustomerMergeBook,
+    PrismaCustomerAccountSource,
     SystemCustomerClock,
     UuidV7CustomerIdGenerator,
     { provide: CUSTOMER_REPOSITORY, useExisting: PrismaCustomerRepository },
     { provide: CUSTOMER_MERGE_BOOK, useExisting: PrismaCustomerMergeBook },
+    { provide: CUSTOMER_ACCOUNT_SOURCE, useExisting: PrismaCustomerAccountSource },
     {
       provide: RegisterCustomer,
       inject: [CUSTOMER_REPOSITORY, UuidV7CustomerIdGenerator, SystemCustomerClock],
@@ -55,6 +63,12 @@ const CUSTOMER_MERGE_BOOK = Symbol('CUSTOMER_MERGE_BOOK');
         ids: UuidV7CustomerIdGenerator,
         clock: SystemCustomerClock,
       ) => new MergeCustomers(book, ids, clock),
+    },
+    {
+      provide: GetCustomerAccount,
+      inject: [CUSTOMER_ACCOUNT_SOURCE, SystemCustomerClock],
+      useFactory: (source: CustomerAccountSource, clock: SystemCustomerClock) =>
+        new GetCustomerAccount(source, clock),
     },
   ],
 })

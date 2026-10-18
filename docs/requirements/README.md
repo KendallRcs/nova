@@ -8,7 +8,7 @@
 - [Reglas de negocio transversales](business-rules.md)
 - [Historial del levantamiento](CHANGELOG.md)
 
-Las historias utilizan formato Mike Cohn y criterios Gherkin. El backlog contiene 55 historias y 86 escenarios confirmados.
+Las historias utilizan formato Mike Cohn y criterios Gherkin. El backlog contiene 55 historias y 104 escenarios confirmados.
 
 ## Cómo modificar el alcance
 

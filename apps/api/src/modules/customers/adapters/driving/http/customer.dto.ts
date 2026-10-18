@@ -65,3 +65,69 @@ export class CustomerMergeResponse {
   @ApiProperty({ format: 'date-time' }) mergedAt!: string;
   @ApiProperty() replayed!: boolean;
 }
+
+export class CustomerAccountPaymentResponse {
+  @ApiProperty({ format: 'uuid' }) id!: string;
+  @ApiProperty() amountCents!: number;
+  @ApiProperty() correctedCents!: number;
+  @ApiProperty() netAmountCents!: number;
+  @ApiProperty({ enum: ['cash', 'yape', 'plin', 'pos'] }) method!: 'cash' | 'yape' | 'plin' | 'pos';
+  @ApiProperty({ format: 'uuid' }) registeredBy!: string;
+  @ApiProperty() registrarUsername!: string;
+  @ApiProperty({ format: 'date-time' }) effectiveAt!: string;
+}
+
+export class CustomerAccountSaleResponse {
+  @ApiProperty({ format: 'uuid' }) id!: string;
+  @ApiProperty({ format: 'uuid' }) createdBy!: string;
+  @ApiProperty() creatorUsername!: string;
+  @ApiProperty({ enum: ['confirmed', 'finalized', 'cancelled'] }) lifecycle!:
+    'confirmed' | 'finalized' | 'cancelled';
+  @ApiProperty() originalTotalCents!: number;
+  @ApiProperty() currentTotalCents!: number;
+  @ApiProperty() paidCents!: number;
+  @ApiProperty() refundedCents!: number;
+  @ApiProperty() forgivenAmountCents!: number;
+  @ApiProperty() balanceCents!: number;
+  @ApiProperty({ enum: ['unpaid', 'partial', 'paid', 'closed-with-balance', 'not-applicable'] })
+  paymentSituation!: 'unpaid' | 'partial' | 'paid' | 'closed-with-balance' | 'not-applicable';
+  @ApiProperty({ enum: ['pending', 'partial', 'complete', 'not-applicable'] })
+  deliverySituation!: 'pending' | 'partial' | 'complete' | 'not-applicable';
+  @ApiProperty() overdue!: boolean;
+  @ApiProperty({ format: 'date', nullable: true, type: String }) dueDate!: string | null;
+  @ApiProperty({ format: 'date-time', nullable: true, type: String }) lastPaymentAt!: string | null;
+  @ApiProperty({ type: [CustomerAccountPaymentResponse] })
+  payments!: CustomerAccountPaymentResponse[];
+  @ApiProperty({ format: 'date-time' }) confirmedAt!: string;
+  @ApiProperty({ format: 'date-time', nullable: true, type: String }) finalizedAt!: string | null;
+  @ApiProperty({ format: 'date-time', nullable: true, type: String }) cancelledAt!: string | null;
+}
+
+export class CustomerAccountIdentityResponse {
+  @ApiProperty({ format: 'uuid' }) id!: string;
+  @ApiProperty() name!: string;
+  @ApiProperty() phone!: string;
+  @ApiProperty({ nullable: true, type: String }) dni!: string | null;
+  @ApiProperty({ nullable: true, type: String }) address!: string | null;
+  @ApiProperty({ type: [String], format: 'uuid' }) mergedCustomerIds!: string[];
+}
+
+export class CustomerAccountSummaryResponse {
+  @ApiProperty() salesCount!: number;
+  @ApiProperty() activeDebtSalesCount!: number;
+  @ApiProperty() overdueSalesCount!: number;
+  @ApiProperty() totalPaidCents!: number;
+  @ApiProperty() totalOutstandingCents!: number;
+  @ApiProperty() overdueAmountCents!: number;
+  @ApiProperty({ format: 'date', nullable: true, type: String }) nearestDueDate!: string | null;
+  @ApiProperty({ format: 'date-time', nullable: true, type: String }) lastPaymentAt!: string | null;
+}
+
+export class CustomerAccountResponse {
+  @ApiProperty({ type: CustomerAccountIdentityResponse })
+  customer!: CustomerAccountIdentityResponse;
+  @ApiProperty({ type: CustomerAccountSummaryResponse })
+  summary!: CustomerAccountSummaryResponse;
+  @ApiProperty({ type: [CustomerAccountSaleResponse] })
+  sales!: CustomerAccountSaleResponse[];
+}

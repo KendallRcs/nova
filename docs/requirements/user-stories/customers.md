@@ -43,8 +43,10 @@
 ### User Story CUS-003 — Consultar historial y deuda consolidada
 
 - **Estado:** Confirmada
-- **Trazabilidad de implementación:** pendiente del modelo de ventas y pagos; la
-  búsqueda de identidad del cliente ya está disponible.
+- **Trazabilidad de implementación:** backend completo mediante un modelo de
+  lectura CQRS-lite. Consolida identidades fusionadas, ventas no borrador, pagos y
+  correcciones, reembolsos, saldos, atrasos y vencimientos sin exponer costos ni
+  márgenes.
 - **Como** empleado
 - **quiero** consultar las ventas, pagos y saldo total de un cliente
 - **para** conocer su situación antes de acordar una nueva venta.
@@ -55,6 +57,16 @@
 - **Dado:** que el cliente tiene ventas y pagos registrados por uno o más empleados
 - **Cuando:** consulto su historial
 - **Entonces:** veo sus operaciones, montos cobrados, saldos pendientes y estados sin acceder a costos ni márgenes.
+
+- **Escenario:** Consulta mediante una identidad fusionada
+- **Dado:** que el cliente posee uno o más registros absorbidos por un principal
+- **Cuando:** consulto la cuenta usando cualquiera de esas identidades
+- **Entonces:** obtengo el cliente principal y el historial consolidado de todas sus identidades.
+
+- **Escenario:** Operaciones cerradas o canceladas en el historial
+- **Dado:** que el cliente posee ventas finalizadas o canceladas
+- **Cuando:** consulto su deuda consolidada
+- **Entonces:** esas operaciones permanecen visibles pero no incrementan la deuda activa.
 
 ### User Story CUS-004 — Fusionar clientes duplicados
 

@@ -32,3 +32,4 @@
 | 2026-10-18 | RET-001, RET-002 y RET-003 completaron su backend: devolución parcial o total, reembolso exacto por exceso, retorno físico opcional, costo histórico, caja, permisos, versión e idempotencia se resuelven atómicamente. |
 | 2026-10-18 | PAY-004 confirmó que el reembolso al cancelar una venta es un importe manual entre cero y el pago neto vigente, no un reembolso total automático. |
 | 2026-10-18 | PAY-004 completó su backend: la cancelación administrativa trata cada línea, libera reservas, registra retornos o productos no retornados, conserva costo histórico y aplica únicamente el reembolso manual declarado con caja, versión e idempotencia atómicas. |
+| 2026-10-18 | CUS-003 completó su backend: la cuenta consolidada resuelve identidades fusionadas y muestra ventas, pagos netos, deuda activa, atrasos y vencimientos sin revelar costos ni márgenes. |

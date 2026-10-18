@@ -196,6 +196,11 @@ total vigente, pagos netos, saldo y última fecha de pago.
 Los clientes fusionados se agrupan bajo el principal sin reescribir el
 `customer_id` histórico de las ventas.
 
+El corte backend implementado expone `GET /customers/{customerId}/account` como
+consulta CQRS-lite consistente al commit. Incluye pagos y correcciones,
+reembolsos, cierres y cancelaciones; únicamente las ventas confirmadas con saldo
+alimentan la deuda activa y vencida. No selecciona columnas de costo o margen.
+
 ### Seguimiento de inventario
 
 **Entrada:** producto, categoría, ubicación, disponibilidad y cursor.

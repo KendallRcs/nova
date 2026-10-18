@@ -116,6 +116,10 @@
 ### User Story INV-006 — Liberar inventario de una reserva cancelada
 
 - **Estado:** Confirmada
+- **Trazabilidad de implementación:** backend completo dentro de la cancelación de
+  venta; libera la reserva activa en su ubicación, devuelve su costo exacto a la
+  posición disponible y registra movimientos inmutables de inventario y costo en
+  la misma transacción idempotente.
 - **Como** administrador
 - **quiero** liberar las unidades de una reserva cancelada que no fueron entregadas
 - **para** ofrecerlas nuevamente a otros clientes.

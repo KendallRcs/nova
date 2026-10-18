@@ -10,6 +10,8 @@ import { PrismaProductRepository } from '../../../src/modules/catalog/adapters/d
 import { PrismaTagRepository } from '../../../src/modules/catalog/adapters/driven/prisma/prisma-tag.repository';
 import { PrismaCustomerRepository } from '../../../src/modules/customers/adapters/driven/prisma/prisma-customer.repository';
 import { PrismaCustomerMergeBook } from '../../../src/modules/customers/adapters/driven/prisma/prisma-customer-merge-book';
+import { PrismaCustomerAccountSource } from '../../../src/modules/customers/adapters/driven/prisma/prisma-customer-account-source';
+import { GetCustomerAccount } from '../../../src/modules/customers/hexagon/application/customer-account';
 import { CustomerPhoneAlreadyExistsError } from '../../../src/modules/customers/hexagon/application/customer.repository';
 import { Customer } from '../../../src/modules/customers/hexagon/domain/customer';
 import { PrismaSaleDraftReferences } from '../../../src/modules/sales/adapters/driven/prisma/prisma-sale-draft-references';
@@ -44,6 +46,7 @@ describe('PrismaCategoryRepository', () => {
   let inventoryAdministration: PrismaInventoryAdministrationBook;
   let customers: PrismaCustomerRepository;
   let customerMerges: PrismaCustomerMergeBook;
+  let customerAccounts: PrismaCustomerAccountSource;
   let saleDrafts: PrismaSaleDraftRepository;
   let saleReferences: PrismaSaleDraftReferences;
   let saleConfirmations: PrismaSaleConfirmationBook;
@@ -72,6 +75,7 @@ describe('PrismaCategoryRepository', () => {
     inventoryAdministration = new PrismaInventoryAdministrationBook(prisma);
     customers = new PrismaCustomerRepository(prisma);
     customerMerges = new PrismaCustomerMergeBook(prisma);
+    customerAccounts = new PrismaCustomerAccountSource(prisma);
     saleDrafts = new PrismaSaleDraftRepository(prisma);
     saleReferences = new PrismaSaleDraftReferences(prisma);
     saleConfirmations = new PrismaSaleConfirmationBook(prisma);
@@ -217,6 +221,17 @@ describe('PrismaCategoryRepository', () => {
     });
     await expect(prisma.customerMerge.count()).resolves.toBe(1);
     await expect(customers.search(undefined, 50)).resolves.toHaveLength(1);
+    await expect(customerAccounts.findByCustomerId(duplicate.toPrimitives().id)).resolves.toEqual({
+      customer: {
+        id: primary.toPrimitives().id,
+        name: 'Ana Torres',
+        phone: '+51986654321',
+        dni: '12345678',
+        address: null,
+        mergedCustomerIds: [duplicate.toPrimitives().id],
+      },
+      sales: [],
+    });
   });
 
   it('persists and optimistically replaces a sale draft with valid references', async () => {
@@ -615,6 +630,40 @@ describe('PrismaCategoryRepository', () => {
           ],
         },
       ],
+    });
+    await expect(
+      new GetCustomerAccount(customerAccounts, {
+        now: () => new Date('2026-09-16T15:00:00.000Z'),
+      }).execute(customer.toPrimitives().id),
+    ).resolves.toMatchObject({
+      ok: true,
+      account: {
+        customer: { id: customer.toPrimitives().id, mergedCustomerIds: [] },
+        summary: {
+          salesCount: 1,
+          activeDebtSalesCount: 0,
+          overdueSalesCount: 0,
+          totalPaidCents: 2_000,
+          totalOutstandingCents: 0,
+          overdueAmountCents: 0,
+          lastPaymentAt: new Date('2026-09-15T20:04:00.000Z'),
+        },
+        sales: [
+          {
+            id: draft.sale.toPrimitives().id,
+            lifecycle: 'finalized',
+            currentTotalCents: 6_500,
+            paidCents: 2_000,
+            forgivenAmountCents: 4_500,
+            balanceCents: 0,
+            paymentSituation: 'closed-with-balance',
+            payments: [
+              { netAmountCents: 1_000, method: 'yape' },
+              { netAmountCents: 1_000, method: 'cash' },
+            ],
+          },
+        ],
+      },
     });
   });
 

@@ -108,6 +108,7 @@ POST   /api/v1/inventory/count-adjustments
 GET    /api/v1/customers?query=
 POST   /api/v1/customers
 PUT    /api/v1/customers/{customerId}
+GET    /api/v1/customers/{customerId}/account
 POST   /api/v1/customers/merges
 GET    /api/v1/sales?customerId=&createdBy=&lifecycle=&debt=&cursor=
 GET    /api/v1/sales/{saleId}
@@ -130,6 +131,13 @@ opcional salvo al aumentar un producto que no tiene costo vigente.
 La fusión de clientes requiere `Idempotency-Key`, las versiones observadas de
 ambos registros y los datos finales resueltos. No reasigna ventas históricas: las
 consultas posteriores resuelven el cliente fusionado hacia su principal.
+
+`GET /customers/{customerId}/account` requiere `customers:read` y acepta tanto la
+identidad principal como una fusionada. Devuelve identidad canónica, resumen de
+cobros y deuda activa, montos vencidos, próximo vencimiento y ventas no borrador
+con su historial de pagos netos. Las ventas finalizadas o canceladas permanecen
+visibles, pero no incrementan la cuenta por cobrar. Esta vista nunca expone costo
+ni margen.
 
 `POST /sales` crea un borrador y `PUT /sales/{saleId}` reemplaza sus condiciones y
 líneas usando `expectedVersion`. Cada línea indica producto, ubicación, cantidad,
