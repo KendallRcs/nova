@@ -60,6 +60,9 @@
 ### User Story SAL-004 — Asignar fecha de vencimiento a un saldo
 
 - **Estado:** Confirmada
+- **Trazabilidad de implementación:** backend completo para derivar la etiqueta
+  `overdue` usando el saldo vigente, la fecha civil actual de Lima y el vencimiento;
+  la consulta no modifica ni cancela la venta.
 - **Como** empleado
 - **quiero** definir una fecha esperada de pago
 - **para** identificar visualmente operaciones atrasadas.
@@ -74,6 +77,9 @@
 ### User Story SAL-005 — Consultar mis ventas
 
 - **Estado:** Confirmada
+- **Trazabilidad de implementación:** backend completo mediante listado paginado con
+  cliente canónico, creador, totales, cobrado, saldo, estado de pago, estado de
+  entrega y atraso. El alcance del empleado se fuerza a su propia cuenta.
 - **Como** empleado
 - **quiero** consultar las ventas que registré
 - **para** dar seguimiento a mis operaciones y pagos pendientes.
@@ -88,6 +94,9 @@
 ### User Story SAL-006 — Consultar cualquier venta como administrador
 
 - **Estado:** Confirmada
+- **Trazabilidad de implementación:** backend completo; el permiso `sales:read-any`
+  habilita el listado general y los filtros por creador, cliente, ciclo de vida y
+  situación de deuda.
 - **Como** administrador
 - **quiero** consultar ventas creadas por cualquier empleado
 - **para** supervisar las operaciones del negocio.

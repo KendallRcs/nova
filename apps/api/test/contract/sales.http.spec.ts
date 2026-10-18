@@ -14,6 +14,7 @@ import {
 } from '../../src/modules/sales/hexagon/application/manage-sale-drafts';
 import { ConfirmSale } from '../../src/modules/sales/hexagon/application/confirm-sale';
 import { RecordSalePayment } from '../../src/modules/sales/hexagon/application/record-sale-payment';
+import { ListSales } from '../../src/modules/sales/hexagon/application/sale-activity';
 import { Sale } from '../../src/modules/sales/hexagon/domain/sale';
 
 const SALE_ID = '0199ef04-1b00-7000-8000-000000000080';
@@ -83,6 +84,36 @@ describe('Sales HTTP contract', () => {
               }),
           },
         },
+        {
+          provide: ListSales,
+          useValue: {
+            execute: () =>
+              Promise.resolve({
+                items: [
+                  {
+                    id: SALE_ID,
+                    createdBy: ACTOR_ID,
+                    creatorUsername: 'employee',
+                    customer: null,
+                    lifecycle: 'confirmed',
+                    originalTotalCents: 3_000,
+                    currentTotalCents: 3_000,
+                    paidCents: 1_000,
+                    balanceCents: 2_000,
+                    paymentSituation: 'partial',
+                    deliverySituation: 'partial',
+                    overdue: true,
+                    dueDate: '2026-09-15',
+                    version: 3,
+                    confirmedAt: new Date('2026-09-15T21:00:00.000Z'),
+                    createdAt: new Date('2026-09-15T20:00:00.000Z'),
+                    updatedAt: new Date('2026-09-16T15:00:00.000Z'),
+                  },
+                ],
+                nextSaleId: null,
+              }),
+          },
+        },
       ],
     }).compile();
     app = module.createNestApplication();
@@ -125,6 +156,23 @@ describe('Sales HTTP contract', () => {
       originalTotalCents: 3_000,
       version: 1,
       lines: [{ pendingQuantity: 0 }],
+    });
+  });
+
+  it('lists sale activity with debt and fulfillment indicators', async () => {
+    const response = await request(httpServer).get('/api/v1/sales?debt=overdue').expect(200);
+    expect(response.body).toMatchObject({
+      items: [
+        {
+          id: SALE_ID,
+          paidCents: 1_000,
+          balanceCents: 2_000,
+          paymentSituation: 'partial',
+          deliverySituation: 'partial',
+          overdue: true,
+        },
+      ],
+      pageInfo: { nextCursor: null, hasNextPage: false },
     });
   });
 

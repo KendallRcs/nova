@@ -4,6 +4,7 @@ import { PrismaSaleDraftReferences } from './adapters/driven/prisma/prisma-sale-
 import { PrismaSaleDraftRepository } from './adapters/driven/prisma/prisma-sale-draft.repository';
 import { PrismaSaleConfirmationBook } from './adapters/driven/prisma/prisma-sale-confirmation-book';
 import { PrismaSalePaymentBook } from './adapters/driven/prisma/prisma-sale-payment-book';
+import { PrismaSaleActivitySource } from './adapters/driven/prisma/prisma-sale-activity-source';
 import {
   SystemSaleClock,
   UuidV7SaleIdGenerator,
@@ -14,6 +15,7 @@ import { ConfirmSale } from './hexagon/application/confirm-sale';
 import { RecordSalePayment } from './hexagon/application/record-sale-payment';
 import type { SaleConfirmationBook } from './hexagon/application/sale-confirmation-book';
 import type { SalePaymentBook } from './hexagon/application/sale-payment-book';
+import { ListSales, type SaleActivitySource } from './hexagon/application/sale-activity';
 import type {
   SaleDraftReferences,
   SaleDraftRepository,
@@ -23,6 +25,7 @@ const SALE_DRAFT_REPOSITORY = Symbol('SALE_DRAFT_REPOSITORY');
 const SALE_DRAFT_REFERENCES = Symbol('SALE_DRAFT_REFERENCES');
 const SALE_CONFIRMATION_BOOK = Symbol('SALE_CONFIRMATION_BOOK');
 const SALE_PAYMENT_BOOK = Symbol('SALE_PAYMENT_BOOK');
+const SALE_ACTIVITY_SOURCE = Symbol('SALE_ACTIVITY_SOURCE');
 
 @Module({
   controllers: [SalesController],
@@ -31,12 +34,14 @@ const SALE_PAYMENT_BOOK = Symbol('SALE_PAYMENT_BOOK');
     PrismaSaleDraftReferences,
     PrismaSaleConfirmationBook,
     PrismaSalePaymentBook,
+    PrismaSaleActivitySource,
     SystemSaleClock,
     UuidV7SaleIdGenerator,
     { provide: SALE_DRAFT_REPOSITORY, useExisting: PrismaSaleDraftRepository },
     { provide: SALE_DRAFT_REFERENCES, useExisting: PrismaSaleDraftReferences },
     { provide: SALE_CONFIRMATION_BOOK, useExisting: PrismaSaleConfirmationBook },
     { provide: SALE_PAYMENT_BOOK, useExisting: PrismaSalePaymentBook },
+    { provide: SALE_ACTIVITY_SOURCE, useExisting: PrismaSaleActivitySource },
     {
       provide: CreateSaleDraft,
       inject: [
@@ -78,6 +83,12 @@ const SALE_PAYMENT_BOOK = Symbol('SALE_PAYMENT_BOOK');
       inject: [SALE_PAYMENT_BOOK, SystemSaleClock],
       useFactory: (payments: SalePaymentBook, clock: SystemSaleClock) =>
         new RecordSalePayment(payments, clock),
+    },
+    {
+      provide: ListSales,
+      inject: [SALE_ACTIVITY_SOURCE, SystemSaleClock],
+      useFactory: (source: SaleActivitySource, clock: SystemSaleClock) =>
+        new ListSales(source, clock),
     },
   ],
 })

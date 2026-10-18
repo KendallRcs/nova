@@ -3,6 +3,7 @@ import {
   ConflictException,
   Controller,
   ForbiddenException,
+  Get,
   NotFoundException,
   Param,
   ParseUUIDPipe,
@@ -10,6 +11,7 @@ import {
   HttpCode,
   Post,
   Put,
+  Query,
   Req,
   UnauthorizedException,
   UnprocessableEntityException,
@@ -25,16 +27,19 @@ import {
 } from '../../../hexagon/application/manage-sale-drafts';
 import { ConfirmSale } from '../../../hexagon/application/confirm-sale';
 import { RecordSalePayment } from '../../../hexagon/application/record-sale-payment';
+import { ListSales } from '../../../hexagon/application/sale-activity';
 import type { SaleConfirmationResult } from '../../../hexagon/application/sale-confirmation-book';
 import type { SalePaymentResult } from '../../../hexagon/application/sale-payment-book';
 import type { Sale } from '../../../hexagon/domain/sale';
 import {
   ConfirmSaleRequest,
+  ListSalesQuery,
   SaleConfirmationResponse,
   SaleDraftDataRequest,
   SaleDraftResponse,
   RecordSalePaymentRequest,
   SalePaymentResponse,
+  SaleActivityPageResponse,
   UpdateSaleDraftRequest,
 } from './sale.dto';
 
@@ -46,7 +51,42 @@ export class SalesController {
     private readonly updateDraft: UpdateSaleDraft,
     private readonly confirmSale: ConfirmSale,
     private readonly recordPayment: RecordSalePayment,
+    private readonly listSales: ListSales,
   ) {}
+
+  @Get()
+  @RequirePermission('sales:read-own')
+  @ApiOperation({ operationId: 'listSales' })
+  @ApiOkResponse({ type: SaleActivityPageResponse })
+  async list(
+    @Query() query: ListSalesQuery,
+    @Req() request: AuthenticatedRequest,
+  ): Promise<SaleActivityPageResponse> {
+    const actor = requireActor(request);
+    const afterSaleId = query.cursor === undefined ? undefined : decodeSaleCursor(query.cursor);
+    const page = await this.listSales.execute({
+      actorId: actor.userId,
+      canReadAny: actor.permissionCodes.includes('sales:read-any'),
+      ...(query.createdBy === undefined ? {} : { createdBy: query.createdBy }),
+      ...(query.customerId === undefined ? {} : { customerId: query.customerId }),
+      ...(query.lifecycle === undefined ? {} : { lifecycle: query.lifecycle }),
+      debt: query.debt ?? 'all',
+      ...(afterSaleId === undefined ? {} : { afterSaleId }),
+      limit: 50,
+    });
+    return {
+      items: page.items.map((item) => ({
+        ...item,
+        confirmedAt: item.confirmedAt?.toISOString() ?? null,
+        createdAt: item.createdAt.toISOString(),
+        updatedAt: item.updatedAt.toISOString(),
+      })),
+      pageInfo: {
+        nextCursor: page.nextSaleId === null ? null : encodeSaleCursor(page.nextSaleId),
+        hasNextPage: page.nextSaleId !== null,
+      },
+    };
+  }
 
   @Post()
   @RequirePermission('sales:create')
@@ -159,6 +199,21 @@ export class SalesController {
 }
 
 const UUID_V7 = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function encodeSaleCursor(saleId: string): string {
+  return Buffer.from(`v1:${saleId}`, 'utf8').toString('base64url');
+}
+
+function decodeSaleCursor(cursor: string): string {
+  const decoded = Buffer.from(cursor, 'base64url').toString('utf8');
+  const match = /^v1:([0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/i.exec(
+    decoded,
+  );
+  if (match?.[1] === undefined) {
+    throw new UnprocessableEntityException({ status: 422, code: 'INVALID_CURSOR' });
+  }
+  return match[1];
+}
 
 function draftData(body: SaleDraftDataRequest) {
   return {

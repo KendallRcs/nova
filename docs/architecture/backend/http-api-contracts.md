@@ -109,6 +109,7 @@ GET    /api/v1/customers?query=
 POST   /api/v1/customers
 PUT    /api/v1/customers/{customerId}
 POST   /api/v1/customers/merges
+GET    /api/v1/sales?customerId=&createdBy=&lifecycle=&debt=&cursor=
 POST   /api/v1/sales
 PUT    /api/v1/sales/{saleId}
 POST   /api/v1/sales/{saleId}/confirmation
@@ -147,6 +148,14 @@ solo cobra ventas propias y el administrador puede cobrar cualquiera. La respues
 incluye total cobrado, saldo, situación de pago y nueva versión. Un importe superior
 al saldo o una versión obsoleta produce `409 Conflict`; repetir exactamente el mismo
 comando devuelve el primer resultado sin duplicar pago ni caja.
+
+`GET /sales` devuelve una página de actividad comercial ordenada por actualización.
+Cada elemento contiene creador, cliente canónico e identidad histórica, totales,
+cobro, saldo, situación de pago, situación de entrega, vencimiento y etiqueta de
+atraso. `debt` acepta `all`, `pending`, `paid` u `overdue`; también se puede filtrar
+por cliente, ciclo de vida y, con `sales:read-any`, creador. El empleado siempre
+queda limitado a ventas propias aunque envíe otro `createdBy`. El cursor es opaco y
+la fecha de atraso se calcula en `America/Lima` sin persistir una transición.
 
 Esto no confirma aún el inventario completo de endpoints. Cada módulo definirá sus
 operaciones a partir de capacidades e historias, no mediante la exposición

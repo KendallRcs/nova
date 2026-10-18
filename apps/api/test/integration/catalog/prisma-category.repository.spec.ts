@@ -16,6 +16,8 @@ import { PrismaSaleDraftReferences } from '../../../src/modules/sales/adapters/d
 import { PrismaSaleDraftRepository } from '../../../src/modules/sales/adapters/driven/prisma/prisma-sale-draft.repository';
 import { PrismaSaleConfirmationBook } from '../../../src/modules/sales/adapters/driven/prisma/prisma-sale-confirmation-book';
 import { PrismaSalePaymentBook } from '../../../src/modules/sales/adapters/driven/prisma/prisma-sale-payment-book';
+import { PrismaSaleActivitySource } from '../../../src/modules/sales/adapters/driven/prisma/prisma-sale-activity-source';
+import { ListSales } from '../../../src/modules/sales/hexagon/application/sale-activity';
 import { Sale } from '../../../src/modules/sales/hexagon/domain/sale';
 import { PrismaInventoryTransferBook } from '../../../src/modules/inventory/adapters/driven/prisma/prisma-inventory-transfer-book';
 import { PrismaInventoryAdministrationBook } from '../../../src/modules/inventory/adapters/driven/prisma/prisma-inventory-administration-book';
@@ -43,6 +45,7 @@ describe('PrismaCategoryRepository', () => {
   let saleReferences: PrismaSaleDraftReferences;
   let saleConfirmations: PrismaSaleConfirmationBook;
   let salePayments: PrismaSalePaymentBook;
+  let saleActivity: PrismaSaleActivitySource;
 
   beforeAll(async () => {
     container = await new PostgreSqlContainer('postgres:18.6').start();
@@ -67,6 +70,7 @@ describe('PrismaCategoryRepository', () => {
     saleReferences = new PrismaSaleDraftReferences(prisma);
     saleConfirmations = new PrismaSaleConfirmationBook(prisma);
     salePayments = new PrismaSalePaymentBook(prisma);
+    saleActivity = new PrismaSaleActivitySource(prisma);
   }, 120_000);
 
   beforeEach(async () => {
@@ -426,6 +430,32 @@ describe('PrismaCategoryRepository', () => {
     ).resolves.toMatchObject({ customerId: null });
     await expect(prisma.payment.count()).resolves.toBe(3);
     await expect(prisma.cashMovement.count()).resolves.toBe(3);
+    await expect(
+      new ListSales(saleActivity, {
+        now: () => new Date('2026-09-16T15:00:00.000Z'),
+      }).execute({
+        actorId,
+        canReadAny: false,
+        debt: 'pending',
+        limit: 50,
+      }),
+    ).resolves.toMatchObject({
+      items: [
+        {
+          id: draft.sale.toPrimitives().id,
+          creatorUsername: 'admin-inventory-test',
+          customer: {
+            canonicalId: customer.toPrimitives().id,
+            phone: '+51987654320',
+          },
+          paidCents: 2_500,
+          balanceCents: 3_500,
+          paymentSituation: 'partial',
+          deliverySituation: 'partial',
+        },
+      ],
+      nextSaleId: null,
+    });
   });
 
   it('translates the unique database constraint into an application conflict', async () => {

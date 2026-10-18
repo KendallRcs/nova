@@ -146,3 +146,64 @@ export class SalePaymentResponse {
   @ApiProperty({ enum: ['partial', 'paid'] }) paymentSituation!: 'partial' | 'paid';
   @ApiProperty() replayed!: boolean;
 }
+
+const SALE_LIFECYCLES = ['draft', 'confirmed', 'finalized', 'cancelled'] as const;
+const SALE_DEBT_FILTERS = ['all', 'pending', 'paid', 'overdue'] as const;
+
+export class ListSalesQuery {
+  @ApiPropertyOptional({ format: 'uuid' }) @IsOptional() @IsUUID('7') customerId?: string;
+  @ApiPropertyOptional({ format: 'uuid' }) @IsOptional() @IsUUID('7') createdBy?: string;
+  @ApiPropertyOptional({ enum: SALE_LIFECYCLES })
+  @IsOptional()
+  @IsIn(SALE_LIFECYCLES)
+  lifecycle?: (typeof SALE_LIFECYCLES)[number];
+  @ApiPropertyOptional({ enum: SALE_DEBT_FILTERS, default: 'all' })
+  @IsOptional()
+  @IsIn(SALE_DEBT_FILTERS)
+  debt?: (typeof SALE_DEBT_FILTERS)[number];
+  @ApiPropertyOptional({ description: 'Cursor opaco entregado por la página anterior.' })
+  @IsOptional()
+  @IsString()
+  cursor?: string;
+}
+
+export class SaleActivityCustomerResponse {
+  @ApiProperty({ format: 'uuid' }) historicalId!: string;
+  @ApiProperty({ format: 'uuid' }) canonicalId!: string;
+  @ApiProperty() name!: string;
+  @ApiProperty() phone!: string;
+}
+
+export class SaleActivityItemResponse {
+  @ApiProperty({ format: 'uuid' }) id!: string;
+  @ApiProperty({ format: 'uuid' }) createdBy!: string;
+  @ApiProperty() creatorUsername!: string;
+  @ApiProperty({ type: SaleActivityCustomerResponse, nullable: true })
+  customer!: SaleActivityCustomerResponse | null;
+  @ApiProperty({ enum: SALE_LIFECYCLES }) lifecycle!: (typeof SALE_LIFECYCLES)[number];
+  @ApiProperty() originalTotalCents!: number;
+  @ApiProperty() currentTotalCents!: number;
+  @ApiProperty() paidCents!: number;
+  @ApiProperty() balanceCents!: number;
+  @ApiProperty({ enum: ['not-applicable', 'unpaid', 'partial', 'paid'] })
+  paymentSituation!: 'not-applicable' | 'unpaid' | 'partial' | 'paid';
+  @ApiProperty({ enum: ['not-applicable', 'pending', 'partial', 'complete'] })
+  deliverySituation!: 'not-applicable' | 'pending' | 'partial' | 'complete';
+  @ApiProperty() overdue!: boolean;
+  @ApiProperty({ nullable: true, type: String }) dueDate!: string | null;
+  @ApiProperty() version!: number;
+  @ApiProperty({ format: 'date-time', nullable: true, type: String })
+  confirmedAt!: string | null;
+  @ApiProperty({ format: 'date-time' }) createdAt!: string;
+  @ApiProperty({ format: 'date-time' }) updatedAt!: string;
+}
+
+export class SaleActivityPageInfoResponse {
+  @ApiProperty({ nullable: true, type: String }) nextCursor!: string | null;
+  @ApiProperty() hasNextPage!: boolean;
+}
+
+export class SaleActivityPageResponse {
+  @ApiProperty({ type: [SaleActivityItemResponse] }) items!: SaleActivityItemResponse[];
+  @ApiProperty({ type: SaleActivityPageInfoResponse }) pageInfo!: SaleActivityPageInfoResponse;
+}
