@@ -188,9 +188,9 @@ que exista un repositorio por modelo.
 | Modelo Prisma | Tabla | Claves y relaciones principales |
 | --- | --- | --- |
 | `CashMovement` | `cash_movements` | clave idempotente única y exactamente un origen |
-| `ExpenseCategory` | `expense_categories` | nombre normalizado único |
-| `OperatingExpense` | `operating_expenses` | categoría, importe, método y actor |
-| `ExpenseCancellation` | `expense_cancellations` | `expenseId` único |
+| `ExpenseCategory` | `expense_categories` | nombre normalizado único y ciclo activo/inactivo; implementado |
+| `OperatingExpense` | `operating_expenses` | operación idempotente, categoría, importe, método, fecha y actor; implementado |
+| `ExpenseCancellation` | `expense_cancellations` | `expenseId` y operación únicos, devolución nula o total; implementado |
 | `InitialProductImport` | `initial_product_imports` | una confirmada mediante índice parcial |
 
 ## Forma base de los modelos

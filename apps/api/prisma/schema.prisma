@@ -174,6 +174,13 @@ enum PurchaseStatus {
   @@map("purchase_status")
 }
 
+enum OperatingExpenseStatus {
+  CONFIRMED @map("confirmed")
+  CANCELLED @map("cancelled")
+
+  @@map("operating_expense_status")
+}
+
 model AccessProfile {
   id             String              @id @db.Uuid
   name           String
@@ -244,6 +251,8 @@ model UserAccount {
   createdPurchases     Purchase[]               @relation("PurchaseCreator")
   confirmedPurchases   Purchase[]               @relation("PurchaseConfirmer")
   advanceApplications  AdvanceApplication[]
+  registeredExpenses   OperatingExpense[]       @relation("ExpenseRegistrar")
+  expenseCancellations ExpenseCancellation[]    @relation("ExpenseCanceller")
 
   @@index([profileId, status], map: "idx_user_accounts_profile_status")
   @@map("user_accounts")
@@ -459,6 +468,62 @@ model AdvanceApplication {
   @@unique([advanceId, purchaseId], map: "uq_advance_applications_advance_purchase")
   @@index([purchaseId, advanceId], map: "idx_advance_applications_purchase_advance")
   @@map("advance_applications")
+}
+
+model ExpenseCategory {
+  id             String             @id @db.Uuid
+  name           String
+  nameNormalized String             @unique(map: "uq_expense_categories_name_normalized") @map("name_normalized")
+  description    String?
+  status         RecordStatus       @default(ACTIVE)
+  createdAt      DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
+  expenses       OperatingExpense[]
+
+  @@index([status, nameNormalized, id], map: "idx_expense_categories_status_name")
+  @@map("expense_categories")
+}
+
+model OperatingExpense {
+  id                 String                 @id @db.Uuid
+  operationId        String                 @unique(map: "uq_operating_expenses_operation") @map("operation_id") @db.Uuid
+  requestFingerprint String                 @map("request_fingerprint")
+  categoryId         String                 @map("category_id") @db.Uuid
+  amountCents        BigInt                 @map("amount_cents")
+  method             PaymentMethod
+  description        String?
+  receiptStorageKey  String?                @map("receipt_storage_key")
+  status             OperatingExpenseStatus @default(CONFIRMED)
+  registeredBy       String                 @map("registered_by") @db.Uuid
+  effectiveAt        DateTime               @map("effective_at") @db.Timestamptz(3)
+  createdAt          DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime               @updatedAt @map("updated_at") @db.Timestamptz(3)
+  category           ExpenseCategory        @relation(fields: [categoryId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_operating_expenses_category")
+  registrar          UserAccount            @relation("ExpenseRegistrar", fields: [registeredBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_operating_expenses_registrar")
+  cashMovement       CashMovement?
+  cancellation       ExpenseCancellation?
+
+  @@index([categoryId, effectiveAt(sort: Desc), id(sort: Desc)], map: "idx_operating_expenses_category_date")
+  @@index([status, effectiveAt(sort: Desc), id(sort: Desc)], map: "idx_operating_expenses_status_date")
+  @@map("operating_expenses")
+}
+
+model ExpenseCancellation {
+  id                 String           @id @db.Uuid
+  expenseId          String           @unique(map: "uq_expense_cancellations_expense") @map("expense_id") @db.Uuid
+  operationId        String           @unique(map: "uq_expense_cancellations_operation") @map("operation_id") @db.Uuid
+  requestFingerprint String           @map("request_fingerprint")
+  reason             String
+  refundAmountCents  BigInt           @map("refund_amount_cents")
+  refundMethod       PaymentMethod?   @map("refund_method")
+  cancelledBy        String           @map("cancelled_by") @db.Uuid
+  effectiveAt        DateTime         @map("effective_at") @db.Timestamptz(3)
+  createdAt          DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  expense            OperatingExpense @relation(fields: [expenseId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_expense_cancellations_expense")
+  canceller          UserAccount      @relation("ExpenseCanceller", fields: [cancelledBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_expense_cancellations_canceller")
+  cashMovement       CashMovement?
+
+  @@map("expense_cancellations")
 }
 
 model Category {
@@ -810,6 +875,8 @@ model CashMovement {
   supplierAdvanceId        String?                 @unique(map: "uq_cash_movements_supplier_advance") @map("supplier_advance_id") @db.Uuid
   advanceRefundId          String?                 @unique(map: "uq_cash_movements_advance_refund") @map("advance_refund_id") @db.Uuid
   purchaseId               String?                 @unique(map: "uq_cash_movements_purchase") @map("purchase_id") @db.Uuid
+  operatingExpenseId       String?                 @unique(map: "uq_cash_movements_operating_expense") @map("operating_expense_id") @db.Uuid
+  expenseCancellationId    String?                 @unique(map: "uq_cash_movements_expense_cancellation") @map("expense_cancellation_id") @db.Uuid
   createdAt                DateTime                @default(now()) @map("created_at") @db.Timestamptz(3)
   registrar                UserAccount             @relation(fields: [registeredBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_cash_movements_registrar")
   payment                  Payment?                @relation(fields: [paymentId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_cash_movements_payment")
@@ -819,6 +886,8 @@ model CashMovement {
   supplierAdvance          SupplierAdvance?        @relation(fields: [supplierAdvanceId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_cash_movements_supplier_advance")
   advanceRefund            AdvanceRefund?          @relation(fields: [advanceRefundId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_cash_movements_advance_refund")
   purchase                 Purchase?               @relation(fields: [purchaseId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_cash_movements_purchase")
+  operatingExpense         OperatingExpense?       @relation(fields: [operatingExpenseId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_cash_movements_operating_expense")
+  expenseCancellation      ExpenseCancellation?    @relation(fields: [expenseCancellationId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_cash_movements_expense_cancellation")
 
   @@index([effectiveAt(sort: Desc), id(sort: Desc)], map: "idx_cash_movements_date")
   @@index([method, effectiveAt(sort: Desc), id(sort: Desc)], map: "idx_cash_movements_method_date")

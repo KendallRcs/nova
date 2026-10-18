@@ -129,6 +129,13 @@ POST   /api/v1/supplier-advances
 POST   /api/v1/supplier-advances/{advanceId}/refunds
 POST   /api/v1/supplier-advances/{advanceId}/losses
 POST   /api/v1/purchases
+GET    /api/v1/expense-categories
+POST   /api/v1/expense-categories
+PATCH  /api/v1/expense-categories/{categoryId}
+POST   /api/v1/expense-categories/{categoryId}/deactivation
+GET    /api/v1/operating-expenses
+POST   /api/v1/operating-expenses
+POST   /api/v1/operating-expenses/{expenseId}/cancellations
 ```
 
 Las bajas y ajustes requieren `Idempotency-Key`. El ajuste envía además
@@ -165,6 +172,14 @@ saldo por pagar y se omite cuando los anticipos cubren todo. Compra, aplicacione
 stock, costo promedio y egreso restante se confirman atómicamente. La respuesta
 incluye por línea el promedio anterior, el resultante y una sugerencia no
 vinculante de revisión de precios.
+
+Las categorías y operaciones de gasto requieren `expenses:manage`. Registrar un
+gasto exige `Idempotency-Key`, categoría activa, importe positivo, método y fecha
+efectiva; descripción y referencia neutral de comprobante son opcionales. Gasto y
+egreso se crean atómicamente. La anulación también es idempotente, exige razón y
+acepta `refundReceived=false` sin alterar el egreso histórico, o
+`refundReceived=true` con método obligatorio para registrar un ingreso por el
+importe total. No se aceptan devoluciones parciales dentro de una anulación.
 
 La fusión de clientes requiere `Idempotency-Key`, las versiones observadas de
 ambos registros y los datos finales resueltos. No reasigna ventas históricas: las

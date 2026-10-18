@@ -152,7 +152,7 @@ modificado, aunque su contrato continúe usando lenguaje del negocio y no SQL.
 | Confirmar compra | adelantos usados; posiciones físicas y costo por producto | compra, aplicaciones, nuevo egreso, caja, inventario, costo y sugerencias de revisión |
 | Registrar adelanto | — o proveedor si se necesita validar vigencia | adelanto, saldo inicial y salida de caja |
 | Aplicar/devolver/perder adelanto | adelanto; compra si corresponde | aplicación o cierre de saldo, entrada de caja solo si hay devolución |
-| Registrar/cancelar gasto | gasto cuando ya existe | gasto o compensación y movimiento de caja |
+| Registrar/cancelar gasto | gasto cuando ya existe | gasto y egreso; al cancelar, ingreso solo si hubo devolución total |
 | Fusionar clientes | ambos clientes ordenados | relación de fusión, estado del duplicado y datos resueltos |
 | Confirmar importación inicial | exclusión global de importación; posiciones y costos ordenados | catálogo completo, aperturas físicas y de costo o ningún cambio |
 

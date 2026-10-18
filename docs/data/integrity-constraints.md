@@ -312,8 +312,10 @@ la existencia del origen mediante integridad referencial nativa.
 - Un comprobante usa una referencia de almacenamiento no vacía y neutral al
   proveedor.
 - Un gasto confirmado tiene exactamente un movimiento de caja de salida.
-- Una cancelación de gasto es única por gasto, exige razón y genera el movimiento
-  compensatorio correspondiente cuando existe devolución real de dinero.
+- Una cancelación de gasto es única por gasto y exige razón. Admite devolución
+  nula o exactamente igual al importe original, nunca parcial; una devolución
+  total exige método y genera un ingreso, mientras una anulación sin devolución
+  conserva el egreso original.
 - Compras y adelantos no se duplican como `operating_expenses`; los reportes los
   integran por su origen financiero.
 

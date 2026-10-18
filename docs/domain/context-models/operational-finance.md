@@ -50,7 +50,7 @@ Mantiene:
 - monto;
 - fecha;
 - método;
-- descripción obligatoria;
+- descripción opcional;
 - comprobante opcional;
 - creador;
 - movimiento de caja asociado;
@@ -58,14 +58,18 @@ Mantiene:
 
 ### Invariantes
 
-1. Categoría activa, monto positivo, fecha, método y descripción son obligatorios.
+1. Categoría activa, monto positivo, fecha y método son obligatorios; la descripción es opcional.
 2. El comprobante es opcional y se referencia mediante un valor neutral al proveedor de archivos.
 3. Confirmar el gasto crea exactamente un egreso causal en la misma transacción.
 4. Las compras de inventario y anticipos no se registran como gastos operativos.
 5. Los gastos recurrentes se crean manualmente cada mes; no existe recurrencia automática en el MVP.
 6. Anular exige administrador, razón y fecha y deja de incluir el gasto en totales vigentes.
-7. La anulación del registro incorrecto anula consistentemente su movimiento de caja sin borrar ninguno de los dos.
-8. Si el dinero realmente retorna al negocio, se registra además un ingreso con su propia causa.
+7. Sin devolución, la anulación excluye el gasto de totales operativos, pero
+   conserva el egreso porque el dinero realmente salió.
+8. Si todo el dinero retorna, se registra un ingreso por el monto completo y su
+   método real. La anulación no admite devoluciones parciales en el MVP.
+9. Una devolución parcial requerirá una futura corrección de gasto y no se modela
+   como anulación.
 
 ## Agregado Categoría de gasto
 

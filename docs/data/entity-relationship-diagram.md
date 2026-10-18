@@ -524,7 +524,10 @@ erDiagram
     EXPENSE_CANCELLATION {
         uuid id PK
         uuid expense_id FK,UK
+        uuid operation_id UK
         string reason
+        bigint refund_amount_cents
+        string refund_method "optional"
         uuid cancelled_by FK
     }
     CASH_MOVEMENT {

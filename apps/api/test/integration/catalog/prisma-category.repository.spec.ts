@@ -31,6 +31,7 @@ import { PrismaSupplierRepository } from '../../../src/modules/procurement/adapt
 import { PrismaSupplierAdvanceBook } from '../../../src/modules/procurement/adapters/driven/prisma/prisma-supplier-advance-book';
 import { PrismaSupplierAdvanceResolutionBook } from '../../../src/modules/procurement/adapters/driven/prisma/prisma-supplier-advance-resolution-book';
 import { PrismaPurchaseBook } from '../../../src/modules/procurement/adapters/driven/prisma/prisma-purchase-book';
+import { PrismaFinanceBook } from '../../../src/modules/operational-finance/adapters/driven/prisma/prisma-finance-book';
 import { Supplier } from '../../../src/modules/procurement/hexagon/domain/supplier';
 import { UuidV7IdGenerator } from '../../../src/modules/catalog/adapters/driven/system/uuid-v7-id-generator';
 import { AccountStatus } from '../../../src/generated/prisma/client';
@@ -54,6 +55,7 @@ describe('PrismaCategoryRepository', () => {
   let supplierAdvances: PrismaSupplierAdvanceBook;
   let supplierAdvanceResolutions: PrismaSupplierAdvanceResolutionBook;
   let purchasesBook: PrismaPurchaseBook;
+  let financeBook: PrismaFinanceBook;
   let customers: PrismaCustomerRepository;
   let customerMerges: PrismaCustomerMergeBook;
   let customerAccounts: PrismaCustomerAccountSource;
@@ -88,6 +90,7 @@ describe('PrismaCategoryRepository', () => {
     supplierAdvances = new PrismaSupplierAdvanceBook(prisma);
     supplierAdvanceResolutions = new PrismaSupplierAdvanceResolutionBook(prisma);
     purchasesBook = new PrismaPurchaseBook(prisma);
+    financeBook = new PrismaFinanceBook(prisma);
     customers = new PrismaCustomerRepository(prisma);
     customerMerges = new PrismaCustomerMergeBook(prisma);
     customerAccounts = new PrismaCustomerAccountSource(prisma);
@@ -112,6 +115,9 @@ describe('PrismaCategoryRepository', () => {
     await prisma?.deliveryLine.deleteMany();
     await prisma?.delivery.deleteMany();
     await prisma?.cashMovement.deleteMany();
+    await prisma?.expenseCancellation.deleteMany();
+    await prisma?.operatingExpense.deleteMany();
+    await prisma?.expenseCategory.deleteMany();
     await prisma?.advanceApplication.deleteMany();
     await prisma?.purchaseLine.deleteMany();
     await prisma?.purchase.deleteMany();
@@ -263,6 +269,73 @@ describe('PrismaCategoryRepository', () => {
       replayed: true,
       advance: { currentBalanceCents: 0, status: 'resolved', version: 3 },
     });
+  });
+
+  it('registers and cancels an operating expense with a full cash refund', async () => {
+    if (prisma === undefined) throw new Error('Prisma was not initialized.');
+    const actorId = await createActor(prisma);
+    const now = new Date('2026-10-18T20:00:00.000Z');
+    const category = await financeBook.createCategory({
+      id: '0199ef04-1b00-7000-8000-0000000001a0',
+      name: 'Movilidad',
+      nameNormalized: 'movilidad',
+      description: null,
+      now,
+    });
+    if (!category.ok) throw new Error(category.reason);
+    const registered = await financeBook.registerExpense({
+      id: '0199ef04-1b00-7000-8000-0000000001a1',
+      cashMovementId: '0199ef04-1b00-7000-8000-0000000001a2',
+      operationId: '0199ef04-1b00-7000-8000-0000000001a3',
+      categoryId: category.value.id,
+      amountCents: 3_000,
+      method: 'cash',
+      description: 'Taxi para recoger mercadería',
+      receiptStorageKey: null,
+      actorId,
+      effectiveAt: now,
+    });
+    expect(registered).toMatchObject({
+      ok: true,
+      replayed: false,
+      value: { amountCents: 3_000, status: 'confirmed' },
+    });
+    const cancellation = {
+      id: '0199ef04-1b00-7000-8000-0000000001a4',
+      cashMovementId: '0199ef04-1b00-7000-8000-0000000001a5',
+      operationId: '0199ef04-1b00-7000-8000-0000000001a6',
+      expenseId: '0199ef04-1b00-7000-8000-0000000001a1',
+      reason: 'Servicio cancelado',
+      refundReceived: true,
+      refundMethod: 'yape' as const,
+      actorId,
+      effectiveAt: new Date('2026-10-18T21:00:00.000Z'),
+    };
+    await expect(financeBook.cancelExpense(cancellation)).resolves.toMatchObject({
+      ok: true,
+      value: {
+        status: 'cancelled',
+        cancellation: { refundAmountCents: 3_000, refundMethod: 'yape' },
+      },
+    });
+    await expect(financeBook.cancelExpense(cancellation)).resolves.toMatchObject({
+      ok: true,
+      replayed: true,
+    });
+    await expect(
+      prisma.cashMovement.findMany({ orderBy: { effectiveAt: 'asc' } }),
+    ).resolves.toMatchObject([
+      {
+        direction: 'OUTFLOW',
+        amountCents: 3_000n,
+        operatingExpenseId: registered.ok ? registered.value.id : null,
+      },
+      {
+        direction: 'INFLOW',
+        amountCents: 3_000n,
+        expenseCancellationId: '0199ef04-1b00-7000-8000-0000000001a4',
+      },
+    ]);
   });
 
   it('confirms a multi-product purchase with multiple advances, stock, cost and cash', async () => {

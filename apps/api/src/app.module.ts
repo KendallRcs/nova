@@ -13,6 +13,7 @@ import { InventoryModule } from './modules/inventory/inventory.module';
 import { CustomersModule } from './modules/customers/customers.module';
 import { SalesModule } from './modules/sales/sales.module';
 import { ProcurementModule } from './modules/procurement/procurement.module';
+import { OperationalFinanceModule } from './modules/operational-finance/operational-finance.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { ProcurementModule } from './modules/procurement/procurement.module';
     CustomersModule,
     SalesModule,
     ProcurementModule,
+    OperationalFinanceModule,
   ],
   controllers: [HealthController],
   providers: [CsrfTokens, { provide: APP_GUARD, useClass: CsrfGuard }],
