@@ -7,7 +7,9 @@ import { DeactivateCategory, RenameCategory } from './hexagon/application/manage
 import { CreateTag, DeactivateTag, ListTags, RenameTag } from './hexagon/application/manage-tags';
 import type { TagRepository } from './hexagon/application/tag.repository';
 import { PrismaCategoryRepository } from './adapters/driven/prisma/prisma-category.repository';
+import { CloudinaryProductImageStorage } from './adapters/driven/cloudinary/cloudinary-product-image-storage';
 import { PrismaProductCatalog } from './adapters/driven/prisma/prisma-product-catalog';
+import { PrismaProductImageBook } from './adapters/driven/prisma/prisma-product-image-book';
 import { PrismaProductRepository } from './adapters/driven/prisma/prisma-product.repository';
 import { PrismaTagRepository } from './adapters/driven/prisma/prisma-tag.repository';
 import { SystemClock } from './adapters/driven/system/system-clock';
@@ -21,6 +23,12 @@ import {
   UpdateProduct,
 } from './hexagon/application/manage-products';
 import { type ProductCatalog, SearchProducts } from './hexagon/application/product-catalog';
+import {
+  RemoveProductImage,
+  ReplaceProductImage,
+  type ProductImageBook,
+  type ProductImageStorage,
+} from './hexagon/application/product-images';
 import type {
   ProductClassifications,
   ProductRepository,
@@ -31,12 +39,16 @@ const TAG_REPOSITORY = Symbol('TAG_REPOSITORY');
 const PRODUCT_REPOSITORY = Symbol('PRODUCT_REPOSITORY');
 const PRODUCT_CLASSIFICATIONS = Symbol('PRODUCT_CLASSIFICATIONS');
 const PRODUCT_CATALOG = Symbol('PRODUCT_CATALOG');
+const PRODUCT_IMAGE_BOOK = Symbol('PRODUCT_IMAGE_BOOK');
+const PRODUCT_IMAGE_STORAGE = Symbol('PRODUCT_IMAGE_STORAGE');
 
 @Module({
   controllers: [CategoriesController, TagsController, ProductsController],
   providers: [
     PrismaCategoryRepository,
+    CloudinaryProductImageStorage,
     PrismaProductCatalog,
+    PrismaProductImageBook,
     PrismaProductRepository,
     PrismaTagRepository,
     SystemClock,
@@ -49,6 +61,8 @@ const PRODUCT_CATALOG = Symbol('PRODUCT_CATALOG');
     { provide: PRODUCT_REPOSITORY, useExisting: PrismaProductRepository },
     { provide: PRODUCT_CLASSIFICATIONS, useExisting: PrismaProductRepository },
     { provide: PRODUCT_CATALOG, useExisting: PrismaProductCatalog },
+    { provide: PRODUCT_IMAGE_BOOK, useExisting: PrismaProductImageBook },
+    { provide: PRODUCT_IMAGE_STORAGE, useExisting: CloudinaryProductImageStorage },
     {
       provide: CreateCategory,
       inject: [CATEGORY_REPOSITORY, UuidV7IdGenerator, SystemClock],
@@ -129,8 +143,28 @@ const PRODUCT_CATALOG = Symbol('PRODUCT_CATALOG');
     },
     {
       provide: SearchProducts,
-      inject: [PRODUCT_CATALOG],
-      useFactory: (catalog: ProductCatalog): SearchProducts => new SearchProducts(catalog),
+      inject: [PRODUCT_CATALOG, PRODUCT_IMAGE_STORAGE],
+      useFactory: (catalog: ProductCatalog, imageStorage: ProductImageStorage): SearchProducts =>
+        new SearchProducts(catalog, imageStorage),
+    },
+    {
+      provide: ReplaceProductImage,
+      inject: [PRODUCT_IMAGE_BOOK, PRODUCT_IMAGE_STORAGE, UuidV7IdGenerator, SystemClock],
+      useFactory: (
+        book: ProductImageBook,
+        storage: ProductImageStorage,
+        idGenerator: UuidV7IdGenerator,
+        clock: SystemClock,
+      ): ReplaceProductImage => new ReplaceProductImage(book, storage, idGenerator, clock),
+    },
+    {
+      provide: RemoveProductImage,
+      inject: [PRODUCT_IMAGE_BOOK, PRODUCT_IMAGE_STORAGE, SystemClock],
+      useFactory: (
+        book: ProductImageBook,
+        storage: ProductImageStorage,
+        clock: SystemClock,
+      ): RemoveProductImage => new RemoveProductImage(book, storage, clock),
     },
   ],
 })

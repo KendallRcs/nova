@@ -12,6 +12,10 @@ import {
   UpdateProduct,
 } from '../../src/modules/catalog/hexagon/application/manage-products';
 import { SearchProducts } from '../../src/modules/catalog/hexagon/application/product-catalog';
+import {
+  RemoveProductImage,
+  ReplaceProductImage,
+} from '../../src/modules/catalog/hexagon/application/product-images';
 import { Product } from '../../src/modules/catalog/hexagon/domain/product';
 
 const now = new Date('2026-09-15T16:00:00.000Z');
@@ -64,6 +68,7 @@ describe('Products HTTP contract', () => {
                       name: 'Juguetes',
                     },
                     tags: [{ id: '0199eec8-7900-7000-8000-000000000003', name: 'Clásico' }],
+                    images: [],
                     minimumPriceCents: 2_000,
                     suggestedPriceCents: 2_500,
                     maximumPriceCents: 3_000,
@@ -85,6 +90,32 @@ describe('Products HTTP contract', () => {
                 ],
                 nextProductId: null,
               }),
+          },
+        },
+        {
+          provide: ReplaceProductImage,
+          useValue: {
+            execute: () =>
+              Promise.resolve({
+                ok: true,
+                image: {
+                  id: '0199eec8-7900-7000-8000-000000000004',
+                  productId: product.toPrimitives().id,
+                  position: 1,
+                  storageKey: 'nova/products/image',
+                  url: 'https://images.example/image',
+                  width: 800,
+                  height: 600,
+                  bytes: 12_000,
+                  format: 'webp',
+                },
+              }),
+          },
+        },
+        {
+          provide: RemoveProductImage,
+          useValue: {
+            execute: () => Promise.resolve({ ok: true, removedStorageKey: 'nova/products/image' }),
           },
         },
       ],
@@ -153,5 +184,32 @@ describe('Products HTTP contract', () => {
       })
       .expect(422);
     expect(response.body).toMatchObject({ code: 'VALIDATION_FAILED', status: 422 });
+  });
+
+  it('uploads a product image through the multipart contract without exposing storage keys', async () => {
+    const response = await request(httpServer)
+      .put(`/api/v1/products/${product.toPrimitives().id}/images/1`)
+      .attach('file', Buffer.from([0xff, 0xd8, 0xff, 0x00]), {
+        filename: 'product.jpg',
+        contentType: 'image/jpeg',
+      })
+      .expect(200);
+    expect(response.body).toMatchObject({
+      productId: product.toPrimitives().id,
+      position: 1,
+      format: 'webp',
+      url: 'https://images.example/image',
+    });
+    expect(response.body).not.toHaveProperty('storageKey');
+  });
+
+  it('deletes an occupied image position and rejects positions outside one and two', async () => {
+    await request(httpServer)
+      .delete(`/api/v1/products/${product.toPrimitives().id}/images/2`)
+      .expect(204);
+    const response = await request(httpServer)
+      .delete(`/api/v1/products/${product.toPrimitives().id}/images/3`)
+      .expect(422);
+    expect(response.body).toMatchObject({ code: 'INVALID_PRODUCT_IMAGE_POSITION' });
   });
 });

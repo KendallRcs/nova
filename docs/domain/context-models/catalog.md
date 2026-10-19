@@ -18,7 +18,10 @@ Catálogo es autoridad sobre la identidad comercial vigente de un producto y sus
 - hasta dos referencias de imagen;
 - estado activo o inactivo.
 
-Categoría y Etiqueta son agregados independientes y se referencian por identidad. Las imágenes se expresan mediante una referencia del dominio; la URL, identificador o respuesta de Cloudinary pertenece al adaptador.
+Categoría y Etiqueta son agregados independientes y se referencian por identidad.
+Las imágenes ocupan las posiciones explícitas 1 y 2 y se expresan mediante una
+referencia neutral; la URL, identificador o respuesta de Cloudinary pertenece al
+adaptador.
 
 ### Objetos de valor
 
@@ -117,6 +120,15 @@ No se emite un evento por cada lectura, búsqueda o filtro del catálogo.
 
 ## Integración con imágenes
 
-El caso de uso solicita almacenamiento mediante un puerto. El adaptador de Cloudinary devuelve una referencia neutral que el dominio puede asociar.
+El caso de uso valida el contenido real y solicita almacenamiento mediante un
+puerto. El adaptador de Cloudinary devuelve una referencia neutral que Catálogo
+asocia a una posición; al guardar limita la imagen a 1600 × 1600 píxeles, aplica
+compresión automática de buena calidad y normaliza el formato almacenado a WebP.
+La selección automática del mejor formato para el navegador ocurre solo durante
+la entrega.
 
-Si la persistencia del Producto falla después de subir una imagen, la capa de aplicación debe compensar eliminando el recurso recién creado o registrarlo para limpieza. La política técnica exacta se definirá en arquitectura; Cloudinary nunca entra al núcleo del dominio.
+Si la persistencia falla después de subir una imagen, la capa de aplicación
+compensa eliminando el recurso recién creado. Al reemplazar o retirar, confirma
+primero el cambio local y luego limpia el recurso anterior; un fallo de limpieza
+se registra sin romper la referencia vigente. Cloudinary nunca entra al núcleo del
+dominio. La decisión técnica completa vive en ADR-0015.

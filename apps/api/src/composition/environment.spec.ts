@@ -20,6 +20,7 @@ describe('validateEnvironment', () => {
       LOGIN_RATE_LIMIT_PAIR_MAX: 5,
       LOGIN_RATE_LIMIT_IP_MAX: 30,
       LOGIN_RATE_LIMIT_GLOBAL_MAX: 300,
+      CLOUDINARY_URL: null,
     });
   });
 
@@ -41,5 +42,16 @@ describe('validateEnvironment', () => {
     ],
   ])('rejects an invalid environment', (values, message) => {
     expect(() => validateEnvironment(values)).toThrow(new InvalidEnvironmentError(message));
+  });
+
+  it('accepts a complete Cloudinary URL without exposing its parts', () => {
+    expect(
+      validateEnvironment({
+        DATABASE_URL: 'postgresql://nova:secret@localhost:5432/nova',
+        FRONTEND_ORIGIN: 'http://localhost:3000',
+        CSRF_SECRET: '12345678901234567890123456789012',
+        CLOUDINARY_URL: 'cloudinary://key:secret@nova-cloud',
+      }).CLOUDINARY_URL,
+    ).toBe('cloudinary://key:secret@nova-cloud');
   });
 });

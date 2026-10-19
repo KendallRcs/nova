@@ -1,17 +1,33 @@
 import {
+  BadRequestException,
   Body,
   ConflictException,
   Controller,
+  Delete,
   Get,
+  HttpCode,
   NotFoundException,
   Param,
+  ParseIntPipe,
   ParseUUIDPipe,
   Post,
   Put,
   Query,
+  ServiceUnavailableException,
   UnprocessableEntityException,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
-import { ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import {
+  ApiBody,
+  ApiConsumes,
+  ApiCreatedResponse,
+  ApiNoContentResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 
 import {
   CreateProduct,
@@ -19,11 +35,22 @@ import {
   UpdateProduct,
 } from '../../../hexagon/application/manage-products';
 import { SearchProducts } from '../../../hexagon/application/product-catalog';
+import {
+  ProductImageStorageUnavailableError,
+  RemoveProductImage,
+  ReplaceProductImage,
+} from '../../../hexagon/application/product-images';
 import { ProductCodeAlreadyExistsError } from '../../../hexagon/application/product.repository';
 import { InvalidProductError, type Product } from '../../../hexagon/domain/product';
+import {
+  MAX_PRODUCT_IMAGE_BYTES,
+  isProductImagePosition,
+  type ProductImagePosition,
+} from '../../../hexagon/domain/product-image';
 import { RequirePermission } from '../../../../identity-access/adapters/driving/http/require-permission';
 import {
   ProductCatalogPageResponse,
+  ProductImageUploadResponse,
   ProductWriteResponse,
   SaveProductRequest,
   SearchProductsQuery,
@@ -37,6 +64,8 @@ export class ProductsController {
     private readonly updateProduct: UpdateProduct,
     private readonly deactivateProduct: DeactivateProduct,
     private readonly searchProducts: SearchProducts,
+    private readonly replaceProductImage: ReplaceProductImage,
+    private readonly removeProductImage: RemoveProductImage,
   ) {}
 
   @Post()
@@ -87,28 +116,157 @@ export class ProductsController {
   @ApiOperation({ operationId: 'searchProducts' })
   @ApiOkResponse({ type: ProductCatalogPageResponse })
   async search(@Query() query: SearchProductsQuery): Promise<ProductCatalogPageResponse> {
-    const afterProductId = query.cursor === undefined ? undefined : decodeCursor(query.cursor);
-    const page = await this.searchProducts.execute({
-      ...(query.query === undefined ? {} : { query: query.query }),
-      ...(query.categoryId === undefined ? {} : { categoryId: query.categoryId }),
-      ...(query.tagId === undefined ? {} : { tagId: query.tagId }),
-      ...(afterProductId === undefined ? {} : { afterProductId }),
-      limit: 50,
-    });
-    return {
-      items: page.items.map((item) => ({
-        ...item,
-        tags: [...item.tags],
-        stock: [...item.stock],
-        createdAt: item.createdAt.toISOString(),
-        updatedAt: item.updatedAt.toISOString(),
-      })),
-      pageInfo: {
-        nextCursor: page.nextProductId === null ? null : encodeCursor(page.nextProductId),
-        hasNextPage: page.nextProductId !== null,
-      },
-    };
+    try {
+      const afterProductId = query.cursor === undefined ? undefined : decodeCursor(query.cursor);
+      const page = await this.searchProducts.execute({
+        ...(query.query === undefined ? {} : { query: query.query }),
+        ...(query.categoryId === undefined ? {} : { categoryId: query.categoryId }),
+        ...(query.tagId === undefined ? {} : { tagId: query.tagId }),
+        ...(afterProductId === undefined ? {} : { afterProductId }),
+        limit: 50,
+      });
+      return {
+        items: page.items.map((item) => ({
+          ...item,
+          tags: [...item.tags],
+          images: [...item.images],
+          stock: [...item.stock],
+          createdAt: item.createdAt.toISOString(),
+          updatedAt: item.updatedAt.toISOString(),
+        })),
+        pageInfo: {
+          nextCursor: page.nextProductId === null ? null : encodeCursor(page.nextProductId),
+          hasNextPage: page.nextProductId !== null,
+        },
+      };
+    } catch (error) {
+      translateProductImageError(error);
+    }
   }
+
+  @Put(':productId/images/:position')
+  @RequirePermission('catalog:manage')
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: MAX_PRODUCT_IMAGE_BYTES } }))
+  @ApiOperation({ operationId: 'replaceProductImage' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['file'],
+      properties: { file: { type: 'string', format: 'binary' } },
+    },
+  })
+  @ApiOkResponse({ type: ProductImageUploadResponse })
+  async replaceImage(
+    @Param('productId', new ParseUUIDPipe({ version: '7' })) productId: string,
+    @Param('position', ParseIntPipe) rawPosition: number,
+    @UploadedFile() file: { buffer: Buffer } | undefined,
+  ): Promise<ProductImageUploadResponse> {
+    const position = productImagePosition(rawPosition);
+    if (file === undefined) {
+      throw new BadRequestException({
+        type: 'https://nova.example/problems/product-image-required',
+        title: 'La imagen es obligatoria',
+        status: 400,
+        detail: 'Adjunta el archivo en el campo file.',
+        code: 'PRODUCT_IMAGE_REQUIRED',
+      });
+    }
+    try {
+      const result = await this.replaceProductImage.execute({
+        productId,
+        position,
+        content: file.buffer,
+      });
+      if (!result.ok) throwProductImageResult(result.reason);
+      return {
+        id: result.image.id,
+        productId: result.image.productId,
+        position: result.image.position,
+        url: result.image.url,
+        width: result.image.width,
+        height: result.image.height,
+        bytes: result.image.bytes,
+        format: result.image.format,
+      };
+    } catch (error) {
+      translateProductImageError(error);
+    }
+  }
+
+  @Delete(':productId/images/:position')
+  @HttpCode(204)
+  @RequirePermission('catalog:manage')
+  @ApiOperation({ operationId: 'removeProductImage' })
+  @ApiNoContentResponse()
+  async removeImage(
+    @Param('productId', new ParseUUIDPipe({ version: '7' })) productId: string,
+    @Param('position', ParseIntPipe) rawPosition: number,
+  ): Promise<void> {
+    const result = await this.removeProductImage.execute({
+      productId,
+      position: productImagePosition(rawPosition),
+    });
+    if (!result.ok) throwProductImageResult(result.reason);
+  }
+}
+
+function productImagePosition(value: number): ProductImagePosition {
+  if (isProductImagePosition(value)) return value;
+  throw new UnprocessableEntityException({
+    type: 'https://nova.example/problems/invalid-product-image-position',
+    title: 'La posición de imagen no es válida',
+    status: 422,
+    detail: 'La posición debe ser 1 o 2.',
+    code: 'INVALID_PRODUCT_IMAGE_POSITION',
+  });
+}
+
+function throwProductImageResult(
+  reason:
+    | 'product-not-found'
+    | 'image-not-found'
+    | 'empty-image'
+    | 'image-too-large'
+    | 'unsupported-image-format',
+): never {
+  if (reason === 'product-not-found' || reason === 'image-not-found') {
+    throw new NotFoundException({
+      type: 'https://nova.example/problems/product-image-not-found',
+      title: reason === 'product-not-found' ? 'El producto no existe' : 'La imagen no existe',
+      status: 404,
+      detail:
+        reason === 'product-not-found'
+          ? 'No se encontró el producto indicado.'
+          : 'La posición indicada no tiene una imagen asociada.',
+      code: reason === 'product-not-found' ? 'PRODUCT_NOT_FOUND' : 'PRODUCT_IMAGE_NOT_FOUND',
+    });
+  }
+  throw new UnprocessableEntityException({
+    type: 'https://nova.example/problems/invalid-product-image',
+    title: 'La imagen no es válida',
+    status: 422,
+    detail:
+      reason === 'image-too-large'
+        ? 'La imagen no puede superar 5 MiB.'
+        : reason === 'empty-image'
+          ? 'La imagen está vacía.'
+          : 'El contenido debe ser una imagen JPEG, PNG o WebP válida.',
+    code: 'INVALID_PRODUCT_IMAGE',
+  });
+}
+
+function translateProductImageError(error: unknown): never {
+  if (error instanceof ProductImageStorageUnavailableError) {
+    throw new ServiceUnavailableException({
+      type: 'https://nova.example/problems/product-image-storage-unavailable',
+      title: 'El almacenamiento de imágenes no está disponible',
+      status: 503,
+      detail: 'Inténtalo nuevamente cuando el servicio de imágenes esté disponible.',
+      code: 'PRODUCT_IMAGE_STORAGE_UNAVAILABLE',
+    });
+  }
+  throw error;
 }
 
 function toProductData(request: SaveProductRequest) {

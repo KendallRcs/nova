@@ -130,6 +130,23 @@ export class ProductStockResponse {
   version!: number;
 }
 
+export class ProductImageResponse {
+  @ApiProperty({ format: 'uuid' })
+  id!: string;
+  @ApiProperty({ enum: [1, 2] })
+  position!: 1 | 2;
+  @ApiProperty({ format: 'uri' })
+  url!: string;
+  @ApiProperty()
+  width!: number;
+  @ApiProperty()
+  height!: number;
+  @ApiProperty()
+  bytes!: number;
+  @ApiProperty({ example: 'webp' })
+  format!: string;
+}
+
 export class ProductCatalogResponse {
   @ApiProperty({ format: 'uuid' })
   id!: string;
@@ -143,6 +160,8 @@ export class ProductCatalogResponse {
   category!: ProductClassificationResponse;
   @ApiProperty({ type: [ProductClassificationResponse] })
   tags!: ProductClassificationResponse[];
+  @ApiProperty({ type: [ProductImageResponse], maxItems: 2 })
+  images!: ProductImageResponse[];
   @ApiProperty()
   minimumPriceCents!: number;
   @ApiProperty({ nullable: true, type: Number })
@@ -171,4 +190,9 @@ export class ProductCatalogPageResponse {
   items!: ProductCatalogResponse[];
   @ApiProperty({ type: ProductPageInfoResponse })
   pageInfo!: ProductPageInfoResponse;
+}
+
+export class ProductImageUploadResponse extends ProductImageResponse {
+  @ApiProperty({ format: 'uuid' })
+  productId!: string;
 }

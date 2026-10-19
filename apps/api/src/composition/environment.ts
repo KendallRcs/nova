@@ -8,6 +8,7 @@ export interface Environment {
   LOGIN_RATE_LIMIT_PAIR_MAX: number;
   LOGIN_RATE_LIMIT_IP_MAX: number;
   LOGIN_RATE_LIMIT_GLOBAL_MAX: number;
+  CLOUDINARY_URL: string | null;
 }
 
 export class InvalidEnvironmentError extends Error {
@@ -50,7 +51,29 @@ export function validateEnvironment(values: Record<string, unknown>): Environmen
       300,
       'LOGIN_RATE_LIMIT_GLOBAL_MAX',
     ),
+    CLOUDINARY_URL: parseOptionalCloudinaryUrl(values.CLOUDINARY_URL),
   };
+}
+
+function parseOptionalCloudinaryUrl(value: unknown): string | null {
+  if (value === undefined || value === '') return null;
+  if (typeof value !== 'string') {
+    throw new InvalidEnvironmentError('CLOUDINARY_URL debe ser una URL válida de Cloudinary.');
+  }
+  try {
+    const url = new URL(value);
+    if (
+      url.protocol !== 'cloudinary:' ||
+      url.username.length === 0 ||
+      url.password.length === 0 ||
+      url.hostname.length === 0
+    ) {
+      throw new Error();
+    }
+    return value;
+  } catch {
+    throw new InvalidEnvironmentError('CLOUDINARY_URL debe ser una URL válida de Cloudinary.');
+  }
 }
 
 function parsePositiveInteger(value: unknown, fallback: number, name: string): number {

@@ -88,8 +88,9 @@
 ### User Story PROD-005 — Asociar imágenes a un producto
 
 - **Estado:** Confirmada
-- **Trazabilidad de implementación:** persistencia preparada con un máximo de dos
-  posiciones por producto; carga, almacenamiento y consulta de archivos pendientes.
+- **Trazabilidad de implementación:** backend completo para cargar, reemplazar,
+  eliminar y consultar hasta dos posiciones. Valida JPEG, PNG o WebP de hasta
+  5 MiB y almacena una versión optimizada para catálogo.
 - **Como** administrador
 - **quiero** asociar hasta dos imágenes opcionales a un producto
 - **para** reconocer visualmente la mercancía sin depender únicamente del código o nombre.
@@ -105,6 +106,26 @@
 - **Dado:** que seleccioné una o dos imágenes válidas
 - **Cuando:** guardo el producto
 - **Entonces:** las imágenes quedan asociadas y disponibles en su consulta.
+
+- **Escenario:** Imagen pesada pero válida
+- **Dado:** que seleccioné una imagen JPEG, PNG o WebP de hasta 5 MiB
+- **Cuando:** la asocio a una posición del producto
+- **Entonces:** el sistema conserva una versión optimizada de hasta 1600 por 1600 píxeles sin guardar el original pesado.
+
+- **Escenario:** Reemplazo de una imagen
+- **Dado:** que el producto ya tiene una imagen en una posición
+- **Cuando:** cargo otra imagen válida en la misma posición
+- **Entonces:** la nueva imagen reemplaza la anterior sin cambiar el límite de dos posiciones.
+
+- **Escenario:** Eliminación de una imagen
+- **Dado:** que el producto tiene una imagen asociada
+- **Cuando:** elimino esa posición
+- **Entonces:** el producto queda sin esa asociación y la posición puede volver a utilizarse.
+
+- **Escenario:** Archivo de imagen inválido
+- **Dado:** que seleccioné un archivo incompatible, vacío o mayor de 5 MiB
+- **Cuando:** intento asociarlo al producto
+- **Entonces:** el sistema rechaza la carga sin modificar sus imágenes actuales.
 
 - **Escenario:** Producto supera el límite de imágenes
 - **Dado:** que el producto ya tiene dos imágenes asociadas

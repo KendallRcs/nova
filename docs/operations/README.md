@@ -14,6 +14,11 @@ No se necesita Docker para levantar la pantalla inicial ni el endpoint de salud.
 La API valida al arrancar `DATABASE_URL`, `PORT` y `NODE_ENV`; una configuración
 ausente o inválida detiene el proceso antes de aceptar solicitudes.
 
+La carga de imágenes de productos requiere `CLOUDINARY_URL`, obtenida desde el
+panel de Cloudinary. La API puede arrancar sin ella para trabajar en otros
+módulos, pero los endpoints de imágenes responden como servicio no disponible.
+Nunca se debe versionar su valor real.
+
 ## Ejecución local actual
 
 Después de seleccionar Node 24.20.0, ejecutar en terminales separadas:
@@ -58,6 +63,6 @@ pnpm --filter @nova/api db:migrate:dev
 ```
 
 No se ejecuta `down --volumes` como operación cotidiana porque elimina el volumen
-local. pgAdmin, Mailpit, Nginx, Cloudinary, CI/CD, observabilidad, copias de
+local. pgAdmin, Mailpit, Nginx, CI/CD, observabilidad, copias de
 seguridad y despliegue al VPS continúan pendientes y no deben instalarse
 anticipadamente.

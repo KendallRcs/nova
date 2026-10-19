@@ -4,8 +4,7 @@ import { PrismaService } from '../../../../../composition/prisma.service';
 import { Prisma, RecordStatus } from '../../../../../generated/prisma/client';
 import type {
   ProductCatalog,
-  ProductCatalogItem,
-  ProductCatalogPage,
+  ProductCatalogRecord,
 } from '../../../hexagon/application/product-catalog';
 import { normalizeProductCode, normalizeProductSearchName } from '../../../hexagon/domain/product';
 import { safeNumber } from './prisma-product.repository';
@@ -14,7 +13,7 @@ import { safeNumber } from './prisma-product.repository';
 export class PrismaProductCatalog implements ProductCatalog {
   constructor(private readonly prisma: PrismaService) {}
 
-  async search(input: Parameters<ProductCatalog['search']>[0]): Promise<ProductCatalogPage> {
+  async search(input: Parameters<ProductCatalog['search']>[0]) {
     const query = input.query?.trim();
     const where: Prisma.ProductWhereInput = {
       status: RecordStatus.ACTIVE,
@@ -40,6 +39,7 @@ export class PrismaProductCatalog implements ProductCatalog {
         include: {
           category: { select: { id: true, name: true } },
           tags: { include: { tag: { select: { id: true, name: true } } } },
+          images: { orderBy: { position: 'asc' } },
           inventoryPositions: true,
         },
       }),
@@ -62,6 +62,7 @@ type CatalogRow = Prisma.ProductGetPayload<{
   include: {
     category: { select: { id: true; name: true } };
     tags: { include: { tag: { select: { id: true; name: true } } } };
+    images: { orderBy: { position: 'asc' } };
     inventoryPositions: true;
   };
 }>;
@@ -69,7 +70,7 @@ type CatalogRow = Prisma.ProductGetPayload<{
 function toItem(
   row: CatalogRow,
   locations: readonly { id: string; code: string; name: string }[],
-): ProductCatalogItem {
+): ProductCatalogRecord {
   return {
     id: row.id,
     code: row.code,
@@ -77,6 +78,17 @@ function toItem(
     description: row.description,
     category: row.category,
     tags: row.tags.map(({ tag }) => tag),
+    images: row.images.map((image) => {
+      if (image.position !== 1 && image.position !== 2) {
+        throw new Error('Product image position is invalid.');
+      }
+      return {
+        id: image.id,
+        storageKey: image.storageKey,
+        position: image.position,
+        ...imageMetadata(image.metadata),
+      };
+    }),
     minimumPriceCents: safeNumber(row.minimumPriceCents),
     suggestedPriceCents:
       row.suggestedPriceCents === null ? null : safeNumber(row.suggestedPriceCents),
@@ -101,4 +113,28 @@ function toItem(
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };
+}
+
+function imageMetadata(value: Prisma.JsonValue | null): {
+  width: number;
+  height: number;
+  bytes: number;
+  format: string;
+} {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error('Product image metadata is invalid.');
+  }
+  const width = value.width;
+  const height = value.height;
+  const bytes = value.bytes;
+  const format = value.format;
+  if (
+    typeof width !== 'number' ||
+    typeof height !== 'number' ||
+    typeof bytes !== 'number' ||
+    typeof format !== 'string'
+  ) {
+    throw new Error('Product image metadata is invalid.');
+  }
+  return { width, height, bytes, format };
 }

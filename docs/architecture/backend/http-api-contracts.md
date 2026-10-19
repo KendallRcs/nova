@@ -101,6 +101,8 @@ POST   /api/v1/products
 PUT    /api/v1/products/{productId}
 POST   /api/v1/products/{productId}/deactivation
 GET    /api/v1/products/{productId}
+PUT    /api/v1/products/{productId}/images/{position}
+DELETE /api/v1/products/{productId}/images/{position}
 GET    /api/v1/inventory/locations
 POST   /api/v1/inventory/transfers
 POST   /api/v1/inventory/write-offs
@@ -195,6 +197,12 @@ el catálogo. La confirmación exige `Idempotency-Key`, vuelve a validar conflic
 crea atómicamente productos, clasificaciones faltantes, posiciones y movimientos de
 apertura de stock y costo. Un bloqueo transaccional y el índice único parcial
 impiden confirmar una segunda carga inicial.
+
+La sustitución de una imagen usa `multipart/form-data` con un único campo `file`.
+`position` solo admite `1` o `2`; el archivo debe ser JPEG, PNG o WebP válido y no
+superar 5 MiB. `PUT` crea o reemplaza esa posición y devuelve la URL optimizada,
+dimensiones, formato y peso almacenado sin exponer la clave interna. `DELETE`
+responde `204` y libera la posición.
 
 Los cuatro endpoints de dashboard requieren `dashboards:financial`. El mes usa
 `YYYY-MM` en `America/Lima`. Flujo de caja separa entradas y salidas por método y
@@ -442,7 +450,7 @@ Esta propuesta no decide todavía:
 - dominio y URL reales para los identificadores `type` de Problem Details;
 - límites de rate limiting;
 - política exacta de idempotencia y retención;
-- contratos multipart para imágenes y comprobantes;
+- contratos multipart para comprobantes;
 - generación de un cliente TypeScript desde OpenAPI.
 
 ## Consecuencias de la decisión

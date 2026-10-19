@@ -6,6 +6,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { PrismaService } from '../../../src/composition/prisma.service';
 import { PrismaCategoryRepository } from '../../../src/modules/catalog/adapters/driven/prisma/prisma-category.repository';
 import { PrismaProductCatalog } from '../../../src/modules/catalog/adapters/driven/prisma/prisma-product-catalog';
+import { PrismaProductImageBook } from '../../../src/modules/catalog/adapters/driven/prisma/prisma-product-image-book';
 import { PrismaProductRepository } from '../../../src/modules/catalog/adapters/driven/prisma/prisma-product.repository';
 import { PrismaTagRepository } from '../../../src/modules/catalog/adapters/driven/prisma/prisma-tag.repository';
 import { PrismaCustomerRepository } from '../../../src/modules/customers/adapters/driven/prisma/prisma-customer.repository';
@@ -52,6 +53,7 @@ describe('PrismaCategoryRepository', () => {
   let tags: PrismaTagRepository;
   let products: PrismaProductRepository;
   let productCatalog: PrismaProductCatalog;
+  let productImages: PrismaProductImageBook;
   let inventoryTransfers: PrismaInventoryTransferBook;
   let inventoryAdministration: PrismaInventoryAdministrationBook;
   let suppliers: PrismaSupplierRepository;
@@ -89,6 +91,7 @@ describe('PrismaCategoryRepository', () => {
     tags = new PrismaTagRepository(prisma);
     products = new PrismaProductRepository(prisma);
     productCatalog = new PrismaProductCatalog(prisma);
+    productImages = new PrismaProductImageBook(prisma);
     inventoryTransfers = new PrismaInventoryTransferBook(prisma);
     inventoryAdministration = new PrismaInventoryAdministrationBook(prisma);
     suppliers = new PrismaSupplierRepository(prisma);
@@ -1616,6 +1619,75 @@ describe('PrismaCategoryRepository', () => {
       ],
       nextProductId: null,
     });
+  });
+
+  it('replaces and removes a product image position atomically', async () => {
+    const category = createCategory('Juguetes');
+    await repository.save(category);
+    const product = createProduct(category.toPrimitives().id, undefined, 'IMG-001');
+    await products.save(product);
+    const productId = product.toPrimitives().id;
+    const generator = new UuidV7IdGenerator();
+    const firstStorageKey = `nova/products/${productId}/first`;
+
+    await expect(
+      productImages.replace({
+        id: generator.generate(),
+        productId,
+        position: 1,
+        image: {
+          storageKey: firstStorageKey,
+          width: 1200,
+          height: 800,
+          bytes: 25_000,
+          format: 'webp',
+        },
+        now: new Date('2026-10-19T16:00:00.000Z'),
+      }),
+    ).resolves.toEqual({ ok: true, previousStorageKey: null });
+
+    const secondStorageKey = `nova/products/${productId}/second`;
+    await expect(
+      productImages.replace({
+        id: generator.generate(),
+        productId,
+        position: 1,
+        image: {
+          storageKey: secondStorageKey,
+          width: 900,
+          height: 600,
+          bytes: 15_000,
+          format: 'webp',
+        },
+        now: new Date('2026-10-19T16:01:00.000Z'),
+      }),
+    ).resolves.toEqual({ ok: true, previousStorageKey: firstStorageKey });
+    await expect(productCatalog.search({ limit: 10 })).resolves.toMatchObject({
+      items: [
+        {
+          images: [
+            {
+              position: 1,
+              storageKey: secondStorageKey,
+              width: 900,
+              height: 600,
+              bytes: 15_000,
+              format: 'webp',
+            },
+          ],
+        },
+      ],
+    });
+    await expect(
+      productImages.remove({
+        productId,
+        position: 1,
+        now: new Date('2026-10-19T16:02:00.000Z'),
+      }),
+    ).resolves.toEqual({ ok: true, removedStorageKey: secondStorageKey });
+    await expect(
+      productImages.remove({ productId, position: 1, now: new Date() }),
+    ).resolves.toEqual({ ok: false, reason: 'image-not-found' });
   });
 
   it('translates duplicate product codes and hides deactivated products from the catalog', async () => {
