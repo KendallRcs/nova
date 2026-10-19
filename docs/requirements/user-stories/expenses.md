@@ -7,8 +7,8 @@
 
 - **Estado:** Confirmada
 - **Trazabilidad de implementación:** backend completo para registrar el gasto y
-  su egreso de caja en una transacción idempotente, con fecha efectiva manual,
-  método real, descripción y comprobante opcionales.
+  su egreso de caja en una transacción idempotente. El comprobante opcional se
+  adjunta, reemplaza, consulta y elimina mediante almacenamiento protegido.
 - **Como** administrador
 - **quiero** registrar manualmente los gastos del negocio
 - **para** conocer las salidas operativas y el resultado del período.
@@ -19,6 +19,26 @@
 - **Dado:** que indiqué categoría, monto, fecha, método y descripción
 - **Cuando:** confirmo el gasto con comprobante opcional
 - **Entonces:** el egreso aparece en el flujo de caja y en los gastos operativos del período.
+
+- **Escenario:** Registro sin comprobante
+- **Dado:** que no dispongo de evidencia digital del gasto
+- **Cuando:** confirmo el gasto sin adjuntar un archivo
+- **Entonces:** el gasto y su egreso quedan registrados normalmente sin comprobante.
+
+- **Escenario:** Carga protegida de un comprobante válido
+- **Dado:** que existe un gasto y tengo una imagen o PDF válido de hasta 5 MiB
+- **Cuando:** adjunto el comprobante como administrador
+- **Entonces:** queda asociado de forma privada y las imágenes se almacenan optimizadas sin metadatos.
+
+- **Escenario:** Consulta temporal del comprobante
+- **Dado:** que el gasto posee un comprobante protegido
+- **Cuando:** solicito verlo como administrador autenticado
+- **Entonces:** recibo un acceso firmado que vence en cinco minutos sin conocer su clave interna.
+
+- **Escenario:** Sustitución o eliminación del comprobante
+- **Dado:** que el gasto posee un comprobante incorrecto
+- **Cuando:** lo reemplazo o elimino como administrador
+- **Entonces:** cambia únicamente su evidencia adjunta y el hecho financiero permanece intacto.
 
 ### User Story EXP-002 — Administrar categorías de gastos
 

@@ -288,8 +288,8 @@ traduce al protocolo; el dominio no conoce códigos HTTP ni códigos SQL.
 - No se mantiene una transacción PostgreSQL abierta durante una carga a Cloudinary,
   envío de red u otro efecto externo lento.
 - Los archivos se preparan antes y su referencia neutral se confirma después; un
-  fallo de base de datos deja un recurso huérfano recuperable mediante limpieza,
-  no una transacción distribuida.
+  fallo de base de datos activa una limpieza compensatoria. Una interrupción puede
+  dejar un recurso huérfano recuperable, no una transacción distribuida.
 - Los eventos de dominio se acumulan durante el caso de uso y se despachan en
   proceso después del commit.
 - Un listener de eventos no completa inventario, caja o costo críticos: esos

@@ -44,11 +44,6 @@ export class RegisterExpenseRequest {
   @IsString()
   @MaxLength(1000)
   description?: string | null;
-  @ApiProperty({ required: false, nullable: true })
-  @IsOptional()
-  @IsString()
-  @MaxLength(500)
-  receiptStorageKey?: string | null;
   @ApiProperty({ format: 'date-time' }) @IsISO8601({ strict: true }) effectiveAt!: string;
 }
 export class CancelExpenseRequest {
@@ -76,7 +71,7 @@ export class ExpenseResponse {
   @ApiProperty() amountCents!: number;
   @ApiProperty({ enum: ['cash', 'yape', 'plin', 'pos'] }) method!: 'cash' | 'yape' | 'plin' | 'pos';
   @ApiProperty({ nullable: true }) description!: string | null;
-  @ApiProperty({ nullable: true }) receiptStorageKey!: string | null;
+  @ApiProperty() hasReceipt!: boolean;
   @ApiProperty({ enum: ['confirmed', 'cancelled'] }) status!: 'confirmed' | 'cancelled';
   @ApiProperty({ format: 'uuid' }) registeredBy!: string;
   @ApiProperty({ format: 'date-time' }) effectiveAt!: string;
@@ -86,4 +81,14 @@ export class ExpenseResponse {
 }
 export class ExpenseListResponse {
   @ApiProperty({ type: [ExpenseResponse] }) items!: ExpenseResponse[];
+}
+export class ExpenseReceiptUploadResponse {
+  @ApiProperty() hasReceipt!: true;
+  @ApiProperty({ enum: ['image/webp', 'application/pdf'] }) mediaType!:
+    'image/webp' | 'application/pdf';
+  @ApiProperty() bytes!: number;
+}
+export class ExpenseReceiptAccessResponse {
+  @ApiProperty({ format: 'uri' }) url!: string;
+  @ApiProperty({ format: 'date-time' }) expiresAt!: string;
 }

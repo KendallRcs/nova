@@ -7,7 +7,6 @@ describe('operating expense rules', () => {
     expect(prepareExpense({ amountCents: 2_500, description: '  Movilidad  ' })).toEqual({
       ok: true,
       description: 'Movilidad',
-      receiptStorageKey: null,
     });
     expect(prepareExpense({ amountCents: 0 })).toEqual({ ok: false, reason: 'invalid-amount' });
   });

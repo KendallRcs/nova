@@ -1,19 +1,35 @@
 import {
+  BadRequestException,
   Body,
   ConflictException,
   Controller,
+  Delete,
   Get,
   Headers,
+  HttpCode,
   NotFoundException,
   Param,
   ParseUUIDPipe,
   Patch,
   Post,
+  Put,
   Req,
+  ServiceUnavailableException,
   UnauthorizedException,
   UnprocessableEntityException,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
-import { ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import {
+  ApiBody,
+  ApiConsumes,
+  ApiCreatedResponse,
+  ApiNoContentResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 
 import type { AuthenticatedRequest } from '../../../../identity-access/adapters/driving/http/permission.guard';
 import { RequirePermission } from '../../../../identity-access/adapters/driving/http/require-permission';
@@ -23,18 +39,27 @@ import {
   ManageExpenseCategories,
   RegisterExpense,
 } from '../../../hexagon/application/manage-finance';
+import {
+  AttachExpenseReceipt,
+  ExpenseReceiptStorageUnavailableError,
+  GetExpenseReceiptAccess,
+  RemoveExpenseReceipt,
+} from '../../../hexagon/application/expense-receipts';
 import type {
   ExpenseCategoryView,
   ExpenseView,
   FinanceResult,
 } from '../../../hexagon/application/finance-book';
 import { InvalidExpenseCategoryNameError } from '../../../hexagon/domain/expense';
+import { MAX_EXPENSE_RECEIPT_BYTES } from '../../../hexagon/domain/expense-receipt';
 import {
   CancelExpenseRequest,
   ExpenseCategoryListResponse,
   ExpenseCategoryRequest,
   ExpenseCategoryResponse,
   ExpenseListResponse,
+  ExpenseReceiptAccessResponse,
+  ExpenseReceiptUploadResponse,
   ExpenseResponse,
   RegisterExpenseRequest,
 } from './finance.dto';
@@ -47,6 +72,9 @@ export class FinanceController {
     private readonly registerExpense: RegisterExpense,
     private readonly cancelExpense: CancelExpense,
     private readonly listExpenses: ListExpenses,
+    private readonly attachExpenseReceipt: AttachExpenseReceipt,
+    private readonly removeExpenseReceipt: RemoveExpenseReceipt,
+    private readonly getExpenseReceiptAccess: GetExpenseReceiptAccess,
   ) {}
 
   @Post('expense-categories')
@@ -110,9 +138,6 @@ export class FinanceController {
       amountCents: body.amountCents,
       method: body.method,
       ...(body.description === undefined ? {} : { description: body.description }),
-      ...(body.receiptStorageKey === undefined
-        ? {}
-        : { receiptStorageKey: body.receiptStorageKey }),
       effectiveAt: new Date(body.effectiveAt),
       operationId: context.operationId,
       actorId: context.actorId,
@@ -129,6 +154,67 @@ export class FinanceController {
     return {
       items: (await this.listExpenses.execute()).map((value) => presentExpense(value, false)),
     };
+  }
+
+  @Put('operating-expenses/:expenseId/receipt')
+  @RequirePermission('expenses:manage')
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: MAX_EXPENSE_RECEIPT_BYTES } }))
+  @ApiOperation({ operationId: 'attachOperatingExpenseReceipt' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['file'],
+      properties: { file: { type: 'string', format: 'binary' } },
+    },
+  })
+  @ApiOkResponse({ type: ExpenseReceiptUploadResponse })
+  async attachReceipt(
+    @Param('expenseId', new ParseUUIDPipe({ version: '7' })) expenseId: string,
+    @UploadedFile() file: { buffer: Buffer } | undefined,
+  ): Promise<ExpenseReceiptUploadResponse> {
+    if (file === undefined) {
+      throw new BadRequestException({ status: 400, code: 'EXPENSE_RECEIPT_REQUIRED' });
+    }
+    try {
+      const result = await this.attachExpenseReceipt.execute({ expenseId, content: file.buffer });
+      if (!result.ok) throwExpenseReceiptError(result.reason);
+      return {
+        hasReceipt: true,
+        mediaType: result.receipt.mediaType,
+        bytes: result.receipt.bytes,
+      };
+    } catch (error) {
+      translateExpenseReceiptError(error);
+    }
+  }
+
+  @Get('operating-expenses/:expenseId/receipt-access')
+  @RequirePermission('expenses:manage')
+  @ApiOperation({ operationId: 'getOperatingExpenseReceiptAccess' })
+  @ApiOkResponse({ type: ExpenseReceiptAccessResponse })
+  async receiptAccess(
+    @Param('expenseId', new ParseUUIDPipe({ version: '7' })) expenseId: string,
+  ): Promise<ExpenseReceiptAccessResponse> {
+    try {
+      const result = await this.getExpenseReceiptAccess.execute(expenseId);
+      if (!result.ok) throwExpenseReceiptError(result.reason);
+      return { url: result.url, expiresAt: result.expiresAt.toISOString() };
+    } catch (error) {
+      translateExpenseReceiptError(error);
+    }
+  }
+
+  @Delete('operating-expenses/:expenseId/receipt')
+  @HttpCode(204)
+  @RequirePermission('expenses:manage')
+  @ApiOperation({ operationId: 'removeOperatingExpenseReceipt' })
+  @ApiNoContentResponse()
+  async removeReceipt(
+    @Param('expenseId', new ParseUUIDPipe({ version: '7' })) expenseId: string,
+  ): Promise<void> {
+    const result = await this.removeExpenseReceipt.execute(expenseId);
+    if (!result.ok) throwExpenseReceiptError(result.reason);
   }
 
   @Post('operating-expenses/:expenseId/cancellations')
@@ -191,7 +277,16 @@ function presentCategory(value: ExpenseCategoryView): ExpenseCategoryResponse {
 }
 function presentExpense(value: ExpenseView, replayed: boolean): ExpenseResponse {
   return {
-    ...value,
+    id: value.id,
+    operationId: value.operationId,
+    categoryId: value.categoryId,
+    categoryName: value.categoryName,
+    amountCents: value.amountCents,
+    method: value.method,
+    description: value.description,
+    hasReceipt: value.receiptStorageKey !== null,
+    status: value.status,
+    registeredBy: value.registeredBy,
     effectiveAt: value.effectiveAt.toISOString(),
     cancellation:
       value.cancellation === null
@@ -199,4 +294,30 @@ function presentExpense(value: ExpenseView, replayed: boolean): ExpenseResponse 
         : { ...value.cancellation, effectiveAt: value.cancellation.effectiveAt.toISOString() },
     replayed,
   };
+}
+function throwExpenseReceiptError(
+  reason:
+    | 'expense-not-found'
+    | 'receipt-not-found'
+    | 'empty-receipt'
+    | 'receipt-too-large'
+    | 'unsupported-receipt-format',
+): never {
+  if (reason === 'expense-not-found' || reason === 'receipt-not-found') {
+    throw new NotFoundException({ status: 404, code: reason.toUpperCase().replaceAll('-', '_') });
+  }
+  throw new UnprocessableEntityException({
+    status: 422,
+    code: reason.toUpperCase().replaceAll('-', '_'),
+  });
+}
+
+function translateExpenseReceiptError(error: unknown): never {
+  if (error instanceof ExpenseReceiptStorageUnavailableError) {
+    throw new ServiceUnavailableException({
+      status: 503,
+      code: 'EXPENSE_RECEIPT_STORAGE_UNAVAILABLE',
+    });
+  }
+  throw error;
 }

@@ -59,7 +59,9 @@ Mantiene:
 ### Invariantes
 
 1. Categoría activa, monto positivo, fecha y método son obligatorios; la descripción es opcional.
-2. El comprobante es opcional y se referencia mediante un valor neutral al proveedor de archivos.
+2. El comprobante es opcional, existe como máximo uno por gasto y se referencia
+   mediante un valor neutral al proveedor de archivos. Su acceso es privado y no
+   modifica el hecho financiero al adjuntarse, reemplazarse o eliminarse.
 3. Confirmar el gasto crea exactamente un egreso causal en la misma transacción.
 4. Las compras de inventario y anticipos no se registran como gastos operativos.
 5. Los gastos recurrentes se crean manualmente cada mes; no existe recurrencia automática en el MVP.

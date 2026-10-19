@@ -279,7 +279,6 @@ el flujo transaccional de venta.
 - estrategia de pruebas específica del frontend;
 - librería UUIDv7;
 - configuración frontend, CSS y design system;
-- proveedor de archivos y almacenamiento de comprobantes;
 - CI/CD y destino de despliegue.
 
 La aprobación de esta base confirma el stack y la estructura descritos. No

@@ -17,5 +17,6 @@
 | [0013](0013-standardize-typescript-tooling-and-quality-gate.md) | Estandarizar herramientas TypeScript y puerta de calidad | accepted | 2026-08-26 |
 | [0014](0014-use-signed-double-submit-csrf-tokens.md) | Usar tokens CSRF firmados y vinculados a la sesión | accepted | 2026-08-27 |
 | [0015](0015-use-cloudinary-for-optimized-product-images.md) | Usar Cloudinary para imágenes optimizadas de productos | accepted | 2026-10-19 |
+| [0016](0016-protect-optional-expense-receipts.md) | Proteger los comprobantes opcionales de gastos | accepted | 2026-10-19 |
 
 Los ADR registran decisiones costosas de revertir. Una decisión reemplazada no se elimina: cambia a `superseded` y enlaza su reemplazo.

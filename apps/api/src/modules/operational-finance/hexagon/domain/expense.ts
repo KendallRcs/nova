@@ -23,13 +23,11 @@ export function optionalText(value: string | null | undefined): string | null {
 }
 
 export type ExpenseInputResult =
-  | { ok: true; description: string | null; receiptStorageKey: string | null }
-  | { ok: false; reason: 'invalid-amount' };
+  { ok: true; description: string | null } | { ok: false; reason: 'invalid-amount' };
 
 export function prepareExpense(input: {
   amountCents: number;
   description?: string | null;
-  receiptStorageKey?: string | null;
 }): ExpenseInputResult {
   if (!Number.isSafeInteger(input.amountCents) || input.amountCents <= 0) {
     return { ok: false, reason: 'invalid-amount' };
@@ -37,7 +35,6 @@ export function prepareExpense(input: {
   return {
     ok: true,
     description: optionalText(input.description),
-    receiptStorageKey: optionalText(input.receiptStorageKey),
   };
 }
 

@@ -33,6 +33,7 @@ import { PrismaSupplierAdvanceBook } from '../../../src/modules/procurement/adap
 import { PrismaSupplierAdvanceResolutionBook } from '../../../src/modules/procurement/adapters/driven/prisma/prisma-supplier-advance-resolution-book';
 import { PrismaPurchaseBook } from '../../../src/modules/procurement/adapters/driven/prisma/prisma-purchase-book';
 import { PrismaFinanceBook } from '../../../src/modules/operational-finance/adapters/driven/prisma/prisma-finance-book';
+import { PrismaExpenseReceiptBook } from '../../../src/modules/operational-finance/adapters/driven/prisma/prisma-expense-receipt-book';
 import { PrismaInitialImportBook } from '../../../src/modules/initial-import/adapters/driven/prisma/prisma-initial-import-book';
 import { PrismaAnalyticsSource } from '../../../src/modules/analytics/adapters/driven/prisma/prisma-analytics-source';
 import { reportingMonthInLima } from '../../../src/modules/analytics/hexagon/domain/reporting-period';
@@ -61,6 +62,7 @@ describe('PrismaCategoryRepository', () => {
   let supplierAdvanceResolutions: PrismaSupplierAdvanceResolutionBook;
   let purchasesBook: PrismaPurchaseBook;
   let financeBook: PrismaFinanceBook;
+  let expenseReceipts: PrismaExpenseReceiptBook;
   let initialImports: PrismaInitialImportBook;
   let analytics: PrismaAnalyticsSource;
   let customers: PrismaCustomerRepository;
@@ -99,6 +101,7 @@ describe('PrismaCategoryRepository', () => {
     supplierAdvanceResolutions = new PrismaSupplierAdvanceResolutionBook(prisma);
     purchasesBook = new PrismaPurchaseBook(prisma);
     financeBook = new PrismaFinanceBook(prisma);
+    expenseReceipts = new PrismaExpenseReceiptBook(prisma);
     initialImports = new PrismaInitialImportBook(prisma);
     analytics = new PrismaAnalyticsSource(prisma);
     customers = new PrismaCustomerRepository(prisma);
@@ -310,6 +313,35 @@ describe('PrismaCategoryRepository', () => {
       ok: true,
       replayed: false,
       value: { amountCents: 3_000, status: 'confirmed' },
+    });
+    await expect(
+      expenseReceipts.replace({
+        expenseId: '0199ef04-1b00-7000-8000-0000000001a1',
+        storageKey: 'nova/expense-receipts/first',
+        now,
+      }),
+    ).resolves.toEqual({ ok: true, previousStorageKey: null });
+    await expect(
+      expenseReceipts.replace({
+        expenseId: '0199ef04-1b00-7000-8000-0000000001a1',
+        storageKey: 'nova/expense-receipts/second',
+        now,
+      }),
+    ).resolves.toEqual({
+      ok: true,
+      previousStorageKey: 'nova/expense-receipts/first',
+    });
+    await expect(
+      expenseReceipts.findStorageKey('0199ef04-1b00-7000-8000-0000000001a1'),
+    ).resolves.toEqual({ ok: true, storageKey: 'nova/expense-receipts/second' });
+    await expect(
+      expenseReceipts.remove({
+        expenseId: '0199ef04-1b00-7000-8000-0000000001a1',
+        now,
+      }),
+    ).resolves.toEqual({
+      ok: true,
+      removedStorageKey: 'nova/expense-receipts/second',
     });
     const cancellation = {
       id: '0199ef04-1b00-7000-8000-0000000001a4',

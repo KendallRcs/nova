@@ -183,11 +183,21 @@ vinculante de revisión de precios.
 
 Las categorías y operaciones de gasto requieren `expenses:manage`. Registrar un
 gasto exige `Idempotency-Key`, categoría activa, importe positivo, método y fecha
-efectiva; descripción y referencia neutral de comprobante son opcionales. Gasto y
-egreso se crean atómicamente. La anulación también es idempotente, exige razón y
+efectiva; la descripción es opcional. Gasto y egreso se crean atómicamente. La
+respuesta indica `hasReceipt`, pero nunca expone la clave de almacenamiento. La
+anulación también es idempotente, exige razón y
 acepta `refundReceived=false` sin alterar el egreso histórico, o
 `refundReceived=true` con método obligatorio para registrar un ingreso por el
 importe total. No se aceptan devoluciones parciales dentro de una anulación.
+
+`PUT /operating-expenses/{expenseId}/receipt` usa `multipart/form-data` con un
+campo `file` JPEG, PNG, WebP o PDF válido de hasta 5 MiB y crea o reemplaza el único
+comprobante opcional. Las imágenes se normalizan a WebP de hasta 2400 × 2400
+píxeles; el PDF no se transforma. `GET
+/operating-expenses/{expenseId}/receipt-access` devuelve una URL firmada con cinco
+minutos de vigencia y `DELETE /operating-expenses/{expenseId}/receipt` responde
+`204`. Los tres endpoints requieren administración de gastos y el proveedor no
+publica los recursos directamente.
 
 La validación de importación inicial requiere `imports:initial-products` y un
 `multipart/form-data` cuyo campo `file` contiene un `.xlsx` de hasta 5 MiB y 1000
@@ -450,7 +460,6 @@ Esta propuesta no decide todavía:
 - dominio y URL reales para los identificadores `type` de Problem Details;
 - límites de rate limiting;
 - política exacta de idempotencia y retención;
-- contratos multipart para comprobantes;
 - generación de un cliente TypeScript desde OpenAPI.
 
 ## Consecuencias de la decisión

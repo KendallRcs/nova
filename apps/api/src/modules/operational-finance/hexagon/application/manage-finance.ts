@@ -56,7 +56,6 @@ export class RegisterExpense {
     amountCents: number;
     method: FinancePaymentMethod;
     description?: string | null;
-    receiptStorageKey?: string | null;
     actorId: string;
     effectiveAt: Date;
   }): Promise<FinanceResult<ExpenseView> | { ok: false; reason: 'invalid-amount' }> {
@@ -70,6 +69,7 @@ export class RegisterExpense {
       amountCents: input.amountCents,
       method: input.method,
       ...prepared,
+      receiptStorageKey: null,
       actorId: input.actorId,
       effectiveAt: input.effectiveAt,
     });

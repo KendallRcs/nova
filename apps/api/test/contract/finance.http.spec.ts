@@ -14,6 +14,11 @@ import {
   ManageExpenseCategories,
   RegisterExpense,
 } from '../../src/modules/operational-finance/hexagon/application/manage-finance';
+import {
+  AttachExpenseReceipt,
+  GetExpenseReceiptAccess,
+  RemoveExpenseReceipt,
+} from '../../src/modules/operational-finance/hexagon/application/expense-receipts';
 
 const ACTOR_ID = '0199ef04-1b00-7000-8000-000000000201';
 const CATEGORY_ID = '0199ef04-1b00-7000-8000-000000000202';
@@ -60,6 +65,37 @@ describe('Operational finance HTTP contract', () => {
                 ok: true,
                 value: { ...category, status: 'inactive' },
                 replayed: false,
+              }),
+          },
+        },
+        {
+          provide: AttachExpenseReceipt,
+          useValue: {
+            execute: () =>
+              Promise.resolve({
+                ok: true,
+                receipt: {
+                  storageKey: 'private/receipt',
+                  mediaType: 'image/webp',
+                  bytes: 4,
+                },
+              }),
+          },
+        },
+        {
+          provide: RemoveExpenseReceipt,
+          useValue: {
+            execute: () => Promise.resolve({ ok: true, removedStorageKey: 'private/receipt' }),
+          },
+        },
+        {
+          provide: GetExpenseReceiptAccess,
+          useValue: {
+            execute: () =>
+              Promise.resolve({
+                ok: true,
+                url: 'https://files.example/signed-receipt',
+                expiresAt: new Date('2026-10-18T20:05:00.000Z'),
               }),
           },
         },
@@ -153,7 +189,9 @@ describe('Operational finance HTTP contract', () => {
         expect(response.body as unknown).toMatchObject({
           amountCents: 3_000,
           status: 'confirmed',
+          hasReceipt: false,
         });
+        expect(response.body as Record<string, unknown>).not.toHaveProperty('receiptStorageKey');
       });
     await request(httpServer)
       .get('/api/v1/operating-expenses')
@@ -172,6 +210,43 @@ describe('Operational finance HTTP contract', () => {
           cancellation: { refundAmountCents: 3_000, refundMethod: 'yape' },
         });
       });
+  });
+
+  it('protects the expense receipt lifecycle behind dedicated endpoints', async () => {
+    await request(httpServer)
+      .put(`/api/v1/operating-expenses/${EXPENSE_ID}/receipt`)
+      .attach('file', Buffer.from([0xff, 0xd8, 0xff, 0x00]), {
+        filename: 'receipt.jpg',
+        contentType: 'image/jpeg',
+      })
+      .expect(200)
+      .expect({ hasReceipt: true, mediaType: 'image/webp', bytes: 4 });
+
+    await request(httpServer)
+      .get(`/api/v1/operating-expenses/${EXPENSE_ID}/receipt-access`)
+      .expect(200)
+      .expect({
+        url: 'https://files.example/signed-receipt',
+        expiresAt: '2026-10-18T20:05:00.000Z',
+      });
+
+    await request(httpServer)
+      .delete(`/api/v1/operating-expenses/${EXPENSE_ID}/receipt`)
+      .expect(204);
+  });
+
+  it('rejects client-supplied storage keys when creating an expense', async () => {
+    await request(httpServer)
+      .post('/api/v1/operating-expenses')
+      .set('Idempotency-Key', '0199ef04-1b00-7000-8000-000000000207')
+      .send({
+        categoryId: CATEGORY_ID,
+        amountCents: 3_000,
+        method: 'cash',
+        effectiveAt: now.toISOString(),
+        receiptStorageKey: 'attacker-controlled-key',
+      })
+      .expect(422);
   });
 
   it('rejects a declared refund without its real method', async () => {
