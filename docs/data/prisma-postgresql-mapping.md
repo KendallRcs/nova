@@ -191,7 +191,7 @@ que exista un repositorio por modelo.
 | `ExpenseCategory` | `expense_categories` | nombre normalizado único y ciclo activo/inactivo; implementado |
 | `OperatingExpense` | `operating_expenses` | operación idempotente, categoría, importe, método, fecha y actor; implementado |
 | `ExpenseCancellation` | `expense_cancellations` | `expenseId` y operación únicos, devolución nula o total; implementado |
-| `InitialProductImport` | `initial_product_imports` | una confirmada mediante índice parcial |
+| `InitialProductImport` | `initial_product_imports` | previsualización normalizada, operación de confirmación única y una confirmada mediante índice parcial; implementado |
 
 ## Forma base de los modelos
 

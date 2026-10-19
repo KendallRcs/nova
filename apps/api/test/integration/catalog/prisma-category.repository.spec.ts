@@ -32,6 +32,7 @@ import { PrismaSupplierAdvanceBook } from '../../../src/modules/procurement/adap
 import { PrismaSupplierAdvanceResolutionBook } from '../../../src/modules/procurement/adapters/driven/prisma/prisma-supplier-advance-resolution-book';
 import { PrismaPurchaseBook } from '../../../src/modules/procurement/adapters/driven/prisma/prisma-purchase-book';
 import { PrismaFinanceBook } from '../../../src/modules/operational-finance/adapters/driven/prisma/prisma-finance-book';
+import { PrismaInitialImportBook } from '../../../src/modules/initial-import/adapters/driven/prisma/prisma-initial-import-book';
 import { Supplier } from '../../../src/modules/procurement/hexagon/domain/supplier';
 import { UuidV7IdGenerator } from '../../../src/modules/catalog/adapters/driven/system/uuid-v7-id-generator';
 import { AccountStatus } from '../../../src/generated/prisma/client';
@@ -56,6 +57,7 @@ describe('PrismaCategoryRepository', () => {
   let supplierAdvanceResolutions: PrismaSupplierAdvanceResolutionBook;
   let purchasesBook: PrismaPurchaseBook;
   let financeBook: PrismaFinanceBook;
+  let initialImports: PrismaInitialImportBook;
   let customers: PrismaCustomerRepository;
   let customerMerges: PrismaCustomerMergeBook;
   let customerAccounts: PrismaCustomerAccountSource;
@@ -91,6 +93,7 @@ describe('PrismaCategoryRepository', () => {
     supplierAdvanceResolutions = new PrismaSupplierAdvanceResolutionBook(prisma);
     purchasesBook = new PrismaPurchaseBook(prisma);
     financeBook = new PrismaFinanceBook(prisma);
+    initialImports = new PrismaInitialImportBook(prisma);
     customers = new PrismaCustomerRepository(prisma);
     customerMerges = new PrismaCustomerMergeBook(prisma);
     customerAccounts = new PrismaCustomerAccountSource(prisma);
@@ -110,6 +113,7 @@ describe('PrismaCategoryRepository', () => {
     await prisma?.productTag.deleteMany();
     await prisma?.costMovement.deleteMany();
     await prisma?.inventoryMovement.deleteMany();
+    await prisma?.initialProductImport.deleteMany();
     await prisma?.inventoryReservation.deleteMany();
     await prisma?.saleCostAllocation.deleteMany();
     await prisma?.deliveryLine.deleteMany();
@@ -336,6 +340,78 @@ describe('PrismaCategoryRepository', () => {
         expenseCancellationId: '0199ef04-1b00-7000-8000-0000000001a4',
       },
     ]);
+  });
+
+  it('confirms the validated initial product import atomically and only once', async () => {
+    if (prisma === undefined) throw new Error('Prisma was not initialized.');
+    const actorId = await createActor(prisma);
+    const now = new Date('2026-10-18T20:00:00.000Z');
+    const saved = await initialImports.saveValidation({
+      id: '0199ef04-1b00-7000-8000-0000000002a0',
+      fileName: 'productos-iniciales.xlsx',
+      checksum: 'a'.repeat(64),
+      actorId,
+      validatedAt: now,
+      issues: [],
+      totalRows: 1,
+      rows: [
+        {
+          rowNumber: 2,
+          code: 'PEL-001',
+          codeNormalized: 'pel-001',
+          name: 'Peluche oso',
+          description: null,
+          category: 'Peluches',
+          categoryNormalized: 'peluches',
+          tags: [{ name: 'Suave', nameNormalized: 'suave' }],
+          minimumPriceCents: 2_500,
+          suggestedPriceCents: 3_000,
+          maximumPriceCents: 3_500,
+          unitCostCents: 1_500,
+          storeQuantity: 2,
+          warehouseQuantity: 3,
+        },
+      ],
+    });
+    expect(saved.status).toBe('validated');
+    const command = {
+      importId: saved.id,
+      operationId: '0199ef04-1b00-7000-8000-0000000002a1',
+      actorId,
+      confirmedAt: new Date('2026-10-18T21:00:00.000Z'),
+      ids: new UuidV7IdGenerator(),
+    };
+    await expect(initialImports.confirm(command)).resolves.toMatchObject({
+      ok: true,
+      replayed: false,
+      import: { status: 'confirmed' },
+    });
+    await expect(initialImports.confirm(command)).resolves.toMatchObject({
+      ok: true,
+      replayed: true,
+    });
+    await expect(
+      prisma.product.findUniqueOrThrow({ where: { codeNormalized: 'pel-001' } }),
+    ).resolves.toMatchObject({ minimumPriceCents: 2_500n });
+    await expect(
+      prisma.inventoryPosition.findMany({
+        where: { product: { codeNormalized: 'pel-001' } },
+        orderBy: { physicalQuantity: 'asc' },
+      }),
+    ).resolves.toMatchObject([{ physicalQuantity: 2 }, { physicalQuantity: 3 }]);
+    await expect(
+      prisma.productCostPosition.findFirstOrThrow({
+        where: { product: { codeNormalized: 'pel-001' } },
+      }),
+    ).resolves.toMatchObject({ availableQuantity: 5, availableValueCents: 7_500n });
+    await expect(
+      prisma.inventoryMovement.count({ where: { initialImportId: saved.id } }),
+    ).resolves.toBe(2);
+    await expect(prisma.costMovement.count({ where: { initialImportId: saved.id } })).resolves.toBe(
+      2,
+    );
+    await expect(prisma.cashMovement.count()).resolves.toBe(0);
+    await expect(prisma.purchase.count()).resolves.toBe(0);
   });
 
   it('confirms a multi-product purchase with multiple advances, stock, cost and cash', async () => {

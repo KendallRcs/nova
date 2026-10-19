@@ -581,7 +581,10 @@ erDiagram
         string file_checksum
         string status
         int total_rows
+        json validation_summary
+        json normalized_rows
         uuid requested_by FK
+        uuid confirmation_operation_id UK "optional"
         datetime validated_at "optional"
         datetime confirmed_at "optional"
     }
@@ -598,7 +601,9 @@ erDiagram
 
 Solo existe una importación inicial confirmada. Sus referencias causales en los
 movimientos permiten explicar el stock y costo de apertura sin inventar compras ni
-egresos. Los productos creados se identifican mediante esos movimientos y el mismo
+egresos. Las filas normalizadas se conservan desde la validación para que la
+confirmación no confíe en datos reenviados por el cliente. Los productos creados se
+identifican mediante esos movimientos y el mismo
 commit atómico, sin añadir una propiedad permanente de importación al catálogo.
 
 ## Referencias de auditoría

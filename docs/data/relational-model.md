@@ -164,10 +164,10 @@ garantizar la existencia del documento causal.
 
 | Relación | Datos principales | Cardinalidades y notas |
 | --- | --- | --- |
-| `initial_product_imports` | archivo/checksum, estado, filas totales, resumen de validación, requested_by, validated_at, confirmed_at | Conserva la trazabilidad de la carga inicial de productos. Solo puede existir una importación confirmada con éxito. |
+| `initial_product_imports` | archivo/checksum, estado, conteos, resumen, filas normalizadas, requested_by, validated_at, confirmation_operation_id, confirmed_at | Conserva la entrada validada en el servidor y la trazabilidad de la carga inicial. Solo puede existir una importación confirmada con éxito. |
 
 La validación es de todo o nada. Ningún producto se persiste si una fila falla, y
-la confirmación de todas las filas ocurre en una sola transacción. No se modelan
+la confirmación de todas las filas ocurre en una sola transacción idempotente. No se modelan
 importaciones de ventas ni un subsistema genérico reutilizable.
 
 ## Datos calculados y proyecciones almacenadas

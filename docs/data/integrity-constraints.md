@@ -325,6 +325,9 @@ la existencia del origen mediante integridad referencial nativa.
   único parcial.
 - El checksum del archivo, cantidad de filas, solicitante y fechas son obligatorios
   según el estado alcanzado.
+- La previsualización normalizada se persiste durante la validación y es la única
+  entrada permitida para la confirmación; el cliente no reenvía filas editables.
+- La operación de confirmación es idempotente y única.
 - Confirmada implica `confirmed_at` presente y un resumen sin errores.
 - Fallida implica al menos un error y ausencia de `confirmed_at`.
 - La confirmación valida que no existan códigos repetidos dentro del archivo ni

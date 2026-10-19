@@ -136,6 +136,8 @@ POST   /api/v1/expense-categories/{categoryId}/deactivation
 GET    /api/v1/operating-expenses
 POST   /api/v1/operating-expenses
 POST   /api/v1/operating-expenses/{expenseId}/cancellations
+POST   /api/v1/initial-product-imports/validation
+POST   /api/v1/initial-product-imports/{importId}/confirmation
 ```
 
 Las bajas y ajustes requieren `Idempotency-Key`. El ajuste envía además
@@ -180,6 +182,15 @@ egreso se crean atómicamente. La anulación también es idempotente, exige raz�
 acepta `refundReceived=false` sin alterar el egreso histórico, o
 `refundReceived=true` con método obligatorio para registrar un ingreso por el
 importe total. No se aceptan devoluciones parciales dentro de una anulación.
+
+La validación de importación inicial requiere `imports:initial-products` y un
+`multipart/form-data` cuyo campo `file` contiene un `.xlsx` de hasta 5 MiB y 1000
+filas en su primera hoja. Verifica la plantilla oficial, referencias y códigos,
+calcula el checksum SHA-256 y persiste una previsualización normalizada sin modificar
+el catálogo. La confirmación exige `Idempotency-Key`, vuelve a validar conflictos y
+crea atómicamente productos, clasificaciones faltantes, posiciones y movimientos de
+apertura de stock y costo. Un bloqueo transaccional y el índice único parcial
+impiden confirmar una segunda carga inicial.
 
 La fusión de clientes requiere `Idempotency-Key`, las versiones observadas de
 ambos registros y los datos finales resueltos. No reasigna ventas históricas: las

@@ -39,3 +39,4 @@
 | 2026-10-18 | PUR-005 completó su backend: reembolsos y pérdidas consumen de forma versionada e idempotente el saldo del anticipo; solo el reembolso real genera una entrada de caja. |
 | 2026-10-18 | PUR-001, PUR-002 y PUR-004 completaron su backend: la compra se confirma atómica e idempotentemente con proveedor estable, múltiples líneas y anticipos, inventario, costo promedio, pago restante y sugerencias no vinculantes de precio. |
 | 2026-10-18 | EXP-001, EXP-002 y EXP-003 completaron su backend: categorías mantenibles, gastos con egreso idempotente y anulaciones sin devolución o con devolución total conservan historia y caja real. |
+| 2026-10-18 | DATA-001 completó su backend: valida una plantilla `.xlsx`, conserva la previsualización normalizada y confirma una única carga inicial de productos, costos y stock de forma atómica e idempotente. |

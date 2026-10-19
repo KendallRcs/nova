@@ -14,6 +14,7 @@ import { CustomersModule } from './modules/customers/customers.module';
 import { SalesModule } from './modules/sales/sales.module';
 import { ProcurementModule } from './modules/procurement/procurement.module';
 import { OperationalFinanceModule } from './modules/operational-finance/operational-finance.module';
+import { InitialImportModule } from './modules/initial-import/initial-import.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { OperationalFinanceModule } from './modules/operational-finance/operatio
     SalesModule,
     ProcurementModule,
     OperationalFinanceModule,
+    InitialImportModule,
   ],
   controllers: [HealthController],
   providers: [CsrfTokens, { provide: APP_GUARD, useClass: CsrfGuard }],

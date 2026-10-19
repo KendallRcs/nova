@@ -181,6 +181,14 @@ enum OperatingExpenseStatus {
   @@map("operating_expense_status")
 }
 
+enum InitialImportStatus {
+  VALIDATED @map("validated")
+  FAILED    @map("failed")
+  CONFIRMED @map("confirmed")
+
+  @@map("initial_import_status")
+}
+
 model AccessProfile {
   id             String              @id @db.Uuid
   name           String
@@ -218,41 +226,42 @@ model ProfilePermission {
 }
 
 model UserAccount {
-  id                   String                   @id @db.Uuid
-  profileId            String                   @map("profile_id") @db.Uuid
-  usernameNormalized   String                   @unique(map: "uq_user_accounts_username_normalized") @map("username_normalized")
-  credentialHash       String                   @map("credential_hash")
-  status               AccountStatus            @default(PASSWORD_CHANGE_REQUIRED)
-  securityVersion      Int                      @default(1) @map("security_version")
-  createdAt            DateTime                 @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt            DateTime                 @updatedAt @map("updated_at") @db.Timestamptz(3)
-  profile              AccessProfile            @relation(fields: [profileId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  sessions             Session[]
-  inventoryTransfers   InventoryTransfer[]
-  inventoryMovements   InventoryMovement[]
-  costMovements        CostMovement[]
-  customerMerges       CustomerMerge[]
-  createdSales         Sale[]
-  approvedSaleLines    SaleLine[]               @relation("SaleLinePriceApprover")
-  confirmedSales       Sale[]                   @relation("SaleConfirmer")
-  registeredPayments   Payment[]
-  paymentCorrections   PaymentCorrection[]
-  cashMovements        CashMovement[]
-  saleTotalAdjustments SaleTotalAdjustment[]
-  saleClosures         SaleClosure[]
-  approvedReturns      SaleReturn[]
-  registeredRefunds    ReturnRefund[]
-  saleCancellations    SaleCancellation[]
-  cancellationRefunds  SaleCancellationRefund[]
-  deliveries           Delivery[]
-  registeredAdvances   SupplierAdvance[]
-  advanceRefunds       AdvanceRefund[]
-  advanceLosses        AdvanceLoss[]
-  createdPurchases     Purchase[]               @relation("PurchaseCreator")
-  confirmedPurchases   Purchase[]               @relation("PurchaseConfirmer")
-  advanceApplications  AdvanceApplication[]
-  registeredExpenses   OperatingExpense[]       @relation("ExpenseRegistrar")
-  expenseCancellations ExpenseCancellation[]    @relation("ExpenseCanceller")
+  id                    String                   @id @db.Uuid
+  profileId             String                   @map("profile_id") @db.Uuid
+  usernameNormalized    String                   @unique(map: "uq_user_accounts_username_normalized") @map("username_normalized")
+  credentialHash        String                   @map("credential_hash")
+  status                AccountStatus            @default(PASSWORD_CHANGE_REQUIRED)
+  securityVersion       Int                      @default(1) @map("security_version")
+  createdAt             DateTime                 @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt             DateTime                 @updatedAt @map("updated_at") @db.Timestamptz(3)
+  profile               AccessProfile            @relation(fields: [profileId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  sessions              Session[]
+  inventoryTransfers    InventoryTransfer[]
+  inventoryMovements    InventoryMovement[]
+  costMovements         CostMovement[]
+  customerMerges        CustomerMerge[]
+  createdSales          Sale[]
+  approvedSaleLines     SaleLine[]               @relation("SaleLinePriceApprover")
+  confirmedSales        Sale[]                   @relation("SaleConfirmer")
+  registeredPayments    Payment[]
+  paymentCorrections    PaymentCorrection[]
+  cashMovements         CashMovement[]
+  saleTotalAdjustments  SaleTotalAdjustment[]
+  saleClosures          SaleClosure[]
+  approvedReturns       SaleReturn[]
+  registeredRefunds     ReturnRefund[]
+  saleCancellations     SaleCancellation[]
+  cancellationRefunds   SaleCancellationRefund[]
+  deliveries            Delivery[]
+  registeredAdvances    SupplierAdvance[]
+  advanceRefunds        AdvanceRefund[]
+  advanceLosses         AdvanceLoss[]
+  createdPurchases      Purchase[]               @relation("PurchaseCreator")
+  confirmedPurchases    Purchase[]               @relation("PurchaseConfirmer")
+  advanceApplications   AdvanceApplication[]
+  registeredExpenses    OperatingExpense[]       @relation("ExpenseRegistrar")
+  expenseCancellations  ExpenseCancellation[]    @relation("ExpenseCanceller")
+  initialProductImports InitialProductImport[]
 
   @@index([profileId, status], map: "idx_user_accounts_profile_status")
   @@map("user_accounts")
@@ -524,6 +533,30 @@ model ExpenseCancellation {
   cashMovement       CashMovement?
 
   @@map("expense_cancellations")
+}
+
+model InitialProductImport {
+  id                      String              @id @db.Uuid
+  fileName                String              @map("file_name")
+  fileChecksum            String              @map("file_checksum")
+  status                  InitialImportStatus
+  totalRows               Int                 @map("total_rows")
+  validRows               Int                 @map("valid_rows")
+  warningCount            Int                 @map("warning_count")
+  errorCount              Int                 @map("error_count")
+  validationSummary       Json                @map("validation_summary")
+  normalizedRows          Json                @map("normalized_rows")
+  requestedBy             String              @map("requested_by") @db.Uuid
+  validatedAt             DateTime            @map("validated_at") @db.Timestamptz(3)
+  confirmationOperationId String?             @unique(map: "uq_initial_imports_confirmation_operation") @map("confirmation_operation_id") @db.Uuid
+  confirmedAt             DateTime?           @map("confirmed_at") @db.Timestamptz(3)
+  createdAt               DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  requester               UserAccount         @relation(fields: [requestedBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_initial_imports_requester")
+  inventoryMovements      InventoryMovement[]
+  costMovements           CostMovement[]
+
+  @@index([status, validatedAt(sort: Desc), id(sort: Desc)], map: "idx_initial_imports_status_date")
+  @@map("initial_product_imports")
 }
 
 model Category {
@@ -1028,6 +1061,7 @@ model InventoryMovement {
   cancellationLineId        String?                          @map("cancellation_line_id") @db.Uuid
   deliveryLineId            String?                          @map("delivery_line_id") @db.Uuid
   purchaseLineId            String?                          @map("purchase_line_id") @db.Uuid
+  initialImportId           String?                          @map("initial_import_id") @db.Uuid
   operationId               String?                          @unique(map: "uq_inventory_movements_operation") @map("operation_id") @db.Uuid
   expectedPositionVersion   Int?                             @map("expected_position_version")
   administrativeCategory    InventoryAdministrativeCategory? @map("administrative_category")
@@ -1040,6 +1074,7 @@ model InventoryMovement {
   cancellationLine          SaleCancellationLine?            @relation(fields: [cancellationLineId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_inventory_movements_cancellation_line")
   deliveryLine              DeliveryLine?                    @relation(fields: [deliveryLineId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_inventory_movements_delivery_line")
   purchaseLine              PurchaseLine?                    @relation(fields: [purchaseLineId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_inventory_movements_purchase_line")
+  initialImport             InitialProductImport?            @relation(fields: [initialImportId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_inventory_movements_initial_import")
   costMovement              CostMovement?
 
   @@index([productId, locationId, effectiveAt(sort: Desc), id(sort: Desc)], map: "idx_inventory_movements_product_location_date")
@@ -1049,6 +1084,7 @@ model InventoryMovement {
   @@index([cancellationLineId, effectiveAt, id], map: "idx_inventory_movements_cancellation_line_date")
   @@index([deliveryLineId, effectiveAt, id], map: "idx_inventory_movements_delivery_line_date")
   @@index([purchaseLineId, effectiveAt, id], map: "idx_inventory_movements_purchase_line_date")
+  @@index([initialImportId, effectiveAt, id], map: "idx_inventory_movements_initial_import_date")
   @@map("inventory_movements")
 }
 
@@ -1102,33 +1138,36 @@ model ProductCostPosition {
 }
 
 model CostMovement {
-  id                           String            @id @db.Uuid
-  productId                    String            @map("product_id") @db.Uuid
+  id                           String                @id @db.Uuid
+  productId                    String                @map("product_id") @db.Uuid
   type                         CostMovementType
-  quantityDelta                Int               @map("quantity_delta")
-  valueDeltaCents              BigInt            @map("value_delta_cents")
-  previousAvailableQuantity    Int               @map("previous_available_quantity")
-  resultingAvailableQuantity   Int               @map("resulting_available_quantity")
-  previousAvailableValueCents  BigInt            @map("previous_available_value_cents")
-  resultingAvailableValueCents BigInt            @map("resulting_available_value_cents")
-  previousReservedQuantity     Int               @map("previous_reserved_quantity")
-  resultingReservedQuantity    Int               @map("resulting_reserved_quantity")
-  previousReservedValueCents   BigInt            @map("previous_reserved_value_cents")
-  resultingReservedValueCents  BigInt            @map("resulting_reserved_value_cents")
-  previousReviewQuantity       Int               @map("previous_review_quantity")
-  resultingReviewQuantity      Int               @map("resulting_review_quantity")
-  previousReviewValueCents     BigInt            @map("previous_review_value_cents")
-  resultingReviewValueCents    BigInt            @map("resulting_review_value_cents")
-  declaredUnitCostCents        BigInt?           @map("declared_unit_cost_cents")
+  quantityDelta                Int                   @map("quantity_delta")
+  valueDeltaCents              BigInt                @map("value_delta_cents")
+  previousAvailableQuantity    Int                   @map("previous_available_quantity")
+  resultingAvailableQuantity   Int                   @map("resulting_available_quantity")
+  previousAvailableValueCents  BigInt                @map("previous_available_value_cents")
+  resultingAvailableValueCents BigInt                @map("resulting_available_value_cents")
+  previousReservedQuantity     Int                   @map("previous_reserved_quantity")
+  resultingReservedQuantity    Int                   @map("resulting_reserved_quantity")
+  previousReservedValueCents   BigInt                @map("previous_reserved_value_cents")
+  resultingReservedValueCents  BigInt                @map("resulting_reserved_value_cents")
+  previousReviewQuantity       Int                   @map("previous_review_quantity")
+  resultingReviewQuantity      Int                   @map("resulting_review_quantity")
+  previousReviewValueCents     BigInt                @map("previous_review_value_cents")
+  resultingReviewValueCents    BigInt                @map("resulting_review_value_cents")
+  declaredUnitCostCents        BigInt?               @map("declared_unit_cost_cents")
   policy                       CostingPolicy
-  actorId                      String            @map("actor_id") @db.Uuid
-  effectiveAt                  DateTime          @map("effective_at") @db.Timestamptz(3)
+  actorId                      String                @map("actor_id") @db.Uuid
+  effectiveAt                  DateTime              @map("effective_at") @db.Timestamptz(3)
   reason                       String
-  inventoryMovementId          String            @unique(map: "uq_cost_movements_inventory_movement") @map("inventory_movement_id") @db.Uuid
-  product                      Product           @relation(fields: [productId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_cost_movements_product")
-  actor                        UserAccount       @relation(fields: [actorId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_cost_movements_actor")
-  inventoryMovement            InventoryMovement @relation(fields: [inventoryMovementId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_cost_movements_inventory_movement")
+  inventoryMovementId          String                @unique(map: "uq_cost_movements_inventory_movement") @map("inventory_movement_id") @db.Uuid
+  initialImportId              String?               @map("initial_import_id") @db.Uuid
+  product                      Product               @relation(fields: [productId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_cost_movements_product")
+  actor                        UserAccount           @relation(fields: [actorId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_cost_movements_actor")
+  inventoryMovement            InventoryMovement     @relation(fields: [inventoryMovementId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_cost_movements_inventory_movement")
+  initialImport                InitialProductImport? @relation(fields: [initialImportId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_cost_movements_initial_import")
 
   @@index([productId, effectiveAt(sort: Desc), id(sort: Desc)], map: "idx_cost_movements_product_date")
+  @@index([initialImportId, effectiveAt, id], map: "idx_cost_movements_initial_import_date")
   @@map("cost_movements")
 }
