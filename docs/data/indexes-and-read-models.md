@@ -250,6 +250,11 @@ El dashboard diferencia acuerdo comercial de movimiento de caja. “Ganancia” 
 simplemente dinero ingresado menos dinero salido: una compra aumenta inventario y
 su costo se reconoce al vender o dar de baja.
 
+El corte backend implementado expone reportes separados de flujo de caja y
+resultado mensual. Lee hechos confirmados en intervalos de Lima y usa una
+transacción `REPEATABLE READ` para mantener una fotografía consistente entre sus
+consultas.
+
 ### Rentabilidad por producto
 
 **Entrada:** periodo, categoría, producto y ordenamiento.
@@ -259,6 +264,10 @@ margen bruto total, margen unitario y porcentaje de margen. Devoluciones sin
 retorno revierten ingreso, pero conservan el costo reconocido según la política
 confirmada.
 
+El corte backend implementado permite ordenar por margen, unidades o disponibilidad
+y filtrar por producto o categoría. No prorratea ajustes globales del total ni
+reembolsos de cancelación entre líneas sin una regla de atribución explícita.
+
 ### Desempeño por usuario
 
 **Entrada:** periodo y usuario opcional.
@@ -266,6 +275,9 @@ confirmada.
 **Salida:** cantidad y monto de ventas creadas, cobros registrados, devoluciones o
 ajustes administrativos y ticket promedio. Las métricas no confunden autor de la
 venta con registrador del cobro.
+
+El corte backend implementado conserva también las cuentas inactivas en el
+histórico y atribuye cada operación administrativa a su responsable real.
 
 ## Vistas SQL y consultas directas
 

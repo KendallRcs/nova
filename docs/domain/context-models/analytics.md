@@ -37,6 +37,7 @@ El resultado se mantiene separado del flujo de caja:
 ventas netas acordadas = ventas confirmadas
                        + ajustes de total
                        - devoluciones comerciales
+                       - reembolsos manuales de cancelación
 
 margen bruto estimado = ventas netas acordadas - costo histórico atribuible
 
@@ -47,11 +48,16 @@ resultado estimado = margen bruto estimado
                    - saldos condonados
 ```
 
-Las ventas se atribuyen inicialmente al período de confirmación; ajustes, devoluciones, bajas, gastos y condonaciones afectan el período de su fecha efectiva. Esto permite explicar qué ocurrió cada mes sin reescribir silenciosamente períodos anteriores.
+Las ventas se atribuyen inicialmente al período de confirmación; ajustes,
+devoluciones, reembolsos manuales de cancelación, bajas, gastos y condonaciones
+afectan el período de su fecha efectiva. Esto permite explicar qué ocurrió cada
+mes sin reescribir silenciosamente períodos anteriores.
 
 Los pagos de clientes no vuelven a sumarse como ventas: afectan flujo de caja y cobranza. Por ello una venta con saldo puede mostrar margen comercial esperado aunque todavía no se haya cobrado completamente.
 
-El resultado se denomina `estimado` hasta confirmar el método de costeo y las reglas de reconocimiento en la Fase 4.
+El resultado conserva el nombre `estimado` porque representa una lectura gerencial,
+aunque el método de promedio ponderado móvil y las reglas de reconocimiento ya se
+encuentran confirmados.
 
 ## Cuenta por cobrar
 
@@ -113,13 +119,12 @@ Si se incorporan proyecciones materializadas:
 - mostrarán cuándo fueron actualizadas;
 - no aceptarán correcciones manuales de totales.
 
-## Decisiones pendientes para la Fase 4
+## Decisiones de implementación vigentes
 
-- método de costeo histórico: FIFO, promedio ponderado u otro;
-- precisión y redondeo monetario;
-- tratamiento exacto del costo ante devoluciones;
-- índices y vistas necesarios para los reportes;
-- instante de corte y zona horaria persistente;
-- necesidad real de guardar proyecciones frente a calcularlas bajo demanda.
-
-Estas decisiones permanecen explícitas porque afectan datos y no deben inferirse de una fórmula provisional.
+- costo histórico mediante promedio ponderado móvil;
+- importes enteros en céntimos;
+- meses calendario de `America/Lima` convertidos a intervalos UTC;
+- consultas CQRS-lite bajo demanda, sin proyecciones materializadas;
+- transacción de solo lectura `REPEATABLE READ` para reportes compuestos;
+- ajustes globales y reembolsos de cancelación no se distribuyen artificialmente
+  entre productos.

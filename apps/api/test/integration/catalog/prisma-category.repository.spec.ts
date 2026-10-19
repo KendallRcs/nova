@@ -33,6 +33,8 @@ import { PrismaSupplierAdvanceResolutionBook } from '../../../src/modules/procur
 import { PrismaPurchaseBook } from '../../../src/modules/procurement/adapters/driven/prisma/prisma-purchase-book';
 import { PrismaFinanceBook } from '../../../src/modules/operational-finance/adapters/driven/prisma/prisma-finance-book';
 import { PrismaInitialImportBook } from '../../../src/modules/initial-import/adapters/driven/prisma/prisma-initial-import-book';
+import { PrismaAnalyticsSource } from '../../../src/modules/analytics/adapters/driven/prisma/prisma-analytics-source';
+import { reportingMonthInLima } from '../../../src/modules/analytics/hexagon/domain/reporting-period';
 import { Supplier } from '../../../src/modules/procurement/hexagon/domain/supplier';
 import { UuidV7IdGenerator } from '../../../src/modules/catalog/adapters/driven/system/uuid-v7-id-generator';
 import { AccountStatus } from '../../../src/generated/prisma/client';
@@ -58,6 +60,7 @@ describe('PrismaCategoryRepository', () => {
   let purchasesBook: PrismaPurchaseBook;
   let financeBook: PrismaFinanceBook;
   let initialImports: PrismaInitialImportBook;
+  let analytics: PrismaAnalyticsSource;
   let customers: PrismaCustomerRepository;
   let customerMerges: PrismaCustomerMergeBook;
   let customerAccounts: PrismaCustomerAccountSource;
@@ -94,6 +97,7 @@ describe('PrismaCategoryRepository', () => {
     purchasesBook = new PrismaPurchaseBook(prisma);
     financeBook = new PrismaFinanceBook(prisma);
     initialImports = new PrismaInitialImportBook(prisma);
+    analytics = new PrismaAnalyticsSource(prisma);
     customers = new PrismaCustomerRepository(prisma);
     customerMerges = new PrismaCustomerMergeBook(prisma);
     customerAccounts = new PrismaCustomerAccountSource(prisma);
@@ -340,6 +344,123 @@ describe('PrismaCategoryRepository', () => {
         expenseCancellationId: '0199ef04-1b00-7000-8000-0000000001a4',
       },
     ]);
+  });
+
+  it('builds consistent monthly analytics from confirmed transactional facts', async () => {
+    if (prisma === undefined) throw new Error('Prisma was not initialized.');
+    const category = createCategory('Analítica');
+    await repository.save(category);
+    const product = createProduct(category.toPrimitives().id, undefined, 'ANA-001');
+    await products.save(product);
+    const actorId = await createActor(prisma);
+    const location = await prisma.location.findFirstOrThrow({ where: { code: 'STORE' } });
+    const stocked = await inventoryAdministration.execute({
+      kind: 'count-adjustment',
+      movementId: '0199ef04-1b00-7000-8000-0000000001b0',
+      costMovementId: '0199ef04-1b00-7000-8000-0000000001b1',
+      operationId: '0199ef04-1b00-7000-8000-0000000001b2',
+      productId: product.toPrimitives().id,
+      locationId: location.id,
+      observedPhysicalQuantity: 5,
+      expectedPositionVersion: 0,
+      declaredUnitCostCents: 400,
+      reason: 'Inventario para analítica',
+      actorId,
+      effectiveAt: new Date('2026-10-02T15:00:00.000Z'),
+    });
+    expect(stocked.ok).toBe(true);
+    const draft = Sale.createDraft({
+      id: '0199ef04-1b00-7000-8000-0000000001b3',
+      createdBy: actorId,
+      lines: [
+        {
+          id: '0199ef04-1b00-7000-8000-0000000001b4',
+          productId: product.toPrimitives().id,
+          locationId: location.id,
+          quantity: 2,
+          deliveryQuantity: 2,
+          reservationQuantity: 0,
+          agreedUnitPriceCents: 2_000,
+        },
+      ],
+      now: new Date('2026-10-03T15:00:00.000Z'),
+    });
+    if (!draft.ok) throw new Error(draft.reason);
+    await saleDrafts.create(draft.sale);
+    await expect(
+      saleConfirmations.confirm({
+        operationId: '0199ef04-1b00-7000-8000-0000000001b5',
+        saleId: draft.sale.toPrimitives().id,
+        expectedVersion: 1,
+        actorId,
+        canConfirmAny: false,
+        canApprovePriceException: false,
+        priceExceptions: [],
+        initialPayment: { amountCents: 4_000, method: 'yape' },
+        effectiveAt: new Date('2026-10-03T16:00:00.000Z'),
+      }),
+    ).resolves.toMatchObject({ ok: true });
+    const expenseCategory = await financeBook.createCategory({
+      id: '0199ef04-1b00-7000-8000-0000000001b6',
+      name: 'Comida',
+      nameNormalized: 'comida',
+      description: null,
+      now: new Date('2026-10-04T15:00:00.000Z'),
+    });
+    if (!expenseCategory.ok) throw new Error(expenseCategory.reason);
+    await expect(
+      financeBook.registerExpense({
+        id: '0199ef04-1b00-7000-8000-0000000001b7',
+        cashMovementId: '0199ef04-1b00-7000-8000-0000000001b8',
+        operationId: '0199ef04-1b00-7000-8000-0000000001b9',
+        categoryId: expenseCategory.value.id,
+        amountCents: 300,
+        method: 'cash',
+        description: null,
+        receiptStorageKey: null,
+        actorId,
+        effectiveAt: new Date('2026-10-04T16:00:00.000Z'),
+      }),
+    ).resolves.toMatchObject({ ok: true });
+
+    const period = reportingMonthInLima('2026-10');
+    await expect(analytics.cashMovements(period)).resolves.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          direction: 'inflow',
+          amountCents: 4_000,
+          cause: 'sale-payment',
+        }),
+        expect.objectContaining({
+          direction: 'outflow',
+          amountCents: 300,
+          cause: 'operating-expense',
+        }),
+      ]),
+    );
+    await expect(analytics.resultFacts(period)).resolves.toMatchObject({
+      confirmedSalesCents: 4_000,
+      saleCostCents: 800,
+      operatingExpensesCents: 300,
+      soldUnits: 2,
+    });
+    await expect(analytics.userPerformance(period)).resolves.toContainEqual(
+      expect.objectContaining({
+        userId: actorId,
+        salesCount: 1,
+        salesAmountCents: 4_000,
+        paymentsCount: 1,
+        paymentsAmountCents: 4_000,
+      }),
+    );
+    await expect(analytics.productPerformance(period, {})).resolves.toContainEqual(
+      expect.objectContaining({
+        productId: product.toPrimitives().id,
+        soldUnits: 2,
+        grossSalesCents: 4_000,
+        saleCostCents: 800,
+      }),
+    );
   });
 
   it('confirms the validated initial product import atomically and only once', async () => {

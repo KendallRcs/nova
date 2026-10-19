@@ -40,3 +40,4 @@
 | 2026-10-18 | PUR-001, PUR-002 y PUR-004 completaron su backend: la compra se confirma atómica e idempotentemente con proveedor estable, múltiples líneas y anticipos, inventario, costo promedio, pago restante y sugerencias no vinculantes de precio. |
 | 2026-10-18 | EXP-001, EXP-002 y EXP-003 completaron su backend: categorías mantenibles, gastos con egreso idempotente y anulaciones sin devolución o con devolución total conservan historia y caja real. |
 | 2026-10-18 | DATA-001 completó su backend: valida una plantilla `.xlsx`, conserva la previsualización normalizada y confirma una única carga inicial de productos, costos y stock de forma atómica e idempotente. |
+| 2026-10-19 | DASH-001 a DASH-004 completaron su backend CQRS-lite: flujo de caja, resultado mensual, desempeño por usuario y rentabilidad/disponibilidad por producto leen hechos confirmados con meses de Lima y permisos financieros. |

@@ -138,6 +138,10 @@ POST   /api/v1/operating-expenses
 POST   /api/v1/operating-expenses/{expenseId}/cancellations
 POST   /api/v1/initial-product-imports/validation
 POST   /api/v1/initial-product-imports/{importId}/confirmation
+GET    /api/v1/dashboards/cash-flow?month=YYYY-MM
+GET    /api/v1/dashboards/monthly-result?month=YYYY-MM
+GET    /api/v1/dashboards/user-performance?month=YYYY-MM
+GET    /api/v1/dashboards/product-performance?month=YYYY-MM&categoryId=&productId=&sort=&limit=
 ```
 
 Las bajas y ajustes requieren `Idempotency-Key`. El ajuste envía además
@@ -191,6 +195,13 @@ el catálogo. La confirmación exige `Idempotency-Key`, vuelve a validar conflic
 crea atómicamente productos, clasificaciones faltantes, posiciones y movimientos de
 apertura de stock y costo. Un bloqueo transaccional y el índice único parcial
 impiden confirmar una segunda carga inicial.
+
+Los cuatro endpoints de dashboard requieren `dashboards:financial`. El mes usa
+`YYYY-MM` en `America/Lima`. Flujo de caja separa entradas y salidas por método y
+causa; resultado mensual diferencia venta, costo, margen, gasto y pérdidas;
+desempeño distingue creador de la venta, registrador del cobro y responsable de
+operaciones administrativas. Productos acepta orden `margin-desc`, `units-desc` o
+`availability-asc`, filtros opcionales y un límite entre 1 y 100.
 
 La fusión de clientes requiere `Idempotency-Key`, las versiones observadas de
 ambos registros y los datos finales resueltos. No reasigna ventas históricas: las
