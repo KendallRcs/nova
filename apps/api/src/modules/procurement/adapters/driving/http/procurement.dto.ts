@@ -89,6 +89,37 @@ export class SupplierAdvanceResponse {
   @ApiProperty() replayed!: boolean;
 }
 
+export class SupplierAdvanceListQuery {
+  @ApiProperty({ format: 'uuid', required: false })
+  @IsOptional()
+  @IsUUID('7')
+  supplierId?: string;
+  @ApiProperty({ enum: ['pending', 'resolved'], required: false })
+  @IsOptional()
+  @IsIn(['pending', 'resolved'])
+  status?: 'pending' | 'resolved';
+}
+
+export class SupplierAdvanceListItemResponse {
+  @ApiProperty({ format: 'uuid' }) id!: string;
+  @ApiProperty({ format: 'uuid' }) supplierId!: string;
+  @ApiProperty() supplierName!: string;
+  @ApiProperty() originalAmountCents!: number;
+  @ApiProperty() currentBalanceCents!: number;
+  @ApiProperty({ enum: ['cash', 'yape', 'plin', 'pos'] })
+  method!: 'cash' | 'yape' | 'plin' | 'pos';
+  @ApiProperty({ nullable: true }) purpose!: string | null;
+  @ApiProperty({ enum: ['pending', 'resolved'] }) status!: 'pending' | 'resolved';
+  @ApiProperty() version!: number;
+  @ApiProperty({ format: 'uuid' }) registeredBy!: string;
+  @ApiProperty({ format: 'date-time' }) effectiveAt!: string;
+}
+
+export class SupplierAdvanceListResponse {
+  @ApiProperty({ type: [SupplierAdvanceListItemResponse] })
+  items!: SupplierAdvanceListItemResponse[];
+}
+
 export class RefundSupplierAdvanceRequest {
   @ApiProperty({ minimum: 1 }) @IsInt() @Min(1) expectedVersion!: number;
   @ApiProperty({ minimum: 1 }) @IsInt() @Min(1) amountCents!: number;

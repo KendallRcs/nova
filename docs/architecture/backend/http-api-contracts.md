@@ -166,6 +166,12 @@ activo, importe positivo y método real. Crea en una única transacción el anti
 con saldo inicial completo y su egreso de caja; el propósito es opcional y no
 produce inventario ni gasto operativo.
 
+`GET /supplier-advances` requiere `purchases:manage` y permite filtrar
+opcionalmente por `supplierId` y por estado `pending` o `resolved`. Ordena por
+fecha efectiva descendente y devuelve identidad y nombre del proveedor, monto
+original, saldo vigente, propósito, estado y `version`; esta última se utiliza
+como precondición optimista al aplicar, reembolsar o reconocer una pérdida.
+
 Las devoluciones y pérdidas de anticipos requieren `expectedVersion`, importe e
 `Idempotency-Key`. Una devolución exige el método por el que realmente regresó el
 dinero y crea una entrada de caja; una pérdida exige razón y no crea otro movimiento

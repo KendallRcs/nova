@@ -30,6 +30,7 @@ import { PrismaInventoryTransferBook } from '../../../src/modules/inventory/adap
 import { PrismaInventoryAdministrationBook } from '../../../src/modules/inventory/adapters/driven/prisma/prisma-inventory-administration-book';
 import { PrismaSupplierRepository } from '../../../src/modules/procurement/adapters/driven/prisma/prisma-supplier.repository';
 import { PrismaSupplierAdvanceBook } from '../../../src/modules/procurement/adapters/driven/prisma/prisma-supplier-advance-book';
+import { PrismaSupplierAdvanceDirectory } from '../../../src/modules/procurement/adapters/driven/prisma/prisma-supplier-advance-directory';
 import { PrismaSupplierAdvanceResolutionBook } from '../../../src/modules/procurement/adapters/driven/prisma/prisma-supplier-advance-resolution-book';
 import { PrismaPurchaseBook } from '../../../src/modules/procurement/adapters/driven/prisma/prisma-purchase-book';
 import { PrismaFinanceBook } from '../../../src/modules/operational-finance/adapters/driven/prisma/prisma-finance-book';
@@ -59,6 +60,7 @@ describe('PrismaCategoryRepository', () => {
   let inventoryAdministration: PrismaInventoryAdministrationBook;
   let suppliers: PrismaSupplierRepository;
   let supplierAdvances: PrismaSupplierAdvanceBook;
+  let supplierAdvanceDirectory: PrismaSupplierAdvanceDirectory;
   let supplierAdvanceResolutions: PrismaSupplierAdvanceResolutionBook;
   let purchasesBook: PrismaPurchaseBook;
   let financeBook: PrismaFinanceBook;
@@ -98,6 +100,7 @@ describe('PrismaCategoryRepository', () => {
     inventoryAdministration = new PrismaInventoryAdministrationBook(prisma);
     suppliers = new PrismaSupplierRepository(prisma);
     supplierAdvances = new PrismaSupplierAdvanceBook(prisma);
+    supplierAdvanceDirectory = new PrismaSupplierAdvanceDirectory(prisma);
     supplierAdvanceResolutions = new PrismaSupplierAdvanceResolutionBook(prisma);
     purchasesBook = new PrismaPurchaseBook(prisma);
     financeBook = new PrismaFinanceBook(prisma);
@@ -224,6 +227,22 @@ describe('PrismaCategoryRepository', () => {
       method: 'YAPE',
       supplierAdvanceId: command.advanceId,
     });
+    await expect(
+      supplierAdvanceDirectory.list({
+        supplierId: command.supplierId,
+        status: 'pending',
+      }),
+    ).resolves.toMatchObject([
+      {
+        id: command.advanceId,
+        supplierId: command.supplierId,
+        supplierName: 'Distribuidora Norte',
+        originalAmountCents: 2_501,
+        currentBalanceCents: 2_501,
+        status: 'pending',
+        version: 1,
+      },
+    ]);
 
     const refund = {
       kind: 'refund' as const,
@@ -278,6 +297,16 @@ describe('PrismaCategoryRepository', () => {
     ).resolves.toMatchObject({ currentBalanceCents: 0n, status: 'RESOLVED', version: 3 });
     await expect(prisma.cashMovement.count()).resolves.toBe(2);
     await expect(prisma.advanceLoss.count()).resolves.toBe(1);
+    await expect(
+      supplierAdvanceDirectory.list({ supplierId: command.supplierId, status: 'resolved' }),
+    ).resolves.toMatchObject([
+      {
+        id: command.advanceId,
+        currentBalanceCents: 0,
+        status: 'resolved',
+        version: 3,
+      },
+    ]);
     await expect(supplierAdvances.register(command)).resolves.toMatchObject({
       ok: true,
       replayed: true,

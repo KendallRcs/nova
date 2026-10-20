@@ -42,9 +42,9 @@
 
 - **Estado:** Confirmada
 - **Trazabilidad de implementación:** backend completo para registrar y buscar la
-  identidad estable de proveedores registrados u ocasionales y crear el anticipo
-  idempotente junto con su salida de caja. El detalle esperado permanece flexible
-  y no genera inventario ni gasto operativo.
+  identidad estable de proveedores registrados u ocasionales, crear el anticipo
+  idempotente junto con su salida de caja y consultar después su saldo y versión.
+  El detalle esperado permanece flexible y no genera inventario ni gasto operativo.
 - **Como** administrador
 - **quiero** registrar dinero adelantado a un proveedor
 - **para** controlar la reserva de mercancía y el saldo entregado antes de la compra.
@@ -56,6 +56,11 @@
 - **Y dado:** que los productos pueden ser existentes, nuevos o todavía no estar definidos con exactitud
 - **Cuando:** registro monto, fecha y método de pago del anticipo
 - **Entonces:** se registra un egreso de caja pendiente de aplicar sin reconocer todavía un gasto operativo ni una entrada de inventario.
+
+- **Escenario:** Consulta de anticipos para continuar su seguimiento
+- **Dado:** que registré anticipos pendientes o resueltos para uno o más proveedores
+- **Cuando:** consulto los anticipos filtrando opcionalmente por proveedor y estado
+- **Entonces:** veo el monto original, saldo vigente, estado y versión necesarios para aplicarlos o resolverlos con seguridad.
 
 ### User Story PUR-004 — Aplicar un anticipo al completar una compra
 

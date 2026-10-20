@@ -13,6 +13,7 @@ import {
   SearchSuppliers,
 } from '../../src/modules/procurement/hexagon/application/manage-suppliers';
 import { RegisterSupplierAdvance } from '../../src/modules/procurement/hexagon/application/register-supplier-advance';
+import { ListSupplierAdvances } from '../../src/modules/procurement/hexagon/application/list-supplier-advances';
 import { ResolveSupplierAdvance } from '../../src/modules/procurement/hexagon/application/resolve-supplier-advance';
 import { ConfirmPurchase } from '../../src/modules/procurement/hexagon/application/confirm-purchase';
 
@@ -63,6 +64,27 @@ describe('Procurement HTTP contract', () => {
                   effectiveAt: now,
                 },
               }),
+          },
+        },
+        {
+          provide: ListSupplierAdvances,
+          useValue: {
+            execute: () =>
+              Promise.resolve([
+                {
+                  id: '0199ef04-1b00-7000-8000-000000000072',
+                  supplierId: SUPPLIER_ID,
+                  supplierName: 'Distribuidora Norte',
+                  originalAmountCents: 2_500,
+                  currentBalanceCents: 2_500,
+                  method: 'yape',
+                  purpose: 'Reserva de peluches',
+                  status: 'pending',
+                  version: 1,
+                  registeredBy: ACTOR_ID,
+                  effectiveAt: now,
+                },
+              ]),
           },
         },
         {
@@ -206,6 +228,31 @@ describe('Procurement HTTP contract', () => {
       status: 'pending',
       replayed: false,
     });
+  });
+
+  it('lists current advances by supplier and status for subsequent operations', async () => {
+    await request(httpServer)
+      .get(`/api/v1/supplier-advances?supplierId=${SUPPLIER_ID}&status=pending`)
+      .expect(200)
+      .expect((response) => {
+        expect(response.body).toEqual({
+          items: [
+            {
+              id: '0199ef04-1b00-7000-8000-000000000072',
+              supplierId: SUPPLIER_ID,
+              supplierName: 'Distribuidora Norte',
+              originalAmountCents: 2_500,
+              currentBalanceCents: 2_500,
+              method: 'yape',
+              purpose: 'Reserva de peluches',
+              status: 'pending',
+              version: 1,
+              registeredBy: ACTOR_ID,
+              effectiveAt: now.toISOString(),
+            },
+          ],
+        });
+      });
   });
 
   it('refunds or recognizes a loss against the versioned advance balance', async () => {

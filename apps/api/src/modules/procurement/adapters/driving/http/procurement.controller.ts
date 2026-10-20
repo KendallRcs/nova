@@ -23,6 +23,7 @@ import {
   type SupplierView,
 } from '../../../hexagon/application/manage-suppliers';
 import { RegisterSupplierAdvance } from '../../../hexagon/application/register-supplier-advance';
+import { ListSupplierAdvances } from '../../../hexagon/application/list-supplier-advances';
 import {
   ConfirmPurchase,
   type ConfirmPurchaseResult,
@@ -44,6 +45,8 @@ import {
   ConfirmPurchaseRequest,
   PurchaseResponse,
   SupplierAdvanceResponse,
+  SupplierAdvanceListQuery,
+  SupplierAdvanceListResponse,
   SupplierDataRequest,
   SupplierListResponse,
   SupplierResponse,
@@ -57,6 +60,7 @@ export class ProcurementController {
     private readonly registerSupplier: RegisterSupplier,
     private readonly searchSuppliers: SearchSuppliers,
     private readonly registerAdvance: RegisterSupplierAdvance,
+    private readonly listAdvances: ListSupplierAdvances,
     private readonly resolveAdvance: ResolveSupplierAdvance,
     private readonly confirmPurchase: ConfirmPurchase,
   ) {}
@@ -127,6 +131,20 @@ export class ProcurementController {
       }
       throw error;
     }
+  }
+
+  @Get('supplier-advances')
+  @RequirePermission('purchases:manage')
+  @ApiOperation({ operationId: 'listSupplierAdvances' })
+  @ApiOkResponse({ type: SupplierAdvanceListResponse })
+  async advances(@Query() query: SupplierAdvanceListQuery): Promise<SupplierAdvanceListResponse> {
+    const items = await this.listAdvances.execute({
+      ...(query.supplierId === undefined ? {} : { supplierId: query.supplierId }),
+      ...(query.status === undefined ? {} : { status: query.status }),
+    });
+    return {
+      items: items.map((item) => ({ ...item, effectiveAt: item.effectiveAt.toISOString() })),
+    };
   }
 
   @Post('supplier-advances/:advanceId/refunds')

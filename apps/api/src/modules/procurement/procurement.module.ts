@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 
 import { PrismaSupplierAdvanceBook } from './adapters/driven/prisma/prisma-supplier-advance-book';
+import { PrismaSupplierAdvanceDirectory } from './adapters/driven/prisma/prisma-supplier-advance-directory';
 import { PrismaSupplierRepository } from './adapters/driven/prisma/prisma-supplier.repository';
 import { PrismaSupplierAdvanceResolutionBook } from './adapters/driven/prisma/prisma-supplier-advance-resolution-book';
 import { PrismaPurchaseBook } from './adapters/driven/prisma/prisma-purchase-book';
@@ -16,6 +17,10 @@ import type {
   ProcurementIdGenerator,
 } from './hexagon/application/procurement.dependencies';
 import { RegisterSupplierAdvance } from './hexagon/application/register-supplier-advance';
+import {
+  ListSupplierAdvances,
+  type SupplierAdvanceDirectory,
+} from './hexagon/application/list-supplier-advances';
 import { ResolveSupplierAdvance } from './hexagon/application/resolve-supplier-advance';
 import type { SupplierAdvanceBook } from './hexagon/application/supplier-advance-book';
 import type { SupplierAdvanceResolutionBook } from './hexagon/application/supplier-advance-resolution-book';
@@ -24,6 +29,7 @@ import type { PurchaseBook } from './hexagon/application/purchase-book';
 
 const SUPPLIERS = Symbol('SUPPLIERS');
 const ADVANCES = Symbol('ADVANCES');
+const ADVANCE_DIRECTORY = Symbol('ADVANCE_DIRECTORY');
 const ADVANCE_RESOLUTIONS = Symbol('ADVANCE_RESOLUTIONS');
 const PURCHASES = Symbol('PURCHASES');
 
@@ -32,12 +38,14 @@ const PURCHASES = Symbol('PURCHASES');
   providers: [
     PrismaSupplierRepository,
     PrismaSupplierAdvanceBook,
+    PrismaSupplierAdvanceDirectory,
     PrismaSupplierAdvanceResolutionBook,
     PrismaPurchaseBook,
     SystemProcurementClock,
     UuidV7ProcurementIdGenerator,
     { provide: SUPPLIERS, useExisting: PrismaSupplierRepository },
     { provide: ADVANCES, useExisting: PrismaSupplierAdvanceBook },
+    { provide: ADVANCE_DIRECTORY, useExisting: PrismaSupplierAdvanceDirectory },
     { provide: ADVANCE_RESOLUTIONS, useExisting: PrismaSupplierAdvanceResolutionBook },
     { provide: PURCHASES, useExisting: PrismaPurchaseBook },
     {
@@ -71,6 +79,11 @@ const PURCHASES = Symbol('PURCHASES');
         ids: ProcurementIdGenerator,
         clock: ProcurementClock,
       ) => new ResolveSupplierAdvance(resolutions, ids, clock),
+    },
+    {
+      provide: ListSupplierAdvances,
+      inject: [ADVANCE_DIRECTORY],
+      useFactory: (directory: SupplierAdvanceDirectory) => new ListSupplierAdvances(directory),
     },
     {
       provide: ConfirmPurchase,
