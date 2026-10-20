@@ -159,6 +159,13 @@ baja exige además categoría, reduce el stock físico y registra la pérdida de
 en revisión. Una versión obsoleta o cantidad superior a la pendiente se rechaza
 sin efectos parciales.
 
+`GET /inventory/cost-positions` requiere `dashboards:financial` y permite buscar
+por código o nombre. Devuelve únicamente a perfiles financieros los precios de
+venta, cantidades, valores y promedios de costo disponible, reservado, en revisión
+y total, además del último costo y fecha de compra. Un producto sin unidades
+valorizadas devuelve promedio `null`; el catálogo general de productos no incorpora
+ningún costo ni margen.
+
 `POST /suppliers` registra una identidad reutilizable clasificada como
 `registered` u `occasional`; teléfono, documento y descripción son opcionales.
 `POST /supplier-advances` requiere `purchases:manage`, `Idempotency-Key`, proveedor

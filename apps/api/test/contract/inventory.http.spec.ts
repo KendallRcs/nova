@@ -15,6 +15,7 @@ import {
   WriteOffInventory,
 } from '../../src/modules/inventory/hexagon/application/administer-inventory';
 import { TransferInventory } from '../../src/modules/inventory/hexagon/application/transfer-inventory';
+import { ListProductCosts } from '../../src/modules/inventory/hexagon/application/product-cost-catalog';
 
 const STORE_ID = '0199ef04-1b00-7000-8000-000000000001';
 const WAREHOUSE_ID = '0199ef04-1b00-7000-8000-000000000002';
@@ -73,6 +74,31 @@ describe('Inventory HTTP contract', () => {
           provide: ResolveInventoryReview,
           useValue: { execute: administrationResult('review-approved', 0, 250) },
         },
+        {
+          provide: ListProductCosts,
+          useValue: {
+            execute: () =>
+              Promise.resolve([
+                {
+                  productId: PRODUCT_ID,
+                  code: 'MUN-001',
+                  name: 'Muñeca',
+                  isActive: true,
+                  minimumPriceCents: 4_000,
+                  suggestedPriceCents: 5_000,
+                  maximumPriceCents: null,
+                  available: { quantity: 3, valueCents: 7_500, averageUnitCostCents: 2_500 },
+                  reserved: { quantity: 1, valueCents: 2_400, averageUnitCostCents: 2_400 },
+                  review: { quantity: 1, valueCents: 2_600, averageUnitCostCents: 2_600 },
+                  total: { quantity: 5, valueCents: 12_500, averageUnitCostCents: 2_500 },
+                  lastPurchaseUnitCostCents: 3_000,
+                  lastPurchasedAt: new Date('2026-10-19T18:00:00.000Z'),
+                  policy: 'moving-average-v1',
+                  version: 4,
+                },
+              ]),
+          },
+        },
       ],
     }).compile();
     app = module.createNestApplication();
@@ -89,6 +115,7 @@ describe('Inventory HTTP contract', () => {
           'inventory:write-off',
           'inventory:adjust',
           'inventory:inspect-return',
+          'dashboards:financial',
         ],
         requiresPasswordChange: false,
       };
@@ -119,6 +146,33 @@ describe('Inventory HTTP contract', () => {
         items: [
           { id: STORE_ID, code: 'STORE', name: 'Tienda', type: 'store' },
           { id: WAREHOUSE_ID, code: 'WAREHOUSE', name: 'Almacén', type: 'warehouse' },
+        ],
+      });
+  });
+
+  it('exposes current and last purchase costs only through the administrative endpoint', async () => {
+    await request(httpServer)
+      .get('/api/v1/inventory/cost-positions?query=muneca')
+      .expect(200)
+      .expect({
+        items: [
+          {
+            productId: PRODUCT_ID,
+            code: 'MUN-001',
+            name: 'Muñeca',
+            isActive: true,
+            minimumPriceCents: 4_000,
+            suggestedPriceCents: 5_000,
+            maximumPriceCents: null,
+            available: { quantity: 3, valueCents: 7_500, averageUnitCostCents: 2_500 },
+            reserved: { quantity: 1, valueCents: 2_400, averageUnitCostCents: 2_400 },
+            review: { quantity: 1, valueCents: 2_600, averageUnitCostCents: 2_600 },
+            total: { quantity: 5, valueCents: 12_500, averageUnitCostCents: 2_500 },
+            lastPurchaseUnitCostCents: 3_000,
+            lastPurchasedAt: '2026-10-19T18:00:00.000Z',
+            policy: 'moving-average-v1',
+            version: 4,
+          },
         ],
       });
   });

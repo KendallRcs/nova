@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 
 import { PrismaInventoryCatalog } from './adapters/driven/prisma/prisma-inventory-catalog';
+import { PrismaProductCostCatalog } from './adapters/driven/prisma/prisma-product-cost-catalog';
 import { PrismaInventoryTransferBook } from './adapters/driven/prisma/prisma-inventory-transfer-book';
 import { PrismaInventoryAdministrationBook } from './adapters/driven/prisma/prisma-inventory-administration-book';
 import {
@@ -20,15 +21,21 @@ import {
   WriteOffInventory,
 } from './hexagon/application/administer-inventory';
 import { TransferInventory } from './hexagon/application/transfer-inventory';
+import {
+  ListProductCosts,
+  type ProductCostCatalog,
+} from './hexagon/application/product-cost-catalog';
 
 const INVENTORY_CATALOG = Symbol('INVENTORY_CATALOG');
 const INVENTORY_TRANSFER_BOOK = Symbol('INVENTORY_TRANSFER_BOOK');
 const INVENTORY_ADMINISTRATION_BOOK = Symbol('INVENTORY_ADMINISTRATION_BOOK');
+const PRODUCT_COST_CATALOG = Symbol('PRODUCT_COST_CATALOG');
 
 @Module({
   controllers: [InventoryController],
   providers: [
     PrismaInventoryCatalog,
+    PrismaProductCostCatalog,
     PrismaInventoryTransferBook,
     PrismaInventoryAdministrationBook,
     SystemInventoryClock,
@@ -36,6 +43,7 @@ const INVENTORY_ADMINISTRATION_BOOK = Symbol('INVENTORY_ADMINISTRATION_BOOK');
     { provide: INVENTORY_CATALOG, useExisting: PrismaInventoryCatalog },
     { provide: INVENTORY_TRANSFER_BOOK, useExisting: PrismaInventoryTransferBook },
     { provide: INVENTORY_ADMINISTRATION_BOOK, useExisting: PrismaInventoryAdministrationBook },
+    { provide: PRODUCT_COST_CATALOG, useExisting: PrismaProductCostCatalog },
     {
       provide: ListInventoryLocations,
       inject: [INVENTORY_CATALOG],
@@ -77,6 +85,11 @@ const INVENTORY_ADMINISTRATION_BOOK = Symbol('INVENTORY_ADMINISTRATION_BOOK');
         idGenerator: UuidV7InventoryIdGenerator,
         clock: SystemInventoryClock,
       ): TransferInventory => new TransferInventory(transfers, idGenerator, clock),
+    },
+    {
+      provide: ListProductCosts,
+      inject: [PRODUCT_COST_CATALOG],
+      useFactory: (catalog: ProductCostCatalog): ListProductCosts => new ListProductCosts(catalog),
     },
   ],
 })

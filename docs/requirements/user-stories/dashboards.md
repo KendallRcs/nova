@@ -59,7 +59,9 @@
 - **Estado:** Confirmada
 - **Trazabilidad de implementación:** backend completo con ranking por unidades,
   margen o baja disponibilidad, costo histórico reconocido, devoluciones y la
-  fotografía actual de stock separada por tienda y almacén.
+  fotografía actual de stock separada por tienda y almacén. La consulta
+  administrativa de costos muestra además el valor vigente por situación y el
+  último costo de compra sin exponerlos al catálogo de empleados.
 - **Como** administrador
 - **quiero** consultar productos más vendidos, más rentables y con baja disponibilidad
 - **para** tomar decisiones de precio y reposición.
@@ -70,6 +72,11 @@
 - **Dado:** que existen ventas e inventario en el período seleccionado
 - **Cuando:** consulto los indicadores de productos
 - **Entonces:** veo unidades vendidas, margen calculado con costos históricos y disponibilidad por ubicación como métricas separadas.
+
+- **Escenario:** Consulta administrativa del costo vigente
+- **Dado:** que el producto conserva unidades disponibles, reservadas o en revisión y puede tener compras anteriores
+- **Cuando:** consulto sus costos actuales como administrador
+- **Entonces:** veo cantidades, valores, promedios vigentes y último costo de compra separados de los precios comerciales.
 
 ## Reglas de lectura implementadas
 

@@ -28,6 +28,7 @@ import { ListSales } from '../../../src/modules/sales/hexagon/application/sale-a
 import { Sale } from '../../../src/modules/sales/hexagon/domain/sale';
 import { PrismaInventoryTransferBook } from '../../../src/modules/inventory/adapters/driven/prisma/prisma-inventory-transfer-book';
 import { PrismaInventoryAdministrationBook } from '../../../src/modules/inventory/adapters/driven/prisma/prisma-inventory-administration-book';
+import { PrismaProductCostCatalog } from '../../../src/modules/inventory/adapters/driven/prisma/prisma-product-cost-catalog';
 import { PrismaSupplierRepository } from '../../../src/modules/procurement/adapters/driven/prisma/prisma-supplier.repository';
 import { PrismaSupplierAdvanceBook } from '../../../src/modules/procurement/adapters/driven/prisma/prisma-supplier-advance-book';
 import { PrismaSupplierAdvanceDirectory } from '../../../src/modules/procurement/adapters/driven/prisma/prisma-supplier-advance-directory';
@@ -58,6 +59,7 @@ describe('PrismaCategoryRepository', () => {
   let productImages: PrismaProductImageBook;
   let inventoryTransfers: PrismaInventoryTransferBook;
   let inventoryAdministration: PrismaInventoryAdministrationBook;
+  let productCosts: PrismaProductCostCatalog;
   let suppliers: PrismaSupplierRepository;
   let supplierAdvances: PrismaSupplierAdvanceBook;
   let supplierAdvanceDirectory: PrismaSupplierAdvanceDirectory;
@@ -98,6 +100,7 @@ describe('PrismaCategoryRepository', () => {
     productImages = new PrismaProductImageBook(prisma);
     inventoryTransfers = new PrismaInventoryTransferBook(prisma);
     inventoryAdministration = new PrismaInventoryAdministrationBook(prisma);
+    productCosts = new PrismaProductCostCatalog(prisma);
     suppliers = new PrismaSupplierRepository(prisma);
     supplierAdvances = new PrismaSupplierAdvanceBook(prisma);
     supplierAdvanceDirectory = new PrismaSupplierAdvanceDirectory(prisma);
@@ -752,6 +755,17 @@ describe('PrismaCategoryRepository', () => {
         where: { productId: firstProduct.toPrimitives().id },
       }),
     ).resolves.toMatchObject({ availableQuantity: 4, availableValueCents: 1_000n });
+    await expect(productCosts.list('COMPRA-001')).resolves.toMatchObject([
+      {
+        productId: firstProduct.toPrimitives().id,
+        code: 'COMPRA-001',
+        availableQuantity: 4,
+        availableValueCents: 1_000,
+        lastPurchaseUnitCostCents: 300,
+        lastPurchasedAt: command.effectiveAt,
+        policy: 'moving-average-v1',
+      },
+    ]);
     await expect(prisma.supplierAdvance.findMany()).resolves.toEqual(
       expect.arrayContaining([
         expect.objectContaining({ currentBalanceCents: 0n, status: 'RESOLVED', version: 2 }),

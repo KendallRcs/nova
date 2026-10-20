@@ -44,3 +44,4 @@
 | 2026-10-19 | PROD-005 completó su contrato backend: admite dos posiciones reemplazables, valida JPEG/PNG/WebP de hasta 5 MiB y conserva en Cloudinary una versión optimizada de hasta 1600 × 1600 píxeles. |
 | 2026-10-19 | EXP-001 protegió el comprobante opcional: admite imágenes optimizadas o PDF de hasta 5 MiB, almacenamiento autenticado, acceso firmado de cinco minutos y reemplazo o eliminación sin exponer claves internas. |
 | 2026-10-19 | PUR-003 añadió la consulta administrativa de anticipos por proveedor y estado, exponiendo saldo y versión vigentes para poder aplicarlos, reembolsarlos o reconocer pérdidas desde la interfaz. |
+| 2026-10-19 | DASH-004 incorporó la consulta administrativa de costos por producto: separa valor disponible, reservado, en revisión y total, calcula promedios sobre las unidades actuales y conserva el último costo de compra como referencia. |

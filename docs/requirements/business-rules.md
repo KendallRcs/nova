@@ -60,9 +60,10 @@
 55. Cada pago pertenece exactamente a una venta; no existen pagos generales de cliente pendientes de distribución ni pagos repartidos entre varias ventas.
 56. Una baja de inventario exige una razón y una categoría entre dañado, perdido, defectuoso u otro; solo consume unidades disponibles.
 57. Un ajuste positivo usa el costo promedio vigente de las unidades actuales; si no existe costo anterior, el administrador debe indicar el costo unitario.
-58. Bajas y ajustes actualizan existencia, valoración y movimientos de auditoría en una única transacción idempotente.
-59. Los celulares peruanos de nueve dígitos se normalizan al formato internacional `+51`; DNI y dirección del cliente son opcionales y un DNI presente contiene ocho dígitos.
-60. Fusionar clientes conserva las referencias históricas, resuelve un único cliente principal activo y registra duplicado, datos elegidos, administrador y fecha sin crear cadenas de fusiones.
-61. Crear o editar un borrador de venta valida referencias activas y calcula sus totales, pero no reserva, entrega, valoriza ni registra dinero hasta confirmar la venta.
-62. Confirmar una venta es idempotente y atómico: congela referencias comerciales y costo, y confirma todas sus entregas y reservas iniciales o no confirma ningún efecto.
-63. Cada cobro crea de forma atómica e idempotente un pago inmutable, una entrada de caja y una nueva versión de la venta; una venta sin cliente solo puede confirmarse cuando su pago inicial cubre el total.
+58. Los costos vigentes y el último costo de compra solo se exponen mediante una consulta administrativa; el catálogo operativo del empleado conserva únicamente precios de venta y stock.
+59. Bajas y ajustes actualizan existencia, valoración y movimientos de auditoría en una única transacción idempotente.
+60. Los celulares peruanos de nueve dígitos se normalizan al formato internacional `+51`; DNI y dirección del cliente son opcionales y un DNI presente contiene ocho dígitos.
+61. Fusionar clientes conserva las referencias históricas, resuelve un único cliente principal activo y registra duplicado, datos elegidos, administrador y fecha sin crear cadenas de fusiones.
+62. Crear o editar un borrador de venta valida referencias activas y calcula sus totales, pero no reserva, entrega, valoriza ni registra dinero hasta confirmar la venta.
+63. Confirmar una venta es idempotente y atómico: congela referencias comerciales y costo, y confirma todas sus entregas y reservas iniciales o no confirma ningún efecto.
+64. Cada cobro crea de forma atómica e idempotente un pago inmutable, una entrada de caja y una nueva versión de la venta; una venta sin cliente solo puede confirmarse cuando su pago inicial cubre el total.

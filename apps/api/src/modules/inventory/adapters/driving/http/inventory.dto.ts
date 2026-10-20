@@ -1,6 +1,43 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsIn, IsInt, IsOptional, IsString, IsUUID, MaxLength, Min } from 'class-validator';
 
+export class ProductCostSearchQuery {
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  query?: string;
+}
+
+export class ProductCostBucketResponse {
+  @ApiProperty() quantity!: number;
+  @ApiProperty() valueCents!: number;
+  @ApiProperty({ nullable: true, type: Number }) averageUnitCostCents!: number | null;
+}
+
+export class ProductCostResponse {
+  @ApiProperty({ format: 'uuid' }) productId!: string;
+  @ApiProperty() code!: string;
+  @ApiProperty() name!: string;
+  @ApiProperty() isActive!: boolean;
+  @ApiProperty() minimumPriceCents!: number;
+  @ApiProperty({ nullable: true, type: Number }) suggestedPriceCents!: number | null;
+  @ApiProperty({ nullable: true, type: Number }) maximumPriceCents!: number | null;
+  @ApiProperty({ type: ProductCostBucketResponse }) available!: ProductCostBucketResponse;
+  @ApiProperty({ type: ProductCostBucketResponse }) reserved!: ProductCostBucketResponse;
+  @ApiProperty({ type: ProductCostBucketResponse }) review!: ProductCostBucketResponse;
+  @ApiProperty({ type: ProductCostBucketResponse }) total!: ProductCostBucketResponse;
+  @ApiProperty({ nullable: true, type: Number }) lastPurchaseUnitCostCents!: number | null;
+  @ApiProperty({ nullable: true, type: String, format: 'date-time' }) lastPurchasedAt!:
+    string | null;
+  @ApiProperty({ nullable: true, enum: ['moving-average-v1'] }) policy!: 'moving-average-v1' | null;
+  @ApiProperty({ nullable: true, type: Number }) version!: number | null;
+}
+
+export class ProductCostListResponse {
+  @ApiProperty({ type: [ProductCostResponse] }) items!: ProductCostResponse[];
+}
+
 export class TransferInventoryRequest {
   @ApiProperty({ format: 'uuid' })
   @IsUUID('7')

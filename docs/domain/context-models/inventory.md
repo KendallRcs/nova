@@ -155,6 +155,13 @@ la diferencia. Un ajuste positivo usa el promedio vigente de las unidades actual
 si no existe una posición valorizada previa, exige al administrador un costo unitario.
 El dominio no consulta Prisma ni calcula costos leyendo compras directamente.
 
+La lectura administrativa presenta por separado cantidad, valor y promedio entero
+de las unidades disponibles, reservadas y en revisión. También muestra el total de
+las unidades actuales y el último costo de compra como una referencia distinta: el
+último costo no reemplaza el promedio utilizado por la política de costeo. Cuando
+una división conserva céntimos residuales, el promedio mostrado se redondea hacia
+abajo y el valor total exacto permanece visible.
+
 ## Carga inicial
 
 La importación confirmada coordina atómicamente:

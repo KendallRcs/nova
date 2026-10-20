@@ -6,6 +6,7 @@ import {
   Headers,
   NotFoundException,
   Post,
+  Query,
   Req,
   UnauthorizedException,
   UnprocessableEntityException,
@@ -23,6 +24,7 @@ import {
 import type { InventoryAdministrationResult } from '../../../hexagon/application/inventory-administration-book';
 import type { InventoryTransferResult } from '../../../hexagon/application/inventory-transfer-book';
 import { TransferInventory } from '../../../hexagon/application/transfer-inventory';
+import { ListProductCosts } from '../../../hexagon/application/product-cost-catalog';
 import {
   InventoryLocationListResponse,
   AdjustInventoryCountRequest,
@@ -31,6 +33,8 @@ import {
   TransferInventoryRequest,
   WriteOffInventoryRequest,
   ResolveInventoryReviewRequest,
+  ProductCostListResponse,
+  ProductCostSearchQuery,
 } from './inventory.dto';
 
 @ApiTags('inventory')
@@ -42,6 +46,7 @@ export class InventoryController {
     private readonly writeOffs: WriteOffInventory,
     private readonly adjustments: AdjustInventoryCount,
     private readonly reviewResolutions: ResolveInventoryReview,
+    private readonly productCosts: ListProductCosts,
   ) {}
 
   @Get('locations')
@@ -50,6 +55,19 @@ export class InventoryController {
   @ApiOkResponse({ type: InventoryLocationListResponse })
   async listLocations(): Promise<InventoryLocationListResponse> {
     return { items: [...(await this.locations.execute())] };
+  }
+
+  @Get('cost-positions')
+  @RequirePermission('dashboards:financial')
+  @ApiOperation({ operationId: 'listProductCosts' })
+  @ApiOkResponse({ type: ProductCostListResponse })
+  async listProductCosts(@Query() query: ProductCostSearchQuery): Promise<ProductCostListResponse> {
+    return {
+      items: (await this.productCosts.execute(query.query)).map((item) => ({
+        ...item,
+        lastPurchasedAt: item.lastPurchasedAt?.toISOString() ?? null,
+      })),
+    };
   }
 
   @Post('transfers')
