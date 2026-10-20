@@ -6,6 +6,9 @@
 ### User Story AUTH-001 — Acceder de forma segura al sistema
 
 - **Estado:** Confirmada
+- **Trazabilidad de implementación:** backend completo con Argon2id, respuesta
+  genérica ante credenciales inválidas, limitación técnica de frecuencia sin bloqueo
+  persistente y sesión opaca mediante cookie segura.
 - **Como** administrador o empleado
 - **quiero** iniciar sesión con mis propias credenciales
 - **para** acceder únicamente a las operaciones autorizadas para mi cuenta.
@@ -31,6 +34,8 @@
 ### User Story AUTH-002 — Bloquear el acceso de una cuenta desactivada
 
 - **Estado:** Confirmada
+- **Trazabilidad de implementación:** backend completo; la desactivación revoca las
+  sesiones activas y la autenticación rechaza la cuenta sin borrar su autoría histórica.
 - **Como** administrador
 - **quiero** desactivar la cuenta de un colaborador
 - **para** impedir nuevos accesos sin perder el historial de sus operaciones.

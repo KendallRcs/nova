@@ -1,6 +1,6 @@
 # Arquitectura
 
-**Estado:** Fase 5 — contratos técnicos en progreso.
+**Estado:** backend del MVP cerrado el 2026-10-19; arquitectura frontend pendiente.
 
 ## Decisiones vigentes
 
@@ -18,10 +18,11 @@
 - [ADR-0012: verificar el backend por fronteras sin E2E de navegador inicialmente](../adr/0012-test-backend-boundaries-without-browser-e2e.md)
 - [Herramientas de código y plan de scaffolding](tooling-and-scaffolding.md)
 - [ADR-0013: estandarizar herramientas TypeScript y puerta de calidad](../adr/0013-standardize-typescript-tooling-and-quality-gate.md)
+- [Cierre de implementación del backend MVP](backend/implementation-closure.md)
 
-## En definición
+## Siguiente fase
 
-- Scaffolding ejecutable del monorepo.
+- Arquitectura UI/UX y frontend sobre los contratos HTTP ya confirmados.
 
 ## Áreas
 

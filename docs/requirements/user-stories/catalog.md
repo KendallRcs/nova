@@ -6,9 +6,9 @@
 ### User Story PROD-001 — Consultar un producto y sus precios autorizados
 
 - **Estado:** Confirmada
-- **Trazabilidad de implementación:** búsqueda backend por código o nombre, filtros y
-  precios de venta completos; la disponibilidad por ubicación se incorporará con
-  el módulo de inventario.
+- **Trazabilidad de implementación:** backend completo para búsqueda paginada por
+  código o nombre, filtros y consulta individual. Ambas vistas incluyen precios de
+  venta, imágenes y disponibilidad por tienda y almacén sin exponer costos ni márgenes.
 - **Como** empleado
 - **quiero** buscar un producto por código o nombre
 - **para** informar su disponibilidad y utilizar un precio de venta autorizado.
@@ -68,6 +68,9 @@
 ### User Story PROD-004 — Aprobar una venta debajo del precio mínimo
 
 - **Estado:** Confirmada
+- **Trazabilidad de implementación:** backend completo dentro de la confirmación
+  atómica de la venta; exige capacidad administrativa y conserva razón, aprobador y
+  precios mínimo y acordado en la instantánea histórica de la línea.
 - **Como** administrador
 - **quiero** aprobar un precio inferior al mínimo con una razón
 - **para** permitir acuerdos excepcionales sin perder control comercial.

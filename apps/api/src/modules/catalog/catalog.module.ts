@@ -22,7 +22,11 @@ import {
   DeactivateProduct,
   UpdateProduct,
 } from './hexagon/application/manage-products';
-import { type ProductCatalog, SearchProducts } from './hexagon/application/product-catalog';
+import {
+  GetProduct,
+  type ProductCatalog,
+  SearchProducts,
+} from './hexagon/application/product-catalog';
 import {
   RemoveProductImage,
   ReplaceProductImage,
@@ -146,6 +150,12 @@ const PRODUCT_IMAGE_STORAGE = Symbol('PRODUCT_IMAGE_STORAGE');
       inject: [PRODUCT_CATALOG, PRODUCT_IMAGE_STORAGE],
       useFactory: (catalog: ProductCatalog, imageStorage: ProductImageStorage): SearchProducts =>
         new SearchProducts(catalog, imageStorage),
+    },
+    {
+      provide: GetProduct,
+      inject: [PRODUCT_CATALOG, PRODUCT_IMAGE_STORAGE],
+      useFactory: (catalog: ProductCatalog, imageStorage: ProductImageStorage): GetProduct =>
+        new GetProduct(catalog, imageStorage),
     },
     {
       provide: ReplaceProductImage,

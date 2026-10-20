@@ -256,7 +256,6 @@ consulta y presentación de errores.
 
 ## Decisiones diferidas
 
-- versión exacta de Vitest, Supertest, Testcontainers y dependency-cruiser;
 - librería opcional de property-based testing;
 - estrategia final de cobertura y mutation testing;
 - configuración de pruebas frontend y React Testing Library;

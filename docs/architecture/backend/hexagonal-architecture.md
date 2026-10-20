@@ -1,6 +1,6 @@
 # Arquitectura hexagonal del backend
 
-**Estado:** decisión aceptada; el diseño físico se concretará después del modelo de dominio.
+**Estado:** decisión aceptada e implementada en el backend del MVP.
 
 ## Objetivo
 
@@ -22,7 +22,7 @@ Las dependencias de código apuntan hacia el interior. El dominio no importa inf
 
 ## Responsabilidades
 
-| Zona | Responsabilidad | Ejemplos futuros |
+| Zona | Responsabilidad | Ejemplos en Nova |
 | --- | --- | --- |
 | Dominio | Reglas, estados, invariantes y comportamiento | Venta, Reserva, Dinero |
 | Aplicación | Orquestar capacidades y dependencias | confirmar una venta, registrar un pago |

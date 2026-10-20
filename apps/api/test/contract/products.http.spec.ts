@@ -11,7 +11,10 @@ import {
   DeactivateProduct,
   UpdateProduct,
 } from '../../src/modules/catalog/hexagon/application/manage-products';
-import { SearchProducts } from '../../src/modules/catalog/hexagon/application/product-catalog';
+import {
+  GetProduct,
+  SearchProducts,
+} from '../../src/modules/catalog/hexagon/application/product-catalog';
 import {
   RemoveProductImage,
   ReplaceProductImage,
@@ -93,6 +96,34 @@ describe('Products HTTP contract', () => {
           },
         },
         {
+          provide: GetProduct,
+          useValue: {
+            execute: () =>
+              Promise.resolve({
+                ok: true,
+                product: {
+                  id: product.toPrimitives().id,
+                  code: 'MUN-001',
+                  name: 'Muñeca',
+                  description: 'Edición clásica',
+                  category: {
+                    id: '0199eec8-7900-7000-8000-000000000002',
+                    name: 'Juguetes',
+                  },
+                  tags: [],
+                  images: [],
+                  minimumPriceCents: 2_000,
+                  suggestedPriceCents: 2_500,
+                  maximumPriceCents: 3_000,
+                  stock: [],
+                  isActive: true,
+                  createdAt: now,
+                  updatedAt: now,
+                },
+              }),
+          },
+        },
+        {
           provide: ReplaceProductImage,
           useValue: {
             execute: () =>
@@ -170,6 +201,18 @@ describe('Products HTTP contract', () => {
     expect(response.body).toMatchObject({
       items: [{ code: 'MUN-001', category: { name: 'Juguetes' } }],
       pageInfo: { nextCursor: null, hasNextPage: false },
+    });
+  });
+
+  it('gets one active product with its commercial data and stock', async () => {
+    const response = await request(httpServer)
+      .get(`/api/v1/products/${product.toPrimitives().id}`)
+      .expect(200);
+    expect(response.body).toMatchObject({
+      id: product.toPrimitives().id,
+      code: 'MUN-001',
+      minimumPriceCents: 2_000,
+      stock: [],
     });
   });
 

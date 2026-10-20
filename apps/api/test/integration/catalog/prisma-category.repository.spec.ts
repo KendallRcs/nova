@@ -1783,6 +1783,16 @@ describe('PrismaCategoryRepository', () => {
       ],
       nextProductId: null,
     });
+    await expect(productCatalog.findById(product.toPrimitives().id)).resolves.toMatchObject({
+      id: product.toPrimitives().id,
+      code: 'MUN-001',
+      category: { name: 'Juguetes' },
+      tags: [{ name: 'Colección' }],
+      stock: [
+        { locationCode: 'STORE', availableQuantity: 0 },
+        { locationCode: 'WAREHOUSE', availableQuantity: 0 },
+      ],
+    });
   });
 
   it('replaces and removes a product image position atomically', async () => {
@@ -1869,6 +1879,7 @@ describe('PrismaCategoryRepository', () => {
       items: [],
       nextProductId: null,
     });
+    await expect(productCatalog.findById(first.toPrimitives().id)).resolves.toBeNull();
   });
 
   it('transfers available stock atomically and replays the same operation once', async () => {

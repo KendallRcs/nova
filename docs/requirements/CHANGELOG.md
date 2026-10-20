@@ -48,3 +48,5 @@
 | 2026-10-19 | PUR-001 incorporó el historial administrativo paginado de compras y su detalle con proveedor, productos, ubicaciones, costos, anticipos, pago y responsables. |
 | 2026-10-19 | INV-008 incorporó el historial operativo de movimientos de inventario para rastrear cantidades, responsables y causas de negocio sin exponer costos al empleado. |
 | 2026-10-19 | DATA-001 incorporó la descarga protegida de la plantilla oficial `.xlsx`, generada con las mismas columnas que valida la carga inicial. |
+| 2026-10-19 | PROD-001 completó su backend con la consulta individual de un producto activo, incluyendo datos comerciales, imágenes y stock por ubicación sin costos. |
+| 2026-10-19 | La auditoría final confirmó cobertura backend para las 56 historias y normalizó su trazabilidad; frontend y preparación operativa para producción permanecen como fases separadas. |

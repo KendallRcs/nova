@@ -1,12 +1,12 @@
 # Herramientas de código y plan de scaffolding
 
-**Estado:** Confirmada el 2026-08-26.
+**Estado:** base implementada; documento confirmado el 2026-08-26.
 
 **Investigación verificada:** 2026-08-26.
 
-Esta propuesta cierra lint, formato, configuración TypeScript y el orden exacto
-para crear el monorepo ejecutable. Todavía no instala dependencias ni genera las
-aplicaciones.
+Este documento conserva las decisiones y el plan con los que se creó el monorepo.
+El scaffolding, las dependencias fijadas y la primera vertical ya fueron ejecutados;
+los pasos siguientes se mantienen como registro del proceso, no como trabajo pendiente.
 
 ## Selección confirmada
 
@@ -330,9 +330,6 @@ el backend vertical; se verifica manualmente conforme al ADR-0012.
 ## Decisiones que permanecen abiertas
 
 - CSS, componentes, formularios y estado del frontend;
-- proveedor de archivos/comprobantes;
-- librería UUIDv7;
-- mecanismo exacto de CSRF, rotación de sesión y rate limiting;
 - CI/CD y proveedor de despliegue;
 - observabilidad y política de logs;
 - estrategia de pruebas frontend más allá de la revisión manual inicial.

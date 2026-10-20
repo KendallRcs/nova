@@ -51,6 +51,7 @@ export interface ProductCatalogPage {
 }
 
 export interface ProductCatalog {
+  findById(productId: string): Promise<ProductCatalogRecord | null>;
   search(input: {
     query?: string;
     categoryId?: string;
@@ -63,6 +64,23 @@ export interface ProductCatalog {
   }>;
 }
 
+export type GetProductResult =
+  | { readonly ok: true; readonly product: ProductCatalogItem }
+  | { readonly ok: false; readonly reason: 'product-not-found' };
+
+export class GetProduct {
+  constructor(
+    private readonly catalog: ProductCatalog,
+    private readonly imageStorage: ProductImageStorage,
+  ) {}
+
+  async execute(productId: string): Promise<GetProductResult> {
+    const product = await this.catalog.findById(productId);
+    if (product === null) return { ok: false, reason: 'product-not-found' };
+    return { ok: true, product: withDeliveryUrls(product, this.imageStorage) };
+  }
+}
+
 export class SearchProducts {
   constructor(
     private readonly catalog: ProductCatalog,
@@ -73,13 +91,20 @@ export class SearchProducts {
     const page = await this.catalog.search(input);
     return {
       ...page,
-      items: page.items.map((item) => ({
-        ...item,
-        images: item.images.map(({ storageKey, ...image }) => ({
-          ...image,
-          url: this.imageStorage.deliveryUrl(storageKey),
-        })),
-      })),
+      items: page.items.map((item) => withDeliveryUrls(item, this.imageStorage)),
     };
   }
+}
+
+function withDeliveryUrls(
+  product: ProductCatalogRecord,
+  imageStorage: ProductImageStorage,
+): ProductCatalogItem {
+  return {
+    ...product,
+    images: product.images.map(({ storageKey, ...image }) => ({
+      ...image,
+      url: imageStorage.deliveryUrl(storageKey),
+    })),
+  };
 }

@@ -33,7 +33,10 @@
 ### User Story IAM-002 — Aplicar permisos de los roles iniciales
 
 - **Estado:** Confirmada para dos roles; perfiles personalizados fuera del MVP
-- **Trazabilidad de implementación:** guard reutilizable de sesión y permisos implementado en backend; aplicado inicialmente a consulta y administración de categorías.
+- **Trazabilidad de implementación:** backend completo con perfiles Administrador y
+  Empleado sincronizados, guard global reutilizable y permisos específicos aplicados
+  a todos los controladores de negocio. Una credencial temporal solo autoriza el
+  establecimiento de la contraseña personal.
 - **Como** administrador
 - **quiero** que las acciones estén protegidas según permisos
 - **para** operar inicialmente con Administrador y Empleado y poder incorporar perfiles personalizados en el futuro.

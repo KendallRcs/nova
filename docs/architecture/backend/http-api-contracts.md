@@ -347,9 +347,9 @@ cero y nunca supera el pago neto; el método solo se admite cuando existe una sa
 real de dinero. Cancelación, caja, inventario, costo histórico y versión se
 confirman en una única transacción.
 
-Esto no confirma aún el inventario completo de endpoints. Cada módulo definirá sus
-operaciones a partir de capacidades e historias, no mediante la exposición
-automática de todas las tablas.
+Este inventario cubre las capacidades backend del MVP. Cualquier endpoint nuevo
+debe originarse en una capacidad o historia y no en la exposición automática de
+tablas.
 
 ## Respuestas exitosas
 
@@ -491,14 +491,13 @@ frontend consumidor.
 
 ## Aspectos deliberadamente pendientes
 
-Esta propuesta no decide todavía:
+- dominio público definitivo para los identificadores `type` de Problem Details;
+- exposición de Swagger UI en producción;
+- generación de un cliente TypeScript desde OpenAPI para el frontend.
 
-- sesión mediante cookie o token y protección CSRF/CORS;
-- librería concreta de validación del wire format;
-- dominio y URL reales para los identificadores `type` de Problem Details;
-- límites de rate limiting;
-- política exacta de idempotencia y retención;
-- generación de un cliente TypeScript desde OpenAPI.
+La sesión opaca en cookie, CSRF/CORS, validación con `class-validator`, límite de
+login e idempotencia transaccional ya están implementados. Sus parámetros podrán
+ajustarse como configuración operativa sin cambiar el contrato de negocio.
 
 ## Consecuencias de la decisión
 

@@ -256,8 +256,9 @@ comprueba el permiso en cada capacidad.
 Los adaptadores HTTP declaran la capacidad requerida mediante metadata y un guard
 global resuelve sesión, renovación y autorización. La decisión pura rechaza tanto
 la ausencia del código como cualquier credencial temporal, aunque el perfil tenga
-asignado ese permiso. La primera aplicación concreta protege
-`GET /categories` con `catalog:read` y `POST /categories` con `catalog:manage`.
+asignado ese permiso. Este mecanismo protege todos los controladores de negocio;
+por ejemplo, `GET /categories` exige `catalog:read` y `POST /categories` exige
+`catalog:manage`.
 
 ## Pruebas mínimas
 
@@ -273,10 +274,8 @@ asignado ese permiso. La primera aplicación concreta protege
 
 ## Decisiones aún diferidas
 
-- librería o implementación acotada de sesiones/guards;
 - dominios de despliegue y configuración de proxy confiable;
-- mecanismo exacto del token CSRF;
-- política futura para cerrar sesiones desde otros dispositivos;
+- política futura de administración de sesiones por dispositivo desde la interfaz;
 - autenticación multifactor, fuera del MVP.
 
 ## Fuentes

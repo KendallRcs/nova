@@ -13,6 +13,17 @@ import { safeNumber } from './prisma-product.repository';
 export class PrismaProductCatalog implements ProductCatalog {
   constructor(private readonly prisma: PrismaService) {}
 
+  async findById(productId: string): Promise<ProductCatalogRecord | null> {
+    const [row, locations] = await Promise.all([
+      this.prisma.product.findFirst({
+        where: { id: productId, status: RecordStatus.ACTIVE },
+        include: PRODUCT_CATALOG_INCLUDE,
+      }),
+      this.activeLocations(),
+    ]);
+    return row === null ? null : toItem(row, locations);
+  }
+
   async search(input: Parameters<ProductCatalog['search']>[0]) {
     const query = input.query?.trim();
     const where: Prisma.ProductWhereInput = {
@@ -36,18 +47,9 @@ export class PrismaProductCatalog implements ProductCatalog {
         ...(input.afterProductId === undefined
           ? {}
           : { cursor: { id: input.afterProductId }, skip: 1 }),
-        include: {
-          category: { select: { id: true, name: true } },
-          tags: { include: { tag: { select: { id: true, name: true } } } },
-          images: { orderBy: { position: 'asc' } },
-          inventoryPositions: true,
-        },
+        include: PRODUCT_CATALOG_INCLUDE,
       }),
-      this.prisma.location.findMany({
-        where: { status: RecordStatus.ACTIVE },
-        orderBy: [{ type: 'asc' }, { name: 'asc' }, { id: 'asc' }],
-        select: { id: true, code: true, name: true },
-      }),
+      this.activeLocations(),
     ]);
     const hasNextPage = rows.length > input.limit;
     const page = rows.slice(0, input.limit);
@@ -56,15 +58,25 @@ export class PrismaProductCatalog implements ProductCatalog {
       nextProductId: hasNextPage ? (page.at(-1)?.id ?? null) : null,
     };
   }
+
+  private activeLocations() {
+    return this.prisma.location.findMany({
+      where: { status: RecordStatus.ACTIVE },
+      orderBy: [{ type: 'asc' as const }, { name: 'asc' as const }, { id: 'asc' as const }],
+      select: { id: true, code: true, name: true },
+    });
+  }
 }
 
+const PRODUCT_CATALOG_INCLUDE = {
+  category: { select: { id: true, name: true } },
+  tags: { include: { tag: { select: { id: true, name: true } } } },
+  images: { orderBy: { position: 'asc' as const } },
+  inventoryPositions: true,
+} satisfies Prisma.ProductInclude;
+
 type CatalogRow = Prisma.ProductGetPayload<{
-  include: {
-    category: { select: { id: true; name: true } };
-    tags: { include: { tag: { select: { id: true; name: true } } } };
-    images: { orderBy: { position: 'asc' } };
-    inventoryPositions: true;
-  };
+  include: typeof PRODUCT_CATALOG_INCLUDE;
 }>;
 
 function toItem(

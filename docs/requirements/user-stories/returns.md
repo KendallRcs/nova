@@ -5,7 +5,7 @@
 
 ### User Story RET-001 — Aprobar una devolución total o parcial
 
-- **Estado:** Implementada en backend
+- **Estado:** Confirmada
 - **Como** administrador
 - **quiero** devolver una o varias unidades de una venta
 - **para** reembolsar al cliente sin cancelar productos que no forman parte de la devolución.
@@ -30,7 +30,7 @@
 
 ### User Story RET-002 — Registrar reembolso y retorno físico por separado
 
-- **Estado:** Implementada en backend
+- **Estado:** Confirmada
 - **Como** administrador
 - **quiero** indicar si el producto retorna y el método de un eventual reembolso
 - **para** reflejar correctamente el efecto financiero y físico de una devolución.
@@ -56,7 +56,7 @@
 
 ### User Story RET-003 — Impedir devoluciones no autorizadas
 
-- **Estado:** Implementada en backend
+- **Estado:** Confirmada
 - **Como** administrador
 - **quiero** reservar la aprobación de devoluciones al rol administrativo
 - **para** controlar salidas de dinero y alteraciones de inventario.

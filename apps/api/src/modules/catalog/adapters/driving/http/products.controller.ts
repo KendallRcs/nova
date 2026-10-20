@@ -34,7 +34,11 @@ import {
   DeactivateProduct,
   UpdateProduct,
 } from '../../../hexagon/application/manage-products';
-import { SearchProducts } from '../../../hexagon/application/product-catalog';
+import {
+  GetProduct,
+  SearchProducts,
+  type ProductCatalogItem,
+} from '../../../hexagon/application/product-catalog';
 import {
   ProductImageStorageUnavailableError,
   RemoveProductImage,
@@ -50,6 +54,7 @@ import {
 import { RequirePermission } from '../../../../identity-access/adapters/driving/http/require-permission';
 import {
   ProductCatalogPageResponse,
+  ProductCatalogResponse,
   ProductImageUploadResponse,
   ProductWriteResponse,
   SaveProductRequest,
@@ -64,6 +69,7 @@ export class ProductsController {
     private readonly updateProduct: UpdateProduct,
     private readonly deactivateProduct: DeactivateProduct,
     private readonly searchProducts: SearchProducts,
+    private readonly getProduct: GetProduct,
     private readonly replaceProductImage: ReplaceProductImage,
     private readonly removeProductImage: RemoveProductImage,
   ) {}
@@ -126,14 +132,7 @@ export class ProductsController {
         limit: 50,
       });
       return {
-        items: page.items.map((item) => ({
-          ...item,
-          tags: [...item.tags],
-          images: [...item.images],
-          stock: [...item.stock],
-          createdAt: item.createdAt.toISOString(),
-          updatedAt: item.updatedAt.toISOString(),
-        })),
+        items: page.items.map(presentCatalogProduct),
         pageInfo: {
           nextCursor: page.nextProductId === null ? null : encodeCursor(page.nextProductId),
           hasNextPage: page.nextProductId !== null,
@@ -142,6 +141,20 @@ export class ProductsController {
     } catch (error) {
       translateProductImageError(error);
     }
+  }
+
+  @Get(':productId')
+  @RequirePermission('catalog:read')
+  @ApiOperation({ operationId: 'getProduct' })
+  @ApiOkResponse({ type: ProductCatalogResponse })
+  async detail(
+    @Param('productId', new ParseUUIDPipe({ version: '7' })) productId: string,
+  ): Promise<ProductCatalogResponse> {
+    const result = await this.getProduct.execute(productId);
+    if (!result.ok) {
+      throw new NotFoundException({ status: 404, code: 'PRODUCT_NOT_FOUND' });
+    }
+    return presentCatalogProduct(result.product);
   }
 
   @Put(':productId/images/:position')
@@ -209,6 +222,17 @@ export class ProductsController {
     });
     if (!result.ok) throwProductImageResult(result.reason);
   }
+}
+
+function presentCatalogProduct(product: ProductCatalogItem): ProductCatalogResponse {
+  return {
+    ...product,
+    tags: [...product.tags],
+    images: [...product.images],
+    stock: [...product.stock],
+    createdAt: product.createdAt.toISOString(),
+    updatedAt: product.updatedAt.toISOString(),
+  };
 }
 
 function productImagePosition(value: number): ProductImagePosition {
