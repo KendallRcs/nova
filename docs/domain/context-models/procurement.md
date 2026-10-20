@@ -52,6 +52,17 @@ transacción. Un borrador persistente queda fuera del alcance actual.
 
 Una corrección posterior genera operaciones compensatorias; no devuelve la compra a borrador.
 
+### Consulta administrativa de compras
+
+El historial de compras es una vista de lectura CQRS-lite y no rehidrata el agregado
+para modificarlo. Se ordena por fecha efectiva descendente, admite filtros por
+proveedor o producto y pagina mediante cursor opaco.
+
+El detalle conserva los importes y costos capturados en las líneas, las ubicaciones
+de ingreso, las aplicaciones de anticipos y los responsables. Código y nombre del
+producto se presentan como identidad vigente del catálogo; el `ProductoId` estable
+mantiene el vínculo aunque esos datos descriptivos cambien.
+
 ## Agregado Anticipo a proveedor
 
 `Anticipo` protege su monto original y la explicación completa de su saldo.

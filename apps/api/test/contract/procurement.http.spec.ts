@@ -16,6 +16,10 @@ import { RegisterSupplierAdvance } from '../../src/modules/procurement/hexagon/a
 import { ListSupplierAdvances } from '../../src/modules/procurement/hexagon/application/list-supplier-advances';
 import { ResolveSupplierAdvance } from '../../src/modules/procurement/hexagon/application/resolve-supplier-advance';
 import { ConfirmPurchase } from '../../src/modules/procurement/hexagon/application/confirm-purchase';
+import {
+  GetPurchaseDetail,
+  ListPurchases,
+} from '../../src/modules/procurement/hexagon/application/purchase-history';
 
 const SUPPLIER_ID = '0199ef04-1b00-7000-8000-000000000070';
 const ACTOR_ID = '0199ef04-1b00-7000-8000-000000000071';
@@ -159,6 +163,90 @@ describe('Procurement HTTP contract', () => {
                       previousAverageUnitCostCents: 400,
                       resultingAverageUnitCostCents: 450,
                       priceReviewSuggested: true,
+                    },
+                  ],
+                },
+              }),
+          },
+        },
+        {
+          provide: ListPurchases,
+          useValue: {
+            execute: () =>
+              Promise.resolve({
+                items: [
+                  {
+                    id: '0199ef04-1b00-7000-8000-000000000078',
+                    supplier: {
+                      id: SUPPLIER_ID,
+                      name: 'Distribuidora Norte',
+                      kind: 'occasional',
+                    },
+                    totalCents: 1_000,
+                    advanceAppliedCents: 500,
+                    newlyPaidCents: 500,
+                    paymentMethod: 'pos',
+                    lineCount: 1,
+                    totalQuantity: 2,
+                    confirmedBy: ACTOR_ID,
+                    confirmerUsername: 'admin',
+                    effectiveAt: now,
+                  },
+                ],
+                nextPurchaseId: null,
+              }),
+          },
+        },
+        {
+          provide: GetPurchaseDetail,
+          useValue: {
+            execute: (purchaseId: string) =>
+              Promise.resolve({
+                ok: true,
+                purchase: {
+                  id: purchaseId,
+                  operationId: '0199ef04-1b00-7000-8000-000000000082',
+                  supplier: {
+                    id: SUPPLIER_ID,
+                    name: 'Distribuidora Norte',
+                    kind: 'occasional',
+                  },
+                  totalCents: 1_000,
+                  advanceAppliedCents: 500,
+                  newlyPaidCents: 500,
+                  paymentMethod: 'pos',
+                  lineCount: 1,
+                  totalQuantity: 2,
+                  createdBy: ACTOR_ID,
+                  creatorUsername: 'admin',
+                  confirmedBy: ACTOR_ID,
+                  confirmerUsername: 'admin',
+                  effectiveAt: now,
+                  createdAt: now,
+                  lines: [
+                    {
+                      id: '0199ef04-1b00-7000-8000-000000000079',
+                      productId: '0199ef04-1b00-7000-8000-000000000080',
+                      currentProductCode: 'PEL-001',
+                      currentProductName: 'Peluche',
+                      destinationLocationId: '0199ef04-1b00-7000-8000-000000000081',
+                      destinationLocationCode: 'STORE',
+                      destinationLocationName: 'Tienda',
+                      quantity: 2,
+                      unitCostCents: 500,
+                      subtotalCents: 1_000,
+                      previousAverageUnitCostCents: 400,
+                      resultingAverageUnitCostCents: 450,
+                      priceReviewSuggested: true,
+                    },
+                  ],
+                  advanceApplications: [
+                    {
+                      id: '0199ef04-1b00-7000-8000-000000000083',
+                      advanceId: '0199ef04-1b00-7000-8000-000000000072',
+                      amountCents: 500,
+                      resultingBalanceCents: 2_000,
+                      resultingAdvanceVersion: 2,
                     },
                   ],
                 },
@@ -310,5 +398,41 @@ describe('Procurement HTTP contract', () => {
       lines: [{ priceReviewSuggested: true }],
       replayed: false,
     });
+  });
+
+  it('lists purchases and exposes their administrative detail', async () => {
+    await request(httpServer)
+      .get(`/api/v1/purchases?supplierId=${SUPPLIER_ID}`)
+      .expect(200)
+      .expect((response) => {
+        expect(response.body).toMatchObject({
+          items: [
+            {
+              supplier: { id: SUPPLIER_ID, name: 'Distribuidora Norte' },
+              totalCents: 1_000,
+              totalQuantity: 2,
+              effectiveAt: now.toISOString(),
+            },
+          ],
+          pageInfo: { nextCursor: null, hasNextPage: false },
+        });
+      });
+
+    await request(httpServer)
+      .get('/api/v1/purchases/0199ef04-1b00-7000-8000-000000000078')
+      .expect(200)
+      .expect((response) => {
+        expect(response.body).toMatchObject({
+          creatorUsername: 'admin',
+          lines: [
+            {
+              currentProductCode: 'PEL-001',
+              destinationLocationCode: 'STORE',
+              unitCostCents: 500,
+            },
+          ],
+          advanceApplications: [{ amountCents: 500, resultingAdvanceVersion: 2 }],
+        });
+      });
   });
 });

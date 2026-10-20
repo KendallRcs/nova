@@ -34,6 +34,7 @@ import { PrismaSupplierAdvanceBook } from '../../../src/modules/procurement/adap
 import { PrismaSupplierAdvanceDirectory } from '../../../src/modules/procurement/adapters/driven/prisma/prisma-supplier-advance-directory';
 import { PrismaSupplierAdvanceResolutionBook } from '../../../src/modules/procurement/adapters/driven/prisma/prisma-supplier-advance-resolution-book';
 import { PrismaPurchaseBook } from '../../../src/modules/procurement/adapters/driven/prisma/prisma-purchase-book';
+import { PrismaPurchaseHistoryDirectory } from '../../../src/modules/procurement/adapters/driven/prisma/prisma-purchase-history-directory';
 import { PrismaFinanceBook } from '../../../src/modules/operational-finance/adapters/driven/prisma/prisma-finance-book';
 import { PrismaExpenseReceiptBook } from '../../../src/modules/operational-finance/adapters/driven/prisma/prisma-expense-receipt-book';
 import { PrismaInitialImportBook } from '../../../src/modules/initial-import/adapters/driven/prisma/prisma-initial-import-book';
@@ -65,6 +66,7 @@ describe('PrismaCategoryRepository', () => {
   let supplierAdvanceDirectory: PrismaSupplierAdvanceDirectory;
   let supplierAdvanceResolutions: PrismaSupplierAdvanceResolutionBook;
   let purchasesBook: PrismaPurchaseBook;
+  let purchaseHistory: PrismaPurchaseHistoryDirectory;
   let financeBook: PrismaFinanceBook;
   let expenseReceipts: PrismaExpenseReceiptBook;
   let initialImports: PrismaInitialImportBook;
@@ -106,6 +108,7 @@ describe('PrismaCategoryRepository', () => {
     supplierAdvanceDirectory = new PrismaSupplierAdvanceDirectory(prisma);
     supplierAdvanceResolutions = new PrismaSupplierAdvanceResolutionBook(prisma);
     purchasesBook = new PrismaPurchaseBook(prisma);
+    purchaseHistory = new PrismaPurchaseHistoryDirectory(prisma);
     financeBook = new PrismaFinanceBook(prisma);
     expenseReceipts = new PrismaExpenseReceiptBook(prisma);
     initialImports = new PrismaInitialImportBook(prisma);
@@ -766,6 +769,52 @@ describe('PrismaCategoryRepository', () => {
         policy: 'moving-average-v1',
       },
     ]);
+    await expect(
+      purchaseHistory.list({ supplierId: supplier.toPrimitives().id, limit: 50 }),
+    ).resolves.toMatchObject({
+      items: [
+        {
+          id: command.purchaseId,
+          supplier: { id: supplier.toPrimitives().id, name: 'Mayorista Central' },
+          totalCents: 1_000,
+          advanceAppliedCents: 500,
+          newlyPaidCents: 500,
+          paymentMethod: 'pos',
+          lineCount: 2,
+          totalQuantity: 3,
+          confirmerUsername: 'admin-inventory-test',
+        },
+      ],
+      nextPurchaseId: null,
+    });
+    await expect(
+      purchaseHistory.list({ productId: secondProduct.toPrimitives().id, limit: 50 }),
+    ).resolves.toMatchObject({ items: [{ id: command.purchaseId }] });
+    const purchaseDetail = await purchaseHistory.findById(command.purchaseId);
+    expect(purchaseDetail).toMatchObject({
+      id: command.purchaseId,
+      creatorUsername: 'admin-inventory-test',
+      lines: [
+        {
+          currentProductCode: 'COMPRA-001',
+          destinationLocationCode: 'STORE',
+          unitCostCents: 300,
+          subtotalCents: 600,
+        },
+        {
+          currentProductCode: 'COMPRA-002',
+          destinationLocationCode: 'WAREHOUSE',
+          unitCostCents: 400,
+          subtotalCents: 400,
+        },
+      ],
+    });
+    expect(purchaseDetail?.advanceApplications).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ amountCents: 300, resultingAdvanceVersion: 2 }),
+        expect.objectContaining({ amountCents: 200, resultingAdvanceVersion: 2 }),
+      ]),
+    );
     await expect(prisma.supplierAdvance.findMany()).resolves.toEqual(
       expect.arrayContaining([
         expect.objectContaining({ currentBalanceCents: 0n, status: 'RESOLVED', version: 2 }),

@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   ArrayMinSize,
@@ -210,4 +210,87 @@ export class PurchaseResponse {
   @ApiProperty({ format: 'date-time' }) effectiveAt!: string;
   @ApiProperty({ type: [PurchaseLineResponse] }) lines!: PurchaseLineResponse[];
   @ApiProperty() replayed!: boolean;
+}
+
+export class PurchaseHistoryQuery {
+  @ApiPropertyOptional({ format: 'uuid' })
+  @IsOptional()
+  @IsUUID('7')
+  supplierId?: string;
+  @ApiPropertyOptional({ format: 'uuid' })
+  @IsOptional()
+  @IsUUID('7')
+  productId?: string;
+  @ApiPropertyOptional({ description: 'Cursor opaco entregado por la página anterior.' })
+  @IsOptional()
+  @IsString()
+  cursor?: string;
+}
+
+export class PurchaseHistorySupplierResponse {
+  @ApiProperty({ format: 'uuid' }) id!: string;
+  @ApiProperty() name!: string;
+  @ApiProperty({ enum: ['registered', 'occasional'] })
+  kind!: 'registered' | 'occasional';
+}
+
+export class PurchaseHistoryItemResponse {
+  @ApiProperty({ format: 'uuid' }) id!: string;
+  @ApiProperty({ type: PurchaseHistorySupplierResponse })
+  supplier!: PurchaseHistorySupplierResponse;
+  @ApiProperty() totalCents!: number;
+  @ApiProperty() advanceAppliedCents!: number;
+  @ApiProperty() newlyPaidCents!: number;
+  @ApiProperty({ enum: ['cash', 'yape', 'plin', 'pos'], nullable: true })
+  paymentMethod!: 'cash' | 'yape' | 'plin' | 'pos' | null;
+  @ApiProperty() lineCount!: number;
+  @ApiProperty() totalQuantity!: number;
+  @ApiProperty({ format: 'uuid' }) confirmedBy!: string;
+  @ApiProperty() confirmerUsername!: string;
+  @ApiProperty({ format: 'date-time' }) effectiveAt!: string;
+}
+
+export class PurchaseHistoryPageInfoResponse {
+  @ApiProperty({ nullable: true, type: String }) nextCursor!: string | null;
+  @ApiProperty() hasNextPage!: boolean;
+}
+
+export class PurchaseHistoryPageResponse {
+  @ApiProperty({ type: [PurchaseHistoryItemResponse] }) items!: PurchaseHistoryItemResponse[];
+  @ApiProperty({ type: PurchaseHistoryPageInfoResponse })
+  pageInfo!: PurchaseHistoryPageInfoResponse;
+}
+
+export class PurchaseDetailLineResponse {
+  @ApiProperty({ format: 'uuid' }) id!: string;
+  @ApiProperty({ format: 'uuid' }) productId!: string;
+  @ApiProperty() currentProductCode!: string;
+  @ApiProperty() currentProductName!: string;
+  @ApiProperty({ format: 'uuid' }) destinationLocationId!: string;
+  @ApiProperty() destinationLocationCode!: string;
+  @ApiProperty() destinationLocationName!: string;
+  @ApiProperty() quantity!: number;
+  @ApiProperty() unitCostCents!: number;
+  @ApiProperty() subtotalCents!: number;
+  @ApiProperty({ nullable: true }) previousAverageUnitCostCents!: number | null;
+  @ApiProperty() resultingAverageUnitCostCents!: number;
+  @ApiProperty() priceReviewSuggested!: boolean;
+}
+
+export class PurchaseDetailAdvanceApplicationResponse {
+  @ApiProperty({ format: 'uuid' }) id!: string;
+  @ApiProperty({ format: 'uuid' }) advanceId!: string;
+  @ApiProperty() amountCents!: number;
+  @ApiProperty() resultingBalanceCents!: number;
+  @ApiProperty() resultingAdvanceVersion!: number;
+}
+
+export class PurchaseDetailResponse extends PurchaseHistoryItemResponse {
+  @ApiProperty({ format: 'uuid' }) operationId!: string;
+  @ApiProperty({ format: 'uuid' }) createdBy!: string;
+  @ApiProperty() creatorUsername!: string;
+  @ApiProperty({ format: 'date-time' }) createdAt!: string;
+  @ApiProperty({ type: [PurchaseDetailLineResponse] }) lines!: PurchaseDetailLineResponse[];
+  @ApiProperty({ type: [PurchaseDetailAdvanceApplicationResponse] })
+  advanceApplications!: PurchaseDetailAdvanceApplicationResponse[];
 }

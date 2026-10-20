@@ -9,6 +9,8 @@
 - **Trazabilidad de implementación:** backend completo mediante una confirmación
   atómica e idempotente. Registra proveedor con identidad estable, líneas, ingreso
   físico por ubicación, costo promedio global y únicamente el nuevo egreso pagado.
+  El historial administrativo permite filtrar por proveedor o producto y consultar
+  el detalle económico, físico y de anticipos de cada compra.
 - **Como** administrador
 - **quiero** registrar una compra pagada al contado con varios productos
 - **para** ingresar mercancía y conservar sus costos reales.
@@ -20,6 +22,11 @@
 - **Y dado:** que cada línea contiene producto, cantidad, costo y ubicación de ingreso
 - **Cuando:** confirmo la compra y su método de pago
 - **Entonces:** se conserva el costo de cada línea, se incrementa el inventario y se registra el egreso de caja como una sola operación consistente.
+
+- **Escenario:** Revisar el historial y detalle de una compra
+- **Dado:** que existen compras confirmadas con líneas, ubicaciones y anticipos aplicados
+- **Cuando:** consulto el historial por proveedor o producto y abro una compra
+- **Entonces:** veo sus importes, cantidades, costos históricos, aplicaciones de anticipos y responsables sin modificar sus efectos.
 
 ### User Story PUR-002 — Sugerir revisión de precios tras un cambio de costo
 

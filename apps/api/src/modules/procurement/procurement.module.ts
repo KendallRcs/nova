@@ -5,6 +5,7 @@ import { PrismaSupplierAdvanceDirectory } from './adapters/driven/prisma/prisma-
 import { PrismaSupplierRepository } from './adapters/driven/prisma/prisma-supplier.repository';
 import { PrismaSupplierAdvanceResolutionBook } from './adapters/driven/prisma/prisma-supplier-advance-resolution-book';
 import { PrismaPurchaseBook } from './adapters/driven/prisma/prisma-purchase-book';
+import { PrismaPurchaseHistoryDirectory } from './adapters/driven/prisma/prisma-purchase-history-directory';
 import {
   SystemProcurementClock,
   UuidV7ProcurementIdGenerator,
@@ -12,6 +13,11 @@ import {
 import { ProcurementController } from './adapters/driving/http/procurement.controller';
 import { RegisterSupplier, SearchSuppliers } from './hexagon/application/manage-suppliers';
 import { ConfirmPurchase } from './hexagon/application/confirm-purchase';
+import {
+  GetPurchaseDetail,
+  ListPurchases,
+  type PurchaseHistoryDirectory,
+} from './hexagon/application/purchase-history';
 import type {
   ProcurementClock,
   ProcurementIdGenerator,
@@ -32,6 +38,7 @@ const ADVANCES = Symbol('ADVANCES');
 const ADVANCE_DIRECTORY = Symbol('ADVANCE_DIRECTORY');
 const ADVANCE_RESOLUTIONS = Symbol('ADVANCE_RESOLUTIONS');
 const PURCHASES = Symbol('PURCHASES');
+const PURCHASE_HISTORY = Symbol('PURCHASE_HISTORY');
 
 @Module({
   controllers: [ProcurementController],
@@ -41,6 +48,7 @@ const PURCHASES = Symbol('PURCHASES');
     PrismaSupplierAdvanceDirectory,
     PrismaSupplierAdvanceResolutionBook,
     PrismaPurchaseBook,
+    PrismaPurchaseHistoryDirectory,
     SystemProcurementClock,
     UuidV7ProcurementIdGenerator,
     { provide: SUPPLIERS, useExisting: PrismaSupplierRepository },
@@ -48,6 +56,7 @@ const PURCHASES = Symbol('PURCHASES');
     { provide: ADVANCE_DIRECTORY, useExisting: PrismaSupplierAdvanceDirectory },
     { provide: ADVANCE_RESOLUTIONS, useExisting: PrismaSupplierAdvanceResolutionBook },
     { provide: PURCHASES, useExisting: PrismaPurchaseBook },
+    { provide: PURCHASE_HISTORY, useExisting: PrismaPurchaseHistoryDirectory },
     {
       provide: RegisterSupplier,
       inject: [SUPPLIERS, UuidV7ProcurementIdGenerator, SystemProcurementClock],
@@ -90,6 +99,16 @@ const PURCHASES = Symbol('PURCHASES');
       inject: [PURCHASES, UuidV7ProcurementIdGenerator, SystemProcurementClock],
       useFactory: (purchases: PurchaseBook, ids: ProcurementIdGenerator, clock: ProcurementClock) =>
         new ConfirmPurchase(purchases, ids, clock),
+    },
+    {
+      provide: ListPurchases,
+      inject: [PURCHASE_HISTORY],
+      useFactory: (directory: PurchaseHistoryDirectory) => new ListPurchases(directory),
+    },
+    {
+      provide: GetPurchaseDetail,
+      inject: [PURCHASE_HISTORY],
+      useFactory: (directory: PurchaseHistoryDirectory) => new GetPurchaseDetail(directory),
     },
   ],
 })

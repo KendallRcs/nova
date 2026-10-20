@@ -28,6 +28,7 @@ import {
   ConfirmPurchase,
   type ConfirmPurchaseResult,
 } from '../../../hexagon/application/confirm-purchase';
+import { GetPurchaseDetail, ListPurchases } from '../../../hexagon/application/purchase-history';
 import type { SupplierAdvanceResult } from '../../../hexagon/application/supplier-advance-book';
 import {
   InvalidAdvanceLossReasonError,
@@ -44,6 +45,9 @@ import {
   AdvanceResolutionResponse,
   ConfirmPurchaseRequest,
   PurchaseResponse,
+  PurchaseDetailResponse,
+  PurchaseHistoryPageResponse,
+  PurchaseHistoryQuery,
   SupplierAdvanceResponse,
   SupplierAdvanceListQuery,
   SupplierAdvanceListResponse,
@@ -63,6 +67,8 @@ export class ProcurementController {
     private readonly listAdvances: ListSupplierAdvances,
     private readonly resolveAdvance: ResolveSupplierAdvance,
     private readonly confirmPurchase: ConfirmPurchase,
+    private readonly listPurchases: ListPurchases,
+    private readonly getPurchaseDetail: GetPurchaseDetail,
   ) {}
 
   @Post('suppliers')
@@ -227,9 +233,69 @@ export class ProcurementController {
       replayed: result.replayed,
     };
   }
+
+  @Get('purchases')
+  @RequirePermission('purchases:manage')
+  @ApiOperation({ operationId: 'listPurchases' })
+  @ApiOkResponse({ type: PurchaseHistoryPageResponse })
+  async purchases(@Query() query: PurchaseHistoryQuery): Promise<PurchaseHistoryPageResponse> {
+    const afterPurchaseId =
+      query.cursor === undefined ? undefined : decodePurchaseCursor(query.cursor);
+    const page = await this.listPurchases.execute({
+      ...(query.supplierId === undefined ? {} : { supplierId: query.supplierId }),
+      ...(query.productId === undefined ? {} : { productId: query.productId }),
+      ...(afterPurchaseId === undefined ? {} : { afterPurchaseId }),
+      limit: 50,
+    });
+    return {
+      items: page.items.map((item) => ({
+        ...item,
+        effectiveAt: item.effectiveAt.toISOString(),
+      })),
+      pageInfo: {
+        nextCursor: page.nextPurchaseId === null ? null : encodePurchaseCursor(page.nextPurchaseId),
+        hasNextPage: page.nextPurchaseId !== null,
+      },
+    };
+  }
+
+  @Get('purchases/:purchaseId')
+  @RequirePermission('purchases:manage')
+  @ApiOperation({ operationId: 'getPurchaseDetail' })
+  @ApiOkResponse({ type: PurchaseDetailResponse })
+  async purchaseDetail(
+    @Param('purchaseId', new ParseUUIDPipe({ version: '7' })) purchaseId: string,
+  ): Promise<PurchaseDetailResponse> {
+    const result = await this.getPurchaseDetail.execute(purchaseId);
+    if (!result.ok) {
+      throw new NotFoundException({ status: 404, code: 'PURCHASE_NOT_FOUND' });
+    }
+    return {
+      ...result.purchase,
+      lines: [...result.purchase.lines],
+      advanceApplications: [...result.purchase.advanceApplications],
+      effectiveAt: result.purchase.effectiveAt.toISOString(),
+      createdAt: result.purchase.createdAt.toISOString(),
+    };
+  }
 }
 
 const UUID_V7 = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function encodePurchaseCursor(purchaseId: string): string {
+  return Buffer.from(`v1:${purchaseId}`, 'utf8').toString('base64url');
+}
+
+function decodePurchaseCursor(cursor: string): string {
+  const decoded = Buffer.from(cursor, 'base64url').toString('utf8');
+  const match = /^v1:([0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/i.exec(
+    decoded,
+  );
+  if (match?.[1] === undefined) {
+    throw new UnprocessableEntityException({ status: 422, code: 'INVALID_CURSOR' });
+  }
+  return match[1];
+}
 
 function presentSupplier(view: SupplierView): SupplierResponse {
   return {

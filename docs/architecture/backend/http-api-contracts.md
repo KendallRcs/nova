@@ -131,6 +131,8 @@ POST   /api/v1/supplier-advances
 POST   /api/v1/supplier-advances/{advanceId}/refunds
 POST   /api/v1/supplier-advances/{advanceId}/losses
 POST   /api/v1/purchases
+GET    /api/v1/purchases?supplierId=&productId=&cursor=
+GET    /api/v1/purchases/{purchaseId}
 GET    /api/v1/expense-categories
 POST   /api/v1/expense-categories
 PATCH  /api/v1/expense-categories/{categoryId}
@@ -193,6 +195,14 @@ saldo por pagar y se omite cuando los anticipos cubren todo. Compra, aplicacione
 stock, costo promedio y egreso restante se confirman atómicamente. La respuesta
 incluye por línea el promedio anterior, el resultante y una sugerencia no
 vinculante de revisión de precios.
+
+`GET /purchases` requiere `purchases:manage`, ordena por fecha efectiva descendente
+y devuelve páginas de hasta 50 compras. Puede filtrar por proveedor o por producto
+y usa un cursor opaco. Cada resumen identifica proveedor, importes pagados mediante
+anticipos y dinero nuevo, método, líneas, unidades y responsable. `GET
+/purchases/{purchaseId}` añade líneas con costos históricos y ubicación, identidad
+vigente del producto, aplicaciones de anticipos, operación y responsables; una
+compra inexistente devuelve `404`.
 
 Las categorías y operaciones de gasto requieren `expenses:manage`. Registrar un
 gasto exige `Idempotency-Key`, categoría activa, importe positivo, método y fecha

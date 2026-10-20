@@ -45,3 +45,4 @@
 | 2026-10-19 | EXP-001 protegió el comprobante opcional: admite imágenes optimizadas o PDF de hasta 5 MiB, almacenamiento autenticado, acceso firmado de cinco minutos y reemplazo o eliminación sin exponer claves internas. |
 | 2026-10-19 | PUR-003 añadió la consulta administrativa de anticipos por proveedor y estado, exponiendo saldo y versión vigentes para poder aplicarlos, reembolsarlos o reconocer pérdidas desde la interfaz. |
 | 2026-10-19 | DASH-004 incorporó la consulta administrativa de costos por producto: separa valor disponible, reservado, en revisión y total, calcula promedios sobre las unidades actuales y conserva el último costo de compra como referencia. |
+| 2026-10-19 | PUR-001 incorporó el historial administrativo paginado de compras y su detalle con proveedor, productos, ubicaciones, costos, anticipos, pago y responsables. |
