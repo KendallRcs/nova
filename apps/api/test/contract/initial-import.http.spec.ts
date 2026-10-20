@@ -9,6 +9,7 @@ import type { AuthenticatedRequest } from '../../src/modules/identity-access/ada
 import { InitialImportController } from '../../src/modules/initial-import/adapters/driving/http/initial-import.controller';
 import {
   ConfirmInitialProductImport,
+  DownloadInitialProductTemplate,
   ValidateInitialProductImport,
 } from '../../src/modules/initial-import/hexagon/application/manage-initial-import';
 
@@ -55,6 +56,16 @@ describe('Initial import HTTP contract', () => {
       controllers: [InitialImportController],
       providers: [
         {
+          provide: DownloadInitialProductTemplate,
+          useValue: {
+            execute: () => ({
+              fileName: 'plantilla-productos-nova.xlsx',
+              mediaType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+              content: Buffer.from('xlsx-template'),
+            }),
+          },
+        },
+        {
           provide: ValidateInitialProductImport,
           useValue: { execute: () => Promise.resolve(preview) },
         },
@@ -89,6 +100,29 @@ describe('Initial import HTTP contract', () => {
     httpServer = app.getHttpServer() as Parameters<typeof request>[0];
   });
   afterAll(async () => app.close());
+
+  it('downloads the official xlsx template as a protected attachment', async () => {
+    const response = await request(httpServer)
+      .get('/api/v1/initial-product-imports/template')
+      .buffer(true)
+      .parse((incoming, callback) => {
+        const chunks: Buffer[] = [];
+        incoming.on('data', (chunk: Buffer) => {
+          chunks.push(chunk);
+        });
+        incoming.on('end', () => {
+          callback(null, Buffer.concat(chunks));
+        });
+      })
+      .expect(200);
+    expect(response.headers['content-type']).toContain(
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+    expect(response.headers['content-disposition']).toBe(
+      'attachment; filename="plantilla-productos-nova.xlsx"',
+    );
+    expect(response.body as Buffer).toEqual(Buffer.from('xlsx-template'));
+  });
 
   it('uploads an xlsx file and returns its validation preview', async () => {
     const response = await request(httpServer)

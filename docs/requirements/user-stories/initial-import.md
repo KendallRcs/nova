@@ -10,11 +10,18 @@
   previsualizar errores y advertencias, y confirmar una sola importación de forma
   atómica e idempotente. Crea o reutiliza categorías y etiquetas activas, productos,
   posiciones y movimientos de apertura sin inventar compras ni movimientos de caja.
+  La plantilla oficial puede descargarse desde la API y se genera usando las mismas
+  columnas que valida el dominio.
 - **Como** administrador
 - **quiero** importar productos, costos y cantidades desde una plantilla de Excel
 - **para** dejar preparado el catálogo y el inventario inicial sin registrar aproximadamente 300 productos uno por uno.
 
 #### Criterios de aceptación
+
+- **Escenario:** Descargar la plantilla oficial
+- **Dado:** que soy un administrador autorizado para realizar la carga inicial
+- **Cuando:** solicito la plantilla de productos
+- **Entonces:** recibo un archivo `.xlsx` con las columnas oficiales en el orden esperado y listo para completar.
 
 - **Escenario:** Archivo preparado con la plantilla oficial
 - **Dado:** que completé una plantilla con códigos, nombres, categorías, precios, costo y cantidades por ubicación

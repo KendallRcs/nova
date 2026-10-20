@@ -47,3 +47,4 @@
 | 2026-10-19 | DASH-004 incorporó la consulta administrativa de costos por producto: separa valor disponible, reservado, en revisión y total, calcula promedios sobre las unidades actuales y conserva el último costo de compra como referencia. |
 | 2026-10-19 | PUR-001 incorporó el historial administrativo paginado de compras y su detalle con proveedor, productos, ubicaciones, costos, anticipos, pago y responsables. |
 | 2026-10-19 | INV-008 incorporó el historial operativo de movimientos de inventario para rastrear cantidades, responsables y causas de negocio sin exponer costos al empleado. |
+| 2026-10-19 | DATA-001 incorporó la descarga protegida de la plantilla oficial `.xlsx`, generada con las mismas columnas que valida la carga inicial. |

@@ -141,6 +141,7 @@ POST   /api/v1/expense-categories/{categoryId}/deactivation
 GET    /api/v1/operating-expenses
 POST   /api/v1/operating-expenses
 POST   /api/v1/operating-expenses/{expenseId}/cancellations
+GET    /api/v1/initial-product-imports/template
 POST   /api/v1/initial-product-imports/validation
 POST   /api/v1/initial-product-imports/{importId}/confirmation
 GET    /api/v1/dashboards/cash-flow?month=YYYY-MM
@@ -229,6 +230,12 @@ píxeles; el PDF no se transforma. `GET
 minutos de vigencia y `DELETE /operating-expenses/{expenseId}/receipt` responde
 `204`. Los tres endpoints requieren administración de gastos y el proveedor no
 publica los recursos directamente.
+
+`GET /initial-product-imports/template` requiere `imports:initial-products` y
+descarga `plantilla-productos-nova.xlsx` con el media type oficial de Open XML. La
+primera hoja contiene las once columnas vigentes en el mismo orden exigido por el
+validador; el archivo no contiene productos de ejemplo que puedan importarse por
+accidente.
 
 La validación de importación inicial requiere `imports:initial-products` y un
 `multipart/form-data` cuyo campo `file` contiene un `.xlsx` de hasta 5 MiB y 1000

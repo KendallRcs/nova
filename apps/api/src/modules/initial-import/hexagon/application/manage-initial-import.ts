@@ -4,8 +4,18 @@ import type {
   ImportIdGenerator,
   InitialImportBook,
   InitialImportResult,
+  InitialProductTemplate,
+  InitialProductTemplateFile,
   SpreadsheetReader,
 } from './initial-import.ports';
+
+export class DownloadInitialProductTemplate {
+  constructor(private readonly template: InitialProductTemplate) {}
+
+  execute(): InitialProductTemplateFile {
+    return this.template.create();
+  }
+}
 
 export class ValidateInitialProductImport {
   constructor(

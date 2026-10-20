@@ -14,6 +14,14 @@ export interface ParsedSpreadsheet {
 export interface SpreadsheetReader {
   read(input: { fileName: string; buffer: Uint8Array }): Promise<ParsedSpreadsheet>;
 }
+export interface InitialProductTemplateFile {
+  fileName: string;
+  mediaType: string;
+  content: Uint8Array;
+}
+export interface InitialProductTemplate {
+  create(): InitialProductTemplateFile;
+}
 export class InvalidImportFileError extends Error {
   constructor(message: string) {
     super(message);

@@ -2,24 +2,33 @@ import {
   BadRequestException,
   ConflictException,
   Controller,
+  Get,
   Headers,
   NotFoundException,
   Param,
   ParseUUIDPipe,
   Post,
   Req,
+  StreamableFile,
   UnauthorizedException,
   UnprocessableEntityException,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiConsumes, ApiCreatedResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiConsumes,
+  ApiCreatedResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 
 import type { AuthenticatedRequest } from '../../../../identity-access/adapters/driving/http/permission.guard';
 import { RequirePermission } from '../../../../identity-access/adapters/driving/http/require-permission';
 import {
   ConfirmInitialProductImport,
+  DownloadInitialProductTemplate,
   ValidateInitialProductImport,
 } from '../../../hexagon/application/manage-initial-import';
 import type { InitialImportPreview } from '../../../hexagon/application/initial-import.ports';
@@ -35,9 +44,30 @@ interface UploadedSpreadsheet {
 @Controller('initial-product-imports')
 export class InitialImportController {
   constructor(
+    private readonly downloadTemplate: DownloadInitialProductTemplate,
     private readonly validateImport: ValidateInitialProductImport,
     private readonly confirmImport: ConfirmInitialProductImport,
   ) {}
+
+  @Get('template')
+  @RequirePermission('imports:initial-products')
+  @ApiOperation({ operationId: 'downloadInitialProductTemplate' })
+  @ApiOkResponse({
+    description: 'Plantilla oficial XLSX para la carga inicial.',
+    content: {
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': {
+        schema: { type: 'string', format: 'binary' },
+      },
+    },
+  })
+  template(): StreamableFile {
+    const file = this.downloadTemplate.execute();
+    return new StreamableFile(Buffer.from(file.content), {
+      type: file.mediaType,
+      disposition: `attachment; filename="${file.fileName}"`,
+      length: file.content.byteLength,
+    });
+  }
 
   @Post('validation')
   @RequirePermission('imports:initial-products')
