@@ -97,6 +97,19 @@ Tipos iniciales:
 
 Los movimientos no se editan ni eliminan. Una corrección genera un nuevo movimiento compensatorio.
 
+### Consulta operativa de movimientos
+
+El historial se presenta mediante una vista CQRS-lite ordenada por fecha efectiva
+descendente y paginada con cursor opaco. Puede filtrarse por producto, ubicación,
+responsable o tipo de movimiento.
+
+Cada elemento muestra deltas y cantidades físicas, reservadas, en revisión y
+disponibles antes y después. También resuelve la identidad vigente del producto,
+la ubicación, el responsable y las referencias a venta, compra, traslado,
+devolución, cancelación, entrega o carga inicial que explican la causa. Esta vista
+operativa no expone valores ni movimientos de costo y está disponible para el
+perfil empleado mediante `inventory:read`.
+
 ## Traslado de inventario
 
 `Traslado` es una operación identificable que coordina dos agregados `Existencia`: origen y destino.

@@ -104,6 +104,7 @@ GET    /api/v1/products/{productId}
 PUT    /api/v1/products/{productId}/images/{position}
 DELETE /api/v1/products/{productId}/images/{position}
 GET    /api/v1/inventory/locations
+GET    /api/v1/inventory/movements?productId=&locationId=&actorId=&type=&cursor=
 POST   /api/v1/inventory/transfers
 POST   /api/v1/inventory/write-offs
 POST   /api/v1/inventory/count-adjustments
@@ -167,6 +168,13 @@ venta, cantidades, valores y promedios de costo disponible, reservado, en revisi
 y total, además del último costo y fecha de compra. Un producto sin unidades
 valorizadas devuelve promedio `null`; el catálogo general de productos no incorpora
 ningún costo ni margen.
+
+`GET /inventory/movements` requiere `inventory:read`, ordena por fecha efectiva
+descendente y devuelve páginas de hasta 50 movimientos con cursor opaco. Permite
+filtrar por producto, ubicación, responsable o tipo. Cada elemento incluye deltas,
+balances anteriores y resultantes, responsable, razón, categoría administrativa y
+referencias causales a venta, compra, traslado, devolución, cancelación, entrega o
+carga inicial. No expone valores de costo, por lo que puede utilizarlo el empleado.
 
 `POST /suppliers` registra una identidad reutilizable clasificada como
 `registered` u `occasional`; teléfono, documento y descripción son opcionales.

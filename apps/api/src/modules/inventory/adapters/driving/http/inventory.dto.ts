@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsIn, IsInt, IsOptional, IsString, IsUUID, MaxLength, Min } from 'class-validator';
 
 export class ProductCostSearchQuery {
@@ -36,6 +36,113 @@ export class ProductCostResponse {
 
 export class ProductCostListResponse {
   @ApiProperty({ type: [ProductCostResponse] }) items!: ProductCostResponse[];
+}
+
+export const INVENTORY_MOVEMENT_TYPES = [
+  'opening',
+  'purchase-in',
+  'reservation',
+  'release',
+  'delivery',
+  'return-review',
+  'return-available',
+  'transfer-out',
+  'transfer-in',
+  'write-off',
+  'adjustment-in',
+  'adjustment-out',
+] as const;
+
+export class InventoryMovementQuery {
+  @ApiPropertyOptional({ format: 'uuid' }) @IsOptional() @IsUUID('7') productId?: string;
+  @ApiPropertyOptional({ format: 'uuid' }) @IsOptional() @IsUUID('7') locationId?: string;
+  @ApiPropertyOptional({ format: 'uuid' }) @IsOptional() @IsUUID('7') actorId?: string;
+  @ApiPropertyOptional({ enum: INVENTORY_MOVEMENT_TYPES })
+  @IsOptional()
+  @IsIn(INVENTORY_MOVEMENT_TYPES)
+  type?: (typeof INVENTORY_MOVEMENT_TYPES)[number];
+  @ApiPropertyOptional({ description: 'Cursor opaco entregado por la página anterior.' })
+  @IsOptional()
+  @IsString()
+  cursor?: string;
+}
+
+export class InventoryMovementProductResponse {
+  @ApiProperty({ format: 'uuid' }) id!: string;
+  @ApiProperty() currentCode!: string;
+  @ApiProperty() currentName!: string;
+}
+
+export class InventoryMovementLocationResponse {
+  @ApiProperty({ format: 'uuid' }) id!: string;
+  @ApiProperty() code!: string;
+  @ApiProperty() name!: string;
+  @ApiProperty({ enum: ['store', 'warehouse'] }) type!: 'store' | 'warehouse';
+}
+
+export class InventoryMovementBalanceHistoryResponse {
+  @ApiProperty() physicalQuantity!: number;
+  @ApiProperty() reservedQuantity!: number;
+  @ApiProperty() reviewQuantity!: number;
+  @ApiProperty() availableQuantity!: number;
+}
+
+export class InventoryMovementActorResponse {
+  @ApiProperty({ format: 'uuid' }) id!: string;
+  @ApiProperty() username!: string;
+}
+
+export class InventoryMovementReferencesResponse {
+  @ApiProperty({ format: 'uuid', nullable: true, type: String }) operationId!: string | null;
+  @ApiProperty({ format: 'uuid', nullable: true, type: String }) transferId!: string | null;
+  @ApiProperty({ format: 'uuid', nullable: true, type: String }) saleId!: string | null;
+  @ApiProperty({ format: 'uuid', nullable: true, type: String }) saleLineId!: string | null;
+  @ApiProperty({ format: 'uuid', nullable: true, type: String }) returnId!: string | null;
+  @ApiProperty({ format: 'uuid', nullable: true, type: String }) returnLineId!: string | null;
+  @ApiProperty({ format: 'uuid', nullable: true, type: String }) cancellationId!: string | null;
+  @ApiProperty({ format: 'uuid', nullable: true, type: String })
+  cancellationLineId!: string | null;
+  @ApiProperty({ format: 'uuid', nullable: true, type: String }) deliveryId!: string | null;
+  @ApiProperty({ format: 'uuid', nullable: true, type: String }) deliveryLineId!: string | null;
+  @ApiProperty({ format: 'uuid', nullable: true, type: String }) purchaseId!: string | null;
+  @ApiProperty({ format: 'uuid', nullable: true, type: String }) purchaseLineId!: string | null;
+  @ApiProperty({ format: 'uuid', nullable: true, type: String }) initialImportId!: string | null;
+}
+
+export class InventoryMovementHistoryItemResponse {
+  @ApiProperty({ format: 'uuid' }) id!: string;
+  @ApiProperty({ type: InventoryMovementProductResponse })
+  product!: InventoryMovementProductResponse;
+  @ApiProperty({ type: InventoryMovementLocationResponse })
+  location!: InventoryMovementLocationResponse;
+  @ApiProperty({ enum: INVENTORY_MOVEMENT_TYPES })
+  type!: (typeof INVENTORY_MOVEMENT_TYPES)[number];
+  @ApiProperty() physicalDelta!: number;
+  @ApiProperty() reservedDelta!: number;
+  @ApiProperty() reviewDelta!: number;
+  @ApiProperty({ type: InventoryMovementBalanceHistoryResponse })
+  previous!: InventoryMovementBalanceHistoryResponse;
+  @ApiProperty({ type: InventoryMovementBalanceHistoryResponse })
+  resulting!: InventoryMovementBalanceHistoryResponse;
+  @ApiProperty({ type: InventoryMovementActorResponse }) actor!: InventoryMovementActorResponse;
+  @ApiProperty({ format: 'date-time' }) effectiveAt!: string;
+  @ApiProperty({ nullable: true, type: String }) reason!: string | null;
+  @ApiProperty({ enum: ['damaged', 'lost', 'defective', 'other'], nullable: true })
+  administrativeCategory!: 'damaged' | 'lost' | 'defective' | 'other' | null;
+  @ApiProperty({ type: InventoryMovementReferencesResponse })
+  references!: InventoryMovementReferencesResponse;
+}
+
+export class InventoryMovementPageInfoResponse {
+  @ApiProperty({ nullable: true, type: String }) nextCursor!: string | null;
+  @ApiProperty() hasNextPage!: boolean;
+}
+
+export class InventoryMovementHistoryPageResponse {
+  @ApiProperty({ type: [InventoryMovementHistoryItemResponse] })
+  items!: InventoryMovementHistoryItemResponse[];
+  @ApiProperty({ type: InventoryMovementPageInfoResponse })
+  pageInfo!: InventoryMovementPageInfoResponse;
 }
 
 export class TransferInventoryRequest {

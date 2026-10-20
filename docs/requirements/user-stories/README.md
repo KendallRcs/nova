@@ -4,7 +4,7 @@
 | --- | --- | --- |
 | Autenticación | AUTH-001 a AUTH-005 | [Autenticación y acceso](authentication.md) |
 | Catálogo | PROD-001 a PROD-007 | [Productos y precios](catalog.md) |
-| Inventario | INV-001 a INV-007 | [Inventario](inventory.md) |
+| Inventario | INV-001 a INV-008 | [Inventario](inventory.md) |
 | Compras | PUR-001 a PUR-005 | [Compras y anticipos](purchases-and-advances.md) |
 | Clientes | CUS-001 a CUS-004 | [Clientes](customers.md) |
 | Ventas | SAL-001 a SAL-009 | [Ventas, reservas y entregas](sales.md) |

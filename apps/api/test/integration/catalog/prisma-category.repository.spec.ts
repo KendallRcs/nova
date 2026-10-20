@@ -29,6 +29,7 @@ import { Sale } from '../../../src/modules/sales/hexagon/domain/sale';
 import { PrismaInventoryTransferBook } from '../../../src/modules/inventory/adapters/driven/prisma/prisma-inventory-transfer-book';
 import { PrismaInventoryAdministrationBook } from '../../../src/modules/inventory/adapters/driven/prisma/prisma-inventory-administration-book';
 import { PrismaProductCostCatalog } from '../../../src/modules/inventory/adapters/driven/prisma/prisma-product-cost-catalog';
+import { PrismaInventoryMovementSource } from '../../../src/modules/inventory/adapters/driven/prisma/prisma-inventory-movement-source';
 import { PrismaSupplierRepository } from '../../../src/modules/procurement/adapters/driven/prisma/prisma-supplier.repository';
 import { PrismaSupplierAdvanceBook } from '../../../src/modules/procurement/adapters/driven/prisma/prisma-supplier-advance-book';
 import { PrismaSupplierAdvanceDirectory } from '../../../src/modules/procurement/adapters/driven/prisma/prisma-supplier-advance-directory';
@@ -61,6 +62,7 @@ describe('PrismaCategoryRepository', () => {
   let inventoryTransfers: PrismaInventoryTransferBook;
   let inventoryAdministration: PrismaInventoryAdministrationBook;
   let productCosts: PrismaProductCostCatalog;
+  let inventoryMovements: PrismaInventoryMovementSource;
   let suppliers: PrismaSupplierRepository;
   let supplierAdvances: PrismaSupplierAdvanceBook;
   let supplierAdvanceDirectory: PrismaSupplierAdvanceDirectory;
@@ -103,6 +105,7 @@ describe('PrismaCategoryRepository', () => {
     inventoryTransfers = new PrismaInventoryTransferBook(prisma);
     inventoryAdministration = new PrismaInventoryAdministrationBook(prisma);
     productCosts = new PrismaProductCostCatalog(prisma);
+    inventoryMovements = new PrismaInventoryMovementSource(prisma);
     suppliers = new PrismaSupplierRepository(prisma);
     supplierAdvances = new PrismaSupplierAdvanceBook(prisma);
     supplierAdvanceDirectory = new PrismaSupplierAdvanceDirectory(prisma);
@@ -815,6 +818,25 @@ describe('PrismaCategoryRepository', () => {
         expect.objectContaining({ amountCents: 200, resultingAdvanceVersion: 2 }),
       ]),
     );
+    await expect(
+      inventoryMovements.list({
+        productId: firstProduct.toPrimitives().id,
+        type: 'purchase-in',
+        limit: 50,
+      }),
+    ).resolves.toMatchObject({
+      items: [
+        {
+          type: 'purchase-in',
+          physicalDelta: 2,
+          actor: { username: 'admin-inventory-test' },
+          references: {
+            purchaseId: command.purchaseId,
+            purchaseLineId: '0199ef04-1b00-7000-8000-0000000000f3',
+          },
+        },
+      ],
+    });
     await expect(prisma.supplierAdvance.findMany()).resolves.toEqual(
       expect.arrayContaining([
         expect.objectContaining({ currentBalanceCents: 0n, status: 'RESOLVED', version: 2 }),
@@ -1081,6 +1103,24 @@ describe('PrismaCategoryRepository', () => {
     await expect(
       prisma.inventoryMovement.count({ where: { saleLineId: { not: null } } }),
     ).resolves.toBe(2);
+    await expect(
+      inventoryMovements.list({
+        productId: product.toPrimitives().id,
+        type: 'delivery',
+        limit: 50,
+      }),
+    ).resolves.toMatchObject({
+      items: [
+        {
+          type: 'delivery',
+          physicalDelta: -1,
+          references: {
+            saleId: draft.sale.toPrimitives().id,
+            saleLineId: '0199ef04-1b00-7000-8000-000000000095',
+          },
+        },
+      ],
+    });
     const paymentCommand = {
       operationId: '0199ef04-1b00-7000-8000-000000000097',
       saleId: draft.sale.toPrimitives().id,

@@ -16,6 +16,7 @@ import {
 } from '../../src/modules/inventory/hexagon/application/administer-inventory';
 import { TransferInventory } from '../../src/modules/inventory/hexagon/application/transfer-inventory';
 import { ListProductCosts } from '../../src/modules/inventory/hexagon/application/product-cost-catalog';
+import { ListInventoryMovements } from '../../src/modules/inventory/hexagon/application/inventory-movement-history';
 
 const STORE_ID = '0199ef04-1b00-7000-8000-000000000001';
 const WAREHOUSE_ID = '0199ef04-1b00-7000-8000-000000000002';
@@ -99,6 +100,61 @@ describe('Inventory HTTP contract', () => {
               ]),
           },
         },
+        {
+          provide: ListInventoryMovements,
+          useValue: {
+            execute: () =>
+              Promise.resolve({
+                items: [
+                  {
+                    id: '0199ef04-1b00-7000-8000-000000000030',
+                    product: {
+                      id: PRODUCT_ID,
+                      currentCode: 'MUN-001',
+                      currentName: 'Muñeca',
+                    },
+                    location: { id: STORE_ID, code: 'STORE', name: 'Tienda', type: 'store' },
+                    type: 'delivery',
+                    physicalDelta: -1,
+                    reservedDelta: 0,
+                    reviewDelta: 0,
+                    previous: {
+                      physicalQuantity: 5,
+                      reservedQuantity: 0,
+                      reviewQuantity: 0,
+                      availableQuantity: 5,
+                    },
+                    resulting: {
+                      physicalQuantity: 4,
+                      reservedQuantity: 0,
+                      reviewQuantity: 0,
+                      availableQuantity: 4,
+                    },
+                    actor: { id: ACTOR_ID, username: 'admin' },
+                    effectiveAt: new Date('2026-10-19T18:30:00.000Z'),
+                    reason: null,
+                    administrativeCategory: null,
+                    references: {
+                      operationId: null,
+                      transferId: null,
+                      saleId: '0199ef04-1b00-7000-8000-000000000031',
+                      saleLineId: '0199ef04-1b00-7000-8000-000000000032',
+                      returnId: null,
+                      returnLineId: null,
+                      cancellationId: null,
+                      cancellationLineId: null,
+                      deliveryId: null,
+                      deliveryLineId: null,
+                      purchaseId: null,
+                      purchaseLineId: null,
+                      initialImportId: null,
+                    },
+                  },
+                ],
+                nextMovementId: null,
+              }),
+          },
+        },
       ],
     }).compile();
     app = module.createNestApplication();
@@ -174,6 +230,32 @@ describe('Inventory HTTP contract', () => {
             version: 4,
           },
         ],
+      });
+  });
+
+  it('lists inventory movements with balances and their business reference without costs', async () => {
+    await request(httpServer)
+      .get(`/api/v1/inventory/movements?productId=${PRODUCT_ID}&type=delivery`)
+      .expect(200)
+      .expect((response) => {
+        expect(response.body).toMatchObject({
+          items: [
+            {
+              product: { id: PRODUCT_ID, currentCode: 'MUN-001' },
+              location: { id: STORE_ID, code: 'STORE' },
+              type: 'delivery',
+              physicalDelta: -1,
+              previous: { availableQuantity: 5 },
+              resulting: { availableQuantity: 4 },
+              actor: { id: ACTOR_ID, username: 'admin' },
+              effectiveAt: '2026-10-19T18:30:00.000Z',
+              references: { saleId: '0199ef04-1b00-7000-8000-000000000031' },
+            },
+          ],
+          pageInfo: { nextCursor: null, hasNextPage: false },
+        });
+        const body = response.body as { items: Record<string, unknown>[] };
+        expect(body.items[0]).not.toHaveProperty('valueDeltaCents');
       });
   });
 

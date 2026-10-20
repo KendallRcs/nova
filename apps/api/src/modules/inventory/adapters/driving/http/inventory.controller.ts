@@ -25,6 +25,7 @@ import type { InventoryAdministrationResult } from '../../../hexagon/application
 import type { InventoryTransferResult } from '../../../hexagon/application/inventory-transfer-book';
 import { TransferInventory } from '../../../hexagon/application/transfer-inventory';
 import { ListProductCosts } from '../../../hexagon/application/product-cost-catalog';
+import { ListInventoryMovements } from '../../../hexagon/application/inventory-movement-history';
 import {
   InventoryLocationListResponse,
   AdjustInventoryCountRequest,
@@ -35,6 +36,8 @@ import {
   ResolveInventoryReviewRequest,
   ProductCostListResponse,
   ProductCostSearchQuery,
+  InventoryMovementHistoryPageResponse,
+  InventoryMovementQuery,
 } from './inventory.dto';
 
 @ApiTags('inventory')
@@ -47,6 +50,7 @@ export class InventoryController {
     private readonly adjustments: AdjustInventoryCount,
     private readonly reviewResolutions: ResolveInventoryReview,
     private readonly productCosts: ListProductCosts,
+    private readonly inventoryMovements: ListInventoryMovements,
   ) {}
 
   @Get('locations')
@@ -67,6 +71,35 @@ export class InventoryController {
         ...item,
         lastPurchasedAt: item.lastPurchasedAt?.toISOString() ?? null,
       })),
+    };
+  }
+
+  @Get('movements')
+  @RequirePermission('inventory:read')
+  @ApiOperation({ operationId: 'listInventoryMovements' })
+  @ApiOkResponse({ type: InventoryMovementHistoryPageResponse })
+  async listMovements(
+    @Query() query: InventoryMovementQuery,
+  ): Promise<InventoryMovementHistoryPageResponse> {
+    const afterMovementId =
+      query.cursor === undefined ? undefined : decodeMovementCursor(query.cursor);
+    const page = await this.inventoryMovements.execute({
+      ...(query.productId === undefined ? {} : { productId: query.productId }),
+      ...(query.locationId === undefined ? {} : { locationId: query.locationId }),
+      ...(query.actorId === undefined ? {} : { actorId: query.actorId }),
+      ...(query.type === undefined ? {} : { type: query.type }),
+      ...(afterMovementId === undefined ? {} : { afterMovementId }),
+      limit: 50,
+    });
+    return {
+      items: page.items.map((item) => ({
+        ...item,
+        effectiveAt: item.effectiveAt.toISOString(),
+      })),
+      pageInfo: {
+        nextCursor: page.nextMovementId === null ? null : encodeMovementCursor(page.nextMovementId),
+        hasNextPage: page.nextMovementId !== null,
+      },
     };
   }
 
@@ -177,6 +210,21 @@ export class InventoryController {
 }
 
 const UUID_V7 = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function encodeMovementCursor(movementId: string): string {
+  return Buffer.from(`v1:${movementId}`, 'utf8').toString('base64url');
+}
+
+function decodeMovementCursor(cursor: string): string {
+  const decoded = Buffer.from(cursor, 'base64url').toString('utf8');
+  const match = /^v1:([0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/i.exec(
+    decoded,
+  );
+  if (match?.[1] === undefined) {
+    throw new UnprocessableEntityException({ status: 422, code: 'INVALID_CURSOR' });
+  }
+  return match[1];
+}
 
 function invalidOperationId(): UnprocessableEntityException {
   return new UnprocessableEntityException({

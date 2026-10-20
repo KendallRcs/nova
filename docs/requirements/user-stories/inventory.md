@@ -171,4 +171,21 @@
 - **Cuando:** intento confirmar su resolución con una versión anterior
 - **Entonces:** la operación se rechaza sin modificar cantidades ni costo.
 
+### User Story INV-008 — Consultar el historial de movimientos de inventario
+
+- **Estado:** Confirmada
+- **Trazabilidad de implementación:** backend completo mediante una vista CQRS-lite
+  paginada y filtrable por producto, ubicación, responsable o tipo. Expone cambios
+  de cantidades y referencias causales sin revelar costos.
+- **Como** empleado
+- **quiero** consultar cómo cambió el inventario de un producto
+- **para** identificar si fue comprado, reservado, entregado, trasladado o ajustado.
+
+#### Criterios de aceptación
+
+- **Escenario:** Rastrear el origen de una diferencia de stock
+- **Dado:** que existen movimientos confirmados para un producto
+- **Cuando:** consulto su historial aplicando los filtros disponibles
+- **Entonces:** veo cantidades anteriores y resultantes, responsable, fecha, razón y referencia de negocio sin acceder a información de costo.
+
 ---

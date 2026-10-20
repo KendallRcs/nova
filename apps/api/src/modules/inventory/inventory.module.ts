@@ -4,6 +4,7 @@ import { PrismaInventoryCatalog } from './adapters/driven/prisma/prisma-inventor
 import { PrismaProductCostCatalog } from './adapters/driven/prisma/prisma-product-cost-catalog';
 import { PrismaInventoryTransferBook } from './adapters/driven/prisma/prisma-inventory-transfer-book';
 import { PrismaInventoryAdministrationBook } from './adapters/driven/prisma/prisma-inventory-administration-book';
+import { PrismaInventoryMovementSource } from './adapters/driven/prisma/prisma-inventory-movement-source';
 import {
   SystemInventoryClock,
   UuidV7InventoryIdGenerator,
@@ -25,11 +26,16 @@ import {
   ListProductCosts,
   type ProductCostCatalog,
 } from './hexagon/application/product-cost-catalog';
+import {
+  ListInventoryMovements,
+  type InventoryMovementSource,
+} from './hexagon/application/inventory-movement-history';
 
 const INVENTORY_CATALOG = Symbol('INVENTORY_CATALOG');
 const INVENTORY_TRANSFER_BOOK = Symbol('INVENTORY_TRANSFER_BOOK');
 const INVENTORY_ADMINISTRATION_BOOK = Symbol('INVENTORY_ADMINISTRATION_BOOK');
 const PRODUCT_COST_CATALOG = Symbol('PRODUCT_COST_CATALOG');
+const INVENTORY_MOVEMENT_SOURCE = Symbol('INVENTORY_MOVEMENT_SOURCE');
 
 @Module({
   controllers: [InventoryController],
@@ -38,12 +44,14 @@ const PRODUCT_COST_CATALOG = Symbol('PRODUCT_COST_CATALOG');
     PrismaProductCostCatalog,
     PrismaInventoryTransferBook,
     PrismaInventoryAdministrationBook,
+    PrismaInventoryMovementSource,
     SystemInventoryClock,
     UuidV7InventoryIdGenerator,
     { provide: INVENTORY_CATALOG, useExisting: PrismaInventoryCatalog },
     { provide: INVENTORY_TRANSFER_BOOK, useExisting: PrismaInventoryTransferBook },
     { provide: INVENTORY_ADMINISTRATION_BOOK, useExisting: PrismaInventoryAdministrationBook },
     { provide: PRODUCT_COST_CATALOG, useExisting: PrismaProductCostCatalog },
+    { provide: INVENTORY_MOVEMENT_SOURCE, useExisting: PrismaInventoryMovementSource },
     {
       provide: ListInventoryLocations,
       inject: [INVENTORY_CATALOG],
@@ -90,6 +98,12 @@ const PRODUCT_COST_CATALOG = Symbol('PRODUCT_COST_CATALOG');
       provide: ListProductCosts,
       inject: [PRODUCT_COST_CATALOG],
       useFactory: (catalog: ProductCostCatalog): ListProductCosts => new ListProductCosts(catalog),
+    },
+    {
+      provide: ListInventoryMovements,
+      inject: [INVENTORY_MOVEMENT_SOURCE],
+      useFactory: (source: InventoryMovementSource): ListInventoryMovements =>
+        new ListInventoryMovements(source),
     },
   ],
 })
