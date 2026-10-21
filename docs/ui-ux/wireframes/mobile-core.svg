@@ -1,0 +1,128 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1460" viewBox="0 0 1600 1460" role="img" aria-labelledby="title description">
+  <title id="title">Wireframes móviles principales de Nova</title>
+  <desc id="description">Acceso, inicio por perfil, consulta de producto, seguimiento de deuda y creación de venta en teléfonos.</desc>
+  <style>
+    .title{font:800 34px Arial,sans-serif;fill:#1f2937}.sub{font:400 16px Arial,sans-serif;fill:#64748b}.label{font:700 13px Arial,sans-serif;fill:#64748b;letter-spacing:1.1px}.h1{font:800 22px Arial,sans-serif;fill:#1f2937}.h2{font:700 15px Arial,sans-serif;fill:#1f2937}.body{font:400 13px Arial,sans-serif;fill:#475569}.small{font:400 11px Arial,sans-serif;fill:#64748b}.strong{font:700 13px Arial,sans-serif;fill:#1f2937}.money{font:800 18px Arial,sans-serif;fill:#1f2937}.white{fill:#fff}.blue{fill:#2563eb}.mint{fill:#2bae8c}.amber{fill:#f3b43f}.danger{fill:#d94a4a}.line{stroke:#dbe2eb;stroke-width:1}.dash{stroke:#94a3b8;stroke-width:1;stroke-dasharray:5 5}.phone{fill:#fff;stroke:#cbd5e1;stroke-width:2}.soft{fill:#f6f8fc}.panel{fill:#fff;stroke:#dbe2eb}.blueSoft{fill:#eaf0ff}.mintSoft{fill:#e8f8f2}.amberSoft{fill:#fff4d8}.nav{font:700 10px Arial,sans-serif;fill:#64748b}.navOn{font:800 10px Arial,sans-serif;fill:#2563eb}
+  </style>
+  <rect width="1600" height="1460" fill="#f6f8fc"/>
+  <text x="54" y="62" class="label">NOVA · WIREFRAMES RESPONSIVE</text>
+  <text x="54" y="105" class="title">Operación móvil: de consultar a confirmar</text>
+  <text x="54" y="136" class="sub">Baja fidelidad · jerarquía y flujo · ancho de referencia 360 px</text>
+
+  <!-- Login -->
+  <g transform="translate(54 190)">
+    <text x="0" y="-18" class="label">01 · ACCESO</text>
+    <rect width="270" height="520" rx="30" class="phone"/>
+    <rect x="101" y="34" width="68" height="68" rx="18" class="blue"/>
+    <text x="135" y="79" text-anchor="middle" font-family="Arial" font-size="28" font-weight="800" class="white">N</text>
+    <text x="24" y="139" class="h1">Ingresa a Nova</text>
+    <text x="24" y="165" class="body">Usa la cuenta asignada por</text><text x="24" y="183" class="body">el administrador.</text>
+    <text x="24" y="222" class="strong">Usuario</text><rect x="24" y="234" width="222" height="46" rx="10" class="soft" stroke="#cbd5e1"/>
+    <text x="24" y="310" class="strong">Contraseña</text><rect x="24" y="322" width="222" height="46" rx="10" class="soft" stroke="#cbd5e1"/>
+    <rect x="24" y="394" width="222" height="48" rx="12" class="blue"/><text x="135" y="424" text-anchor="middle" class="strong white">Ingresar</text>
+    <text x="135" y="475" text-anchor="middle" class="small">¿Olvidaste tu contraseña?</text><text x="135" y="492" text-anchor="middle" class="small">Solicita ayuda al administrador.</text>
+  </g>
+
+  <!-- Employee home -->
+  <g transform="translate(360 190)">
+    <text x="0" y="-18" class="label">02 · INICIO EMPLEADO</text>
+    <rect width="270" height="520" rx="30" class="phone"/>
+    <text x="22" y="42" class="small">Miércoles, 21 de octubre</text><text x="22" y="70" class="h1">Hola, Ana</text>
+    <rect x="22" y="92" width="226" height="54" rx="14" class="blue"/><text x="135" y="125" text-anchor="middle" class="strong white">＋ Nueva venta</text>
+    <rect x="22" y="160" width="226" height="44" rx="12" class="soft" stroke="#dbe2eb"/><text x="43" y="187" class="body">⌕ Código o nombre del producto</text>
+    <text x="22" y="237" class="h2">Necesita tu atención</text>
+    <rect x="22" y="251" width="226" height="62" rx="12" class="amberSoft"/><circle cx="42" cy="272" r="6" class="amber"/><text x="56" y="276" class="strong">2 cobros pendientes</text><text x="56" y="296" class="small">Ventas registradas por ti</text>
+    <rect x="22" y="323" width="226" height="62" rx="12" class="blueSoft"/><circle cx="42" cy="344" r="6" class="blue"/><text x="56" y="348" class="strong">1 entrega pendiente</text><text x="56" y="368" class="small">Producto separado en tienda</text>
+    <text x="22" y="420" class="h2">Actividad reciente</text><text x="22" y="445" class="body">V-1042 · Pago registrado</text>
+    <line x1="0" y1="472" x2="270" y2="472" class="line"/>
+    <text x="24" y="501" class="navOn">Inicio</text><text x="76" y="501" class="nav">Ventas</text><text x="126" y="501" class="nav">Inventario</text><text x="191" y="501" class="nav">Clientes</text><text x="237" y="501" class="nav">Más</text>
+  </g>
+
+  <!-- Admin home -->
+  <g transform="translate(666 190)">
+    <text x="0" y="-18" class="label">03 · INICIO ADMIN</text>
+    <rect width="270" height="520" rx="30" class="phone"/>
+    <text x="22" y="42" class="small">Miércoles, 21 de octubre</text><text x="22" y="70" class="h1">Resumen del negocio</text>
+    <text x="22" y="103" class="h2">Por resolver</text>
+    <rect x="22" y="116" width="108" height="76" rx="12" class="amberSoft"/><text x="34" y="142" class="small">DEUDAS VENCIDAS</text><text x="34" y="174" class="money">3</text>
+    <rect x="140" y="116" width="108" height="76" rx="12" class="mintSoft"/><text x="152" y="142" class="small">EN REVISIÓN</text><text x="152" y="174" class="money">2</text>
+    <text x="22" y="224" class="h2">Acciones rápidas</text>
+    <rect x="22" y="238" width="108" height="46" rx="12" class="blue"/><text x="76" y="266" text-anchor="middle" class="strong white">Nueva venta</text>
+    <rect x="140" y="238" width="108" height="46" rx="12" class="soft" stroke="#cbd5e1"/><text x="194" y="266" text-anchor="middle" class="strong">Compra</text>
+    <rect x="22" y="294" width="108" height="46" rx="12" class="soft" stroke="#cbd5e1"/><text x="76" y="322" text-anchor="middle" class="strong">Gasto</text>
+    <rect x="140" y="294" width="108" height="46" rx="12" class="soft" stroke="#cbd5e1"/><text x="194" y="322" text-anchor="middle" class="strong">Ajuste</text>
+    <text x="22" y="376" class="h2">Octubre</text><text x="22" y="403" class="small">Ventas confirmadas</text><text x="248" y="403" text-anchor="end" class="strong">S/ 8 420</text><text x="22" y="430" class="small">Resultado estimado</text><text x="248" y="430" text-anchor="end" class="strong">S/ 2 180</text>
+    <line x1="0" y1="472" x2="270" y2="472" class="line"/>
+    <text x="24" y="501" class="navOn">Inicio</text><text x="76" y="501" class="nav">Ventas</text><text x="126" y="501" class="nav">Inventario</text><text x="191" y="501" class="nav">Clientes</text><text x="237" y="501" class="nav">Más</text>
+  </g>
+
+  <!-- Product search -->
+  <g transform="translate(972 190)">
+    <text x="0" y="-18" class="label">04 · BUSCAR PRODUCTO</text>
+    <rect width="270" height="520" rx="30" class="phone"/>
+    <text x="22" y="43" class="h1">Inventario</text><text x="248" y="43" text-anchor="end" class="small blue">Cómo funciona</text>
+    <rect x="22" y="66" width="226" height="44" rx="12" class="blueSoft" stroke="#2563eb"/><text x="40" y="93" class="body">⌕ MUN-001</text>
+    <text x="22" y="137" class="small">1 PRODUCTO ENCONTRADO</text>
+    <rect x="22" y="151" width="226" height="130" rx="14" class="panel"/>
+    <rect x="36" y="166" width="54" height="54" rx="10" class="soft"/><text x="63" y="199" text-anchor="middle" class="small">Foto</text>
+    <text x="104" y="179" class="small">MUN-001</text><text x="104" y="201" class="strong">Muñeca clásica</text><text x="104" y="224" class="small">Desde S/ 20.00</text>
+    <line x1="36" y1="237" x2="234" y2="237" class="line"/><text x="36" y="261" class="small">Tienda 3 disp.</text><text x="234" y="261" text-anchor="end" class="small">Almacén 8 disp.</text>
+    <text x="22" y="316" class="h2">Detalle por ubicación</text>
+    <rect x="22" y="329" width="226" height="48" rx="10" class="soft"/><text x="36" y="350" class="strong">Tienda</text><text x="234" y="350" text-anchor="end" class="strong mint">3 disponibles</text><text x="36" y="367" class="small">1 reservada · 0 revisión</text>
+    <rect x="22" y="386" width="226" height="48" rx="10" class="soft"/><text x="36" y="407" class="strong">Almacén</text><text x="234" y="407" text-anchor="end" class="strong mint">8 disponibles</text><text x="36" y="424" class="small">0 reservadas · 1 revisión</text>
+    <line x1="0" y1="472" x2="270" y2="472" class="line"/><text x="24" y="501" class="nav">Inicio</text><text x="76" y="501" class="nav">Ventas</text><text x="126" y="501" class="navOn">Inventario</text><text x="191" y="501" class="nav">Clientes</text><text x="237" y="501" class="nav">Más</text>
+  </g>
+
+  <!-- Debt -->
+  <g transform="translate(1278 190)">
+    <text x="0" y="-18" class="label">05 · DEUDA</text>
+    <rect width="270" height="520" rx="30" class="phone"/>
+    <text x="22" y="42" class="small">‹ Clientes</text><text x="22" y="72" class="h1">Rosa Medina</text><text x="22" y="94" class="small">987 654 321</text>
+    <rect x="22" y="116" width="226" height="104" rx="14" class="amberSoft"/>
+    <text x="36" y="142" class="small">SALDO PENDIENTE</text><text x="36" y="178" class="money">S/ 50.00</text><rect x="164" y="137" width="70" height="26" rx="13" class="amber"/><text x="199" y="155" text-anchor="middle" class="small">Atrasada</text><text x="36" y="204" class="small">1 venta abierta · venció 18 oct.</text>
+    <rect x="22" y="236" width="226" height="46" rx="12" class="blue"/><text x="135" y="264" text-anchor="middle" class="strong white">Registrar pago</text>
+    <text x="22" y="315" class="h2">Venta V-1038</text><text x="248" y="315" text-anchor="end" class="small">Ver detalle</text>
+    <text x="22" y="344" class="small">Total vigente</text><text x="248" y="344" text-anchor="end" class="strong">S/ 100.00</text><text x="22" y="369" class="small">Pagado</text><text x="248" y="369" text-anchor="end" class="strong mint">S/ 50.00</text><text x="22" y="394" class="small">Saldo</text><text x="248" y="394" text-anchor="end" class="strong">S/ 50.00</text>
+    <text x="22" y="431" class="h2">Rastro</text><circle cx="30" cy="451" r="5" class="mint"/><text x="44" y="455" class="small">10 oct. Pago S/ 50 · Ana</text><line x1="30" y1="456" x2="30" y2="472" class="line"/>
+    <line x1="0" y1="472" x2="270" y2="472" class="line"/><text x="24" y="501" class="nav">Inicio</text><text x="76" y="501" class="nav">Ventas</text><text x="126" y="501" class="nav">Inventario</text><text x="191" y="501" class="navOn">Clientes</text><text x="237" y="501" class="nav">Más</text>
+  </g>
+
+  <line x1="54" y1="760" x2="1548" y2="760" class="dash"/>
+  <text x="54" y="805" class="title">Nueva venta conserva contexto entre pasos</text>
+  <text x="54" y="836" class="sub">El borrador existe antes de confirmar; el resumen permanece visible.</text>
+
+  <!-- Sale step 1 -->
+  <g transform="translate(360 885)">
+    <text x="0" y="-18" class="label">1/3 · PRODUCTOS</text><rect width="270" height="480" rx="30" class="phone"/>
+    <text x="22" y="42" class="small">Cancelar</text><text x="22" y="74" class="h1">Nueva venta</text><text x="248" y="74" text-anchor="end" class="small">Borrador</text>
+    <rect x="22" y="96" width="226" height="42" rx="11" class="soft" stroke="#cbd5e1"/><text x="40" y="122" class="body">⌕ Agregar producto</text>
+    <rect x="22" y="154" width="226" height="112" rx="14" class="panel"/><text x="36" y="181" class="small">MUN-001 · TIENDA</text><text x="36" y="205" class="strong">Muñeca clásica</text><text x="36" y="232" class="small">2 unidades × S/ 25.00</text><text x="234" y="232" text-anchor="end" class="strong">S/ 50.00</text><text x="36" y="252" class="small blue">Editar cantidad y precio</text>
+    <rect x="22" y="282" width="226" height="72" rx="14" class="blueSoft"/><text x="36" y="307" class="small">RESUMEN</text><text x="36" y="338" class="strong">1 producto · 2 unidades</text><text x="234" y="338" text-anchor="end" class="money">S/ 50</text>
+    <rect x="22" y="394" width="226" height="48" rx="12" class="blue"/><text x="135" y="424" text-anchor="middle" class="strong white">Continuar</text>
+  </g>
+
+  <!-- Sale step 2 -->
+  <g transform="translate(666 885)">
+    <text x="0" y="-18" class="label">2/3 · ENTREGA Y PAGO</text><rect width="270" height="480" rx="30" class="phone"/>
+    <text x="22" y="42" class="small">‹ Productos</text><text x="22" y="74" class="h1">¿Qué se lleva?</text>
+    <text x="22" y="104" class="strong">Muñeca clásica · 2 unidades</text>
+    <rect x="22" y="120" width="226" height="48" rx="12" class="mintSoft"/><text x="36" y="140" class="small">ENTREGAR AHORA</text><text x="234" y="151" text-anchor="end" class="strong">1</text>
+    <rect x="22" y="178" width="226" height="48" rx="12" class="amberSoft"/><text x="36" y="198" class="small">SEPARAR</text><text x="234" y="209" text-anchor="end" class="strong">1</text>
+    <text x="22" y="260" class="h2">Cliente</text><rect x="22" y="272" width="226" height="42" rx="11" class="soft"/><text x="36" y="298" class="body">Rosa Medina · 987 654 321</text>
+    <text x="22" y="346" class="h2">Pago inicial</text><text x="22" y="371" class="body">S/ 20.00 · Yape</text><text x="22" y="394" class="small amber">Quedará un saldo de S/ 30.00</text>
+    <rect x="22" y="414" width="226" height="48" rx="12" class="blue"/><text x="135" y="444" text-anchor="middle" class="strong white">Revisar venta</text>
+  </g>
+
+  <!-- Sale review -->
+  <g transform="translate(972 885)">
+    <text x="0" y="-18" class="label">3/3 · REVISIÓN</text><rect width="270" height="480" rx="30" class="phone"/>
+    <text x="22" y="42" class="small">‹ Editar</text><text x="22" y="74" class="h1">Revisa la venta</text>
+    <rect x="22" y="96" width="226" height="78" rx="12" class="soft"/><text x="36" y="120" class="small">PRODUCTOS</text><text x="36" y="145" class="strong">2 unidades</text><text x="234" y="145" text-anchor="end" class="strong">S/ 50.00</text>
+    <rect x="22" y="184" width="226" height="96" rx="12" class="soft"/><text x="36" y="208" class="small">CUMPLIMIENTO</text><text x="36" y="233" class="body">Se lleva ahora</text><text x="234" y="233" text-anchor="end" class="strong">1</text><text x="36" y="258" class="body">Queda separada</text><text x="234" y="258" text-anchor="end" class="strong">1</text>
+    <rect x="22" y="290" width="226" height="82" rx="12" class="amberSoft"/><text x="36" y="314" class="small">ACUERDO</text><text x="36" y="340" class="body">Pagado ahora</text><text x="234" y="340" text-anchor="end" class="strong">S/ 20.00</text><text x="36" y="360" class="body">Saldo pendiente</text><text x="234" y="360" text-anchor="end" class="strong">S/ 30.00</text>
+    <text x="22" y="404" class="small">Confirmar moverá inventario y caja.</text>
+    <rect x="22" y="416" width="226" height="48" rx="12" class="blue"/><text x="135" y="446" text-anchor="middle" class="strong white">Confirmar venta</text>
+  </g>
+
+  <text x="54" y="1416" class="small">Los valores son datos sintéticos para probar jerarquía; no representan operaciones reales.</text>
+</svg>

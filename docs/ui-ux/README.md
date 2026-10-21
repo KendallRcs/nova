@@ -7,6 +7,7 @@
 - [Fundamentos de experiencia](experience-foundations.md)
 - [Arquitectura de información](information-architecture.md)
 - [Flujos principales](core-flows.md)
+- [Wireframes responsive](wireframes.md)
 - [Paleta visual aprobada](assets/nova-color-palette.svg)
 - [Contexto durable de la aplicación web](../../apps/web/PRODUCT.md)
 
