@@ -8,6 +8,7 @@
 - [Arquitectura de información](information-architecture.md)
 - [Flujos principales](core-flows.md)
 - [Wireframes responsive](wireframes.md)
+- [Estados y recuperación de la interfaz](interface-states.md)
 - [Paleta visual aprobada](assets/nova-color-palette.svg)
 - [Contexto durable de la aplicación web](../../apps/web/PRODUCT.md)
 
@@ -24,9 +25,9 @@
 ## Orden de trabajo
 
 1. Confirmar arquitectura de información y flujos críticos.
-2. Definir estados, patrones responsive y wireframes de baja fidelidad.
-3. Resolver la arquitectura frontend y sus ADR sin inventar decisiones UI.
-4. Implementar el shell, autenticación y primera vertical visible.
+2. Definir estados, patrones responsive y wireframes de baja fidelidad. **Completado.**
+3. Resolver la arquitectura frontend y sus ADR sin inventar decisiones UI. **Completado.**
+4. Implementar el shell, autenticación y primera vertical visible. **Siguiente.**
 5. Consolidar el sistema visual desde la interfaz construida.
 
 `DESIGN.md` no se escribirá como una aspiración previa: se generará desde el

@@ -10,6 +10,7 @@ finales. Utilizan la paleta aprobada solo para hacer visible la jerarquía funci
 
 - [Flujos móviles principales](wireframes/mobile-core.svg)
 - [Superficies de escritorio](wireframes/desktop-core.svg)
+- [Estados de interfaz y recuperación](wireframes/interface-states.svg)
 
 ## Decisiones representadas
 
@@ -73,7 +74,7 @@ finales. Utilizan la paleta aprobada solo para hacer visible la jerarquía funci
 
 ## Siguiente iteración
 
-Después de validar esta estructura se diseñarán estados de error, vacío, carga y
-conflicto para las mismas superficies. La alta fidelidad se realizará durante la
-primera vertical frontend para que el sistema visual nazca de componentes y datos
-reales, no de una maqueta aislada.
+Los estados de error, vacío, carga, permisos y conflicto ya están definidos en
+[Estados y recuperación de la interfaz](interface-states.md). La alta fidelidad se
+realizará durante la primera vertical frontend para que el sistema visual nazca de
+componentes y datos reales, no de una maqueta aislada.

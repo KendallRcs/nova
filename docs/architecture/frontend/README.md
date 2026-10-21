@@ -1,8 +1,30 @@
 # Arquitectura frontend
 
-**Estado:** pendiente de definición.
+**Estado:** confirmada para el MVP el 2026-10-21.
 
-El frontend será Next.js con App Router, React, TypeScript y enfoque mobile first. Su arquitectura se organizará por capacidades del producto y no compartirá directamente entidades internas del backend.
+## Fuentes de verdad
 
-Las decisiones sobre Server Components, estado, caché, formularios, contratos, PWA y design system se documentarán aquí y mediante ADR cuando sean costosas de revertir.
+- [Arquitectura de la aplicación web](application-architecture.md)
+- [ADR-0017: frontend modular por capacidades](../../adr/0017-adopt-modular-feature-first-frontend.md)
+- [Contratos HTTP del backend](../backend/http-api-contracts.md)
+- [Estados y recuperación de interfaz](../../ui-ux/interface-states.md)
+- [Contexto durable de la aplicación](../../../apps/web/PRODUCT.md)
 
+## Principios
+
+1. `app/` ensambla rutas; las capacidades viven fuera del árbol de rutas.
+2. OpenAPI, no el código del backend, define la frontera TypeScript.
+3. El backend conserva la autoridad sobre permisos e invariantes.
+4. Cada clase de estado tiene un propietario y no se copia sin necesidad.
+5. Se usan Server Components por defecto y se introduce una frontera cliente solo
+   donde la interacción operativa la necesita.
+6. Un componente compartido aparece después de reutilización real, no por
+   anticipación.
+
+## Próximo incremento
+
+1. Preparar dependencias frontend confirmadas y generación del contrato.
+2. Crear tokens, primitivas y shell responsive.
+3. Implementar acceso, sesión actual y cambio de contraseña temporal.
+4. Implementar la primera vertical operativa de consulta de inventario.
+5. Añadir pruebas unitarias y de integración de componentes sin Playwright.

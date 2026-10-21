@@ -1,6 +1,7 @@
 # Arquitectura
 
-**Estado:** backend del MVP cerrado el 2026-10-19; arquitectura frontend pendiente.
+**Estado:** backend del MVP cerrado el 2026-10-19; arquitectura frontend confirmada
+el 2026-10-21.
 
 ## Decisiones vigentes
 
@@ -19,15 +20,18 @@
 - [Herramientas de código y plan de scaffolding](tooling-and-scaffolding.md)
 - [ADR-0013: estandarizar herramientas TypeScript y puerta de calidad](../adr/0013-standardize-typescript-tooling-and-quality-gate.md)
 - [Cierre de implementación del backend MVP](backend/implementation-closure.md)
+- [Arquitectura frontend](frontend/README.md)
+- [ADR-0017: frontend modular por capacidades](../adr/0017-adopt-modular-feature-first-frontend.md)
 
 ## Siguiente fase
 
-- Arquitectura UI/UX y frontend sobre los contratos HTTP ya confirmados.
+- Implementar el shell, autenticación y primera vertical visible sobre los
+  contratos HTTP confirmados.
 
 ## Áreas
 
 - `backend/`: límites, dependencias y convenciones del API NestJS.
-- `frontend/`: arquitectura modular de Next.js; se definirá en su fase.
+- `frontend/`: arquitectura modular de Next.js, fronteras y flujo de datos.
 - `diagrams/`: diagramas C4 y de componentes cuando exista una arquitectura suficientemente estable.
 
 El modelo de negocio vive en [Dominio](../domain/README.md). Las decisiones persistentes viven en [ADR](../adr/README.md).

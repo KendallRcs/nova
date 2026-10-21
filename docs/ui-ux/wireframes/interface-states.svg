@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1160" viewBox="0 0 1600 1160" role="img" aria-labelledby="title desc">
+  <title id="title">Estados y recuperación de la interfaz de Nova</title>
+  <desc id="desc">Wireframes de carga, vacío, error de validación, sesión vencida, permiso insuficiente y conflicto de inventario.</desc>
+  <style>
+    .bg{fill:#f6f8fc}.surface{fill:#fff;stroke:#ccd6e5;stroke-width:2}.soft{fill:#f2f5fa}.blue-soft{fill:#e7efff}.mint-soft{fill:#e3f5ef}.amber-soft{fill:#fff2d4}.red-soft{fill:#fde9e9}.blue{fill:#2563eb}.mint{fill:#2bae8c}.amber{fill:#f3b43f}.red{fill:#d94a4a}.ink{fill:#1f2937}.muted{fill:#60708a}.white{fill:#fff}.line{stroke:#d9e1ec;stroke-width:2}.dash{stroke:#b8c5d8;stroke-width:2;stroke-dasharray:7 7}.t{font-family:Arial,Helvetica,sans-serif}.h1{font-size:34px;font-weight:700}.h2{font-size:22px;font-weight:700}.h3{font-size:17px;font-weight:700}.body{font-size:15px}.small{font-size:12px}.label{font-size:12px;font-weight:700;letter-spacing:1.3px}.button{font-size:14px;font-weight:700}.center{text-anchor:middle}.right{text-anchor:end}
+  </style>
+  <rect class="bg" width="1600" height="1160"/>
+  <text class="t label muted" x="60" y="58">NOVA · ESTADOS DE INTERFAZ</text>
+  <text class="t h1 ink" x="60" y="104">Recuperar sin perder el trabajo</text>
+  <text class="t body muted" x="60" y="136">Cada estado explica qué pasó, conserva el contexto posible y ofrece un siguiente paso.</text>
+
+  <text class="t label muted" x="60" y="190">01 · CONSULTA Y BÚSQUEDA</text>
+  <rect class="surface" x="60" y="210" rx="22" width="460" height="310"/>
+  <text class="t h2 ink" x="90" y="252">Inventario</text>
+  <rect class="soft" x="90" y="275" rx="12" width="400" height="50"/>
+  <rect fill="#dbe3ef" x="108" y="291" rx="7" width="185" height="18"/>
+  <text class="t small muted" x="90" y="356">CARGANDO PRODUCTOS</text>
+  <rect fill="#e6ebf3" x="90" y="378" rx="10" width="400" height="38"/>
+  <rect fill="#e6ebf3" x="90" y="428" rx="10" width="400" height="38"/>
+  <text class="t small muted" x="90" y="493">La estructura permanece estable; no aparece una pantalla en blanco.</text>
+
+  <rect class="surface" x="570" y="210" rx="22" width="460" height="310"/>
+  <text class="t h2 ink" x="600" y="252">Sin resultados</text>
+  <rect class="blue-soft" x="600" y="275" rx="12" width="400" height="50"/>
+  <text class="t body ink" x="622" y="306">MUN-099</text>
+  <circle class="blue" cx="800" cy="367" r="24"/>
+  <text class="t h3 white center" x="800" y="373">?</text>
+  <text class="t h3 ink center" x="800" y="414">No encontramos “MUN-099”</text>
+  <text class="t body muted center" x="800" y="442">Revisa el código o busca por nombre.</text>
+  <rect class="blue" x="682" y="462" rx="10" width="236" height="42"/>
+  <text class="t button white center" x="800" y="488">Limpiar búsqueda</text>
+
+  <rect class="surface" x="1080" y="210" rx="22" width="460" height="310"/>
+  <text class="t h2 ink" x="1110" y="252">Todavía no hay clientes</text>
+  <circle class="mint-soft" cx="1310" cy="334" r="42"/>
+  <text class="t h2 mint center" x="1310" y="342">＋</text>
+  <text class="t body muted center" x="1310" y="402">Registra al primero para vincular ventas</text>
+  <text class="t body muted center" x="1310" y="424">y hacer seguimiento a sus pagos.</text>
+  <rect class="blue" x="1192" y="458" rx="10" width="236" height="42"/>
+  <text class="t button white center" x="1310" y="484">Registrar cliente</text>
+
+  <line class="dash" x1="60" y1="570" x2="1540" y2="570"/>
+  <text class="t label muted" x="60" y="620">02 · FORMULARIOS Y ACCESO</text>
+  <rect class="surface" x="60" y="642" rx="22" width="460" height="386"/>
+  <text class="t h2 ink" x="90" y="686">Registrar pago</text>
+  <text class="t small muted" x="90" y="720">MONTO</text>
+  <rect class="red-soft" x="90" y="737" rx="10" width="400" height="50" stroke="#d94a4a" stroke-width="2"/>
+  <text class="t body ink" x="108" y="768">S/ 70.00</text>
+  <text class="t small red" x="90" y="810">El pago no puede superar el saldo vigente de S/ 50.00.</text>
+  <text class="t small muted" x="90" y="847">MÉTODO</text>
+  <rect class="soft" x="90" y="864" rx="10" width="400" height="50"/>
+  <text class="t body ink" x="108" y="895">Yape</text>
+  <rect class="blue" x="90" y="946" rx="10" width="400" height="52"/>
+  <text class="t button white center" x="290" y="977">Revisar pago</text>
+
+  <rect class="surface" x="570" y="642" rx="22" width="460" height="386"/>
+  <rect class="amber-soft" x="600" y="680" rx="18" width="400" height="134"/>
+  <circle class="amber" cx="642" cy="722" r="18"/>
+  <text class="t h3 white center" x="642" y="728">!</text>
+  <text class="t h3 ink" x="675" y="716">Tu sesión terminó</text>
+  <text class="t body ink" x="675" y="744">Ingresa de nuevo para continuar.</text>
+  <text class="t small muted" x="675" y="772">El borrador de la venta se conservará.</text>
+  <rect class="blue" x="600" y="844" rx="10" width="400" height="52"/>
+  <text class="t button white center" x="800" y="875">Volver a ingresar</text>
+  <text class="t small muted center" x="800" y="933">Una escritura interrumpida nunca se reenvía sola.</text>
+
+  <rect class="surface" x="1080" y="642" rx="22" width="460" height="386"/>
+  <circle class="red-soft" cx="1310" cy="730" r="52"/>
+  <text class="t h2 red center" x="1310" y="738">⛔</text>
+  <text class="t h2 ink center" x="1310" y="821">No tienes permiso</text>
+  <text class="t body muted center" x="1310" y="854">Solo un administrador puede ajustar stock.</text>
+  <rect class="soft" x="1192" y="900" rx="10" width="236" height="46"/>
+  <text class="t button ink center" x="1310" y="928">Volver al producto</text>
+  <text class="t small muted center" x="1310" y="982">La API sigue siendo la autoridad del permiso.</text>
+
+  <text class="t label muted" x="60" y="1092">03 · CONFLICTO EN UNA ESCRITURA</text>
+  <rect class="amber-soft" x="365" y="1058" rx="14" width="1175" height="72"/>
+  <text class="t h3 ink" x="395" y="1090">El stock cambió mientras revisabas la venta.</text>
+  <text class="t body muted" x="395" y="1115">Conservaremos el borrador y señalaremos las líneas que debes revisar.</text>
+  <rect class="amber" x="1300" y="1073" rx="10" width="210" height="44"/>
+  <text class="t button ink center" x="1405" y="1100">Actualizar y revisar</text>
+  <text class="t small muted" x="60" y="1130">Un conflicto nunca descarta líneas ni confirma parcialmente la operación.</text>
+</svg>
