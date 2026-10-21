@@ -1,0 +1,418 @@
+.authPage {
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(420px, 0.92fr);
+  min-height: 100vh;
+  background: var(--surface);
+}
+
+.tracePanel {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: clamp(2rem, 5vw, 4.5rem);
+  overflow: hidden;
+  background: var(--cloud);
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: fit-content;
+  color: var(--ink);
+  font-size: 1.125rem;
+  font-weight: 760;
+  letter-spacing: -0.02em;
+}
+
+.brandMark {
+  display: grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  place-items: center;
+  border-radius: 0.75rem;
+  color: white;
+  background: var(--nova);
+  font-size: 1.15rem;
+  font-weight: 800;
+  box-shadow: 0 7px 16px rgba(37, 99, 235, 0.2);
+}
+
+.traceContent {
+  width: min(100%, 640px);
+  margin: auto 0;
+  padding: 5rem 0 4rem;
+}
+
+.kicker {
+  margin: 0 0 0.75rem;
+  color: var(--nova);
+  font-size: 0.78rem;
+  font-weight: 760;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.traceContent h1 {
+  max-width: 16ch;
+  margin: 0;
+  font-size: clamp(2.5rem, 4.5vw, 4.6rem);
+  font-weight: 760;
+  letter-spacing: -0.035em;
+  line-height: 1.02;
+  text-wrap: balance;
+}
+
+.traceContent > p:not(.kicker) {
+  max-width: 52ch;
+  margin: 1.5rem 0 0;
+  color: var(--ink-soft);
+  font-size: 1.075rem;
+}
+
+.traceList {
+  position: relative;
+  display: grid;
+  gap: 1.25rem;
+  margin: 3rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.traceList::before {
+  position: absolute;
+  top: 0.8rem;
+  bottom: 0.8rem;
+  left: 0.43rem;
+  width: 1px;
+  background: var(--line-strong);
+  content: '';
+}
+
+.traceList li {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1rem 1fr;
+  gap: 1rem;
+  align-items: start;
+}
+
+.traceList li > span {
+  z-index: 1;
+  width: 0.88rem;
+  height: 0.88rem;
+  margin-top: 0.28rem;
+  border: 3px solid var(--cloud);
+  border-radius: 50%;
+  background: var(--mint);
+  box-shadow: 0 0 0 1px var(--mint);
+}
+
+.traceList div {
+  display: grid;
+  gap: 0.12rem;
+}
+
+.traceList strong {
+  font-size: 0.95rem;
+}
+
+.traceList small,
+.traceFootnote {
+  color: var(--ink-soft);
+  font-size: 0.8rem;
+}
+
+.traceFootnote {
+  margin: 0;
+}
+
+.formPanel {
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  padding: clamp(2rem, 6vw, 5rem);
+  background: var(--surface);
+}
+
+.formWrap {
+  width: min(100%, 430px);
+}
+
+.formWrap h2,
+.passwordCard h1,
+.entryState h1 {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 760;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  text-wrap: balance;
+}
+
+.intro {
+  margin: 0.75rem 0 0;
+  color: var(--ink-soft);
+}
+
+.form {
+  display: grid;
+  gap: 1.25rem;
+  margin-top: 2rem;
+}
+
+.field {
+  display: grid;
+  gap: 0.5rem;
+  color: var(--ink);
+  font-size: 0.9rem;
+  font-weight: 680;
+}
+
+.field input {
+  width: 100%;
+  min-height: 3.25rem;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  padding: 0.7rem 0.9rem;
+  color: var(--ink);
+  background: var(--surface);
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.field input:hover {
+  border-color: #8798b1;
+}
+
+.field input:focus {
+  border-color: var(--nova);
+  outline: 0;
+  box-shadow: 0 0 0 3px var(--nova-soft);
+}
+
+.field input[aria-invalid='true'] {
+  border-color: var(--red);
+  background: var(--red-soft);
+}
+
+.field small {
+  color: var(--red);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.primaryButton {
+  display: inline-grid;
+  min-height: 3.25rem;
+  place-items: center;
+  border: 0;
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 1.25rem;
+  color: white;
+  background: var(--nova);
+  font-weight: 740;
+  text-decoration: none;
+  transition:
+    background 180ms ease,
+    transform 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.primaryButton:hover:not(:disabled) {
+  background: var(--nova-hover);
+  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.18);
+}
+
+.primaryButton:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.primaryButton:disabled {
+  cursor: wait;
+  opacity: 0.68;
+}
+
+.helpText {
+  display: grid;
+  gap: 0.15rem;
+  margin-top: 2rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--line);
+  color: var(--ink-soft);
+  font-size: 0.83rem;
+}
+
+.helpText strong {
+  color: var(--ink);
+}
+
+.errorMessage,
+.successMessage {
+  display: grid;
+  gap: 0.15rem;
+  margin-top: 1.5rem;
+  border-radius: var(--radius-md);
+  padding: 0.9rem 1rem;
+  font-size: 0.88rem;
+}
+
+.errorMessage {
+  color: #782929;
+  background: var(--red-soft);
+}
+
+.successMessage {
+  color: #0c604d;
+  background: var(--mint-soft);
+}
+
+.mobileBrand {
+  display: none;
+}
+
+.passwordPage {
+  min-height: 100vh;
+  padding: 2rem clamp(1rem, 5vw, 4rem) 4rem;
+  background: var(--cloud);
+}
+
+.passwordHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 1080px;
+  margin: 0 auto;
+}
+
+.passwordHeader > span {
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.passwordCard {
+  width: min(100%, 540px);
+  margin: clamp(3rem, 9vh, 7rem) auto 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: clamp(1.5rem, 5vw, 3rem);
+  background: var(--surface);
+  box-shadow: var(--shadow-raised);
+}
+
+.passwordRules {
+  display: flex;
+  gap: 0.55rem;
+  align-items: flex-start;
+  margin-top: -0.35rem;
+  color: var(--ink-soft);
+  font-size: 0.8rem;
+}
+
+.passwordRules span {
+  color: var(--mint);
+  font-weight: 800;
+}
+
+.entryState {
+  display: grid;
+  min-height: 100vh;
+  place-content: center;
+  justify-items: center;
+  gap: 1rem;
+  padding: 2rem;
+  text-align: center;
+}
+
+.entryState p {
+  max-width: 42ch;
+  margin: 0;
+  color: var(--ink-soft);
+}
+
+.entryState .primaryButton {
+  min-width: 10rem;
+  margin-top: 0.5rem;
+}
+
+.loadingLine {
+  width: 12rem;
+  height: 0.3rem;
+  margin-top: 1rem;
+  overflow: hidden;
+  border-radius: 1rem;
+  background: var(--nova-soft);
+}
+
+.loadingLine::after {
+  display: block;
+  width: 45%;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--nova);
+  animation: loading 1.15s ease-in-out infinite alternate;
+  content: '';
+}
+
+@keyframes loading {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(122%);
+  }
+}
+
+@media (max-width: 820px) {
+  .authPage {
+    display: block;
+    min-height: 100svh;
+  }
+
+  .tracePanel {
+    display: none;
+  }
+
+  .formPanel {
+    display: flex;
+    min-height: 100svh;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    padding: 1.5rem 1.25rem 2.5rem;
+  }
+
+  .mobileBrand {
+    display: block;
+    margin-bottom: clamp(4rem, 13vh, 7rem);
+  }
+
+  .formWrap {
+    margin: 0 auto;
+  }
+}
+
+@media (max-width: 420px) {
+  .formWrap h2,
+  .passwordCard h1,
+  .entryState h1 {
+    font-size: 1.7rem;
+  }
+
+  .passwordPage {
+    padding-inline: 0;
+  }
+
+  .passwordHeader {
+    padding-inline: 1.25rem;
+  }
+
+  .passwordCard {
+    margin-top: 2rem;
+    border-inline: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+}

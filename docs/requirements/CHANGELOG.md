@@ -3,6 +3,7 @@
 
 | Fecha | Cambio |
 | --- | --- |
+| 2026-10-21 | AUTH-001, AUTH-003, AUTH-004 y AUTH-005 incorporaron frontend responsive para acceso, restauración y cierre de sesión, capacidades y cambio obligatorio de contraseña temporal. |
 | 2026-08-06 | Creación del backlog inicial a partir del descubrimiento y levantamiento funcional. |
 | 2026-08-06 | Se confirmaron aplicaciones y reembolsos parciales de anticipos, múltiples compras por anticipo y múltiples anticipos por compra. |
 | 2026-08-06 | Se confirmó el catálogo mínimo, el límite de dos imágenes y se incorporó la importación inicial de productos como historia en definición. |

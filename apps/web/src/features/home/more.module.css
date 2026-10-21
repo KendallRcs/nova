@@ -1,0 +1,73 @@
+.sections {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.sections section {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: clamp(1.25rem, 3vw, 2rem);
+  background: var(--surface);
+}
+
+.label {
+  margin: 0 0 0.35rem;
+  color: var(--nova);
+  font-size: 0.72rem;
+  font-weight: 760;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.sections h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  letter-spacing: -0.02em;
+}
+
+.sections section > p:not(.label) {
+  margin: 0.4rem 0 0;
+  color: var(--ink-soft);
+}
+
+.areaList {
+  display: grid;
+  gap: 0.6rem;
+  margin-top: 1.25rem;
+}
+
+.areaList div {
+  display: grid;
+  gap: 0.1rem;
+  border-radius: var(--radius-sm);
+  padding: 0.75rem;
+  background: var(--cloud);
+}
+
+.areaList span {
+  color: var(--ink-soft);
+  font-size: 0.78rem;
+}
+
+.sections button {
+  min-height: 2.75rem;
+  margin-top: 1.5rem;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  padding: 0.55rem 0.9rem;
+  color: var(--red);
+  background: var(--surface);
+  font-weight: 700;
+}
+
+.sections button:hover:not(:disabled) {
+  border-color: var(--red);
+  background: var(--red-soft);
+}
+
+@media (max-width: 760px) {
+  .sections {
+    grid-template-columns: 1fr;
+  }
+}

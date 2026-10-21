@@ -23,8 +23,8 @@
 
 ## Próximo incremento
 
-1. Preparar dependencias frontend confirmadas y generación del contrato.
-2. Crear tokens, primitivas y shell responsive.
-3. Implementar acceso, sesión actual y cambio de contraseña temporal.
-4. Implementar la primera vertical operativa de consulta de inventario.
+1. Preparar dependencias frontend confirmadas y generación del contrato. **Completado.**
+2. Crear tokens, primitivas y shell responsive. **Completado.**
+3. Implementar acceso, sesión actual y cambio de contraseña temporal. **Completado.**
+4. Implementar la primera vertical operativa de consulta de inventario. **Siguiente.**
 5. Añadir pruebas unitarias y de integración de componentes sin Playwright.

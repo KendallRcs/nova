@@ -8,7 +8,8 @@
 - **Estado:** Confirmada
 - **Trazabilidad de implementación:** backend completo con Argon2id, respuesta
   genérica ante credenciales inválidas, limitación técnica de frecuencia sin bloqueo
-  persistente y sesión opaca mediante cookie segura.
+  persistente y sesión opaca mediante cookie segura. Frontend conectado al contrato
+  OpenAPI con formulario accesible, estados de envío y error recuperable.
 - **Como** administrador o empleado
 - **quiero** iniciar sesión con mis propias credenciales
 - **para** acceder únicamente a las operaciones autorizadas para mi cuenta.
@@ -51,7 +52,9 @@
 ### User Story AUTH-003 — Mantener una sesión activa en un dispositivo personal
 
 - **Estado:** Confirmada
-- **Trazabilidad de implementación:** consulta del actor actual y renovación de la credencial de sesión implementadas en backend.
+- **Trazabilidad de implementación:** consulta del actor actual y renovación de la
+  credencial de sesión implementadas en backend; el frontend restaura el workspace,
+  adapta navegación por capacidades y redirige al acceso cuando la sesión no es válida.
 - **Como** administrador o empleado
 - **quiero** conservar mi sesión hasta cerrarla explícitamente
 - **para** utilizar la aplicación sin autenticarme repetidamente.
@@ -67,7 +70,9 @@
 ### User Story AUTH-004 — Cerrar mi propia sesión
 
 - **Estado:** Confirmada
-- **Trazabilidad de implementación:** cierre idempotente de la sesión actual y eliminación de cookie implementados en backend.
+- **Trazabilidad de implementación:** cierre idempotente de la sesión actual y
+  eliminación de cookie implementados en backend, con cierre disponible desde el
+  shell responsive y la sección de cuenta del frontend.
 - **Como** administrador o empleado
 - **quiero** cerrar mi sesión
 - **para** impedir que otra persona utilice mi cuenta desde ese dispositivo.
@@ -89,7 +94,8 @@
 - **Estado:** Confirmada
 - **Trazabilidad de implementación:** flujo backend completo: restablecimiento administrativo,
   revocación transaccional de sesiones, inicio con credencial temporal y establecimiento
-  obligatorio de contraseña personal.
+  obligatorio de contraseña personal. El frontend restringe el workspace, valida la
+  política básica, confirma la contraseña y exige volver a ingresar tras establecerla.
 - **Como** administrador
 - **quiero** restablecer el acceso de un colaborador que olvidó su contraseña
 - **para** permitirle recuperar su cuenta sin crear otra identidad.

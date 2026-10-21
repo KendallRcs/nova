@@ -10,6 +10,7 @@
   "scripts": {
     "dev:api": "pnpm --filter @nova/api dev",
     "dev:web": "pnpm --filter @nova/web dev",
+    "web:api-types": "pnpm --filter @nova/web api:types",
     "db:generate": "pnpm --filter @nova/api db:generate",
     "db:validate": "pnpm --filter @nova/api db:validate",
     "admin:initialize": "pnpm --filter @nova/api admin:initialize",

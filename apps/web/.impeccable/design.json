@@ -1,0 +1,142 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-21T11:10:49-05:00",
+  "title": "Design System: Nova",
+  "extensions": {
+    "colorMeta": {
+      "nova-blue": {
+        "role": "primary",
+        "displayName": "Azul Nova",
+        "canonical": "#2563eb",
+        "tonalRamp": [
+          "#102557",
+          "#183a83",
+          "#1d4ed8",
+          "#2563eb",
+          "#5b86ef",
+          "#91aaf5",
+          "#cbdcff",
+          "#f0f5ff"
+        ]
+      },
+      "cloud": {
+        "role": "neutral",
+        "displayName": "Nube",
+        "canonical": "#f6f8fc",
+        "tonalRamp": [
+          "#20252e",
+          "#3c4657",
+          "#5f6c82",
+          "#8793a7",
+          "#adb7c6",
+          "#d1d8e3",
+          "#e8ecf3",
+          "#f6f8fc"
+        ]
+      },
+      "mint": {
+        "role": "secondary",
+        "displayName": "Menta confirmación",
+        "canonical": "#16866c",
+        "tonalRamp": [
+          "#0b2b24",
+          "#0f493b",
+          "#126652",
+          "#16866c",
+          "#37a58a",
+          "#70c7b2",
+          "#b3e4d7",
+          "#e3f5ef"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "headline": { "displayName": "Headline", "purpose": "Títulos operativos principales." },
+      "body": { "displayName": "Body", "purpose": "Instrucciones y contenido cotidiano." },
+      "label": { "displayName": "Label", "purpose": "Contexto corto y estados." }
+    },
+    "shadows": [
+      {
+        "name": "raised",
+        "value": "0 12px 32px rgba(42, 62, 94, 0.1)",
+        "purpose": "Paneles flotantes y superficies protegidas."
+      }
+    ],
+    "motion": [
+      {
+        "name": "state",
+        "value": "180ms ease",
+        "purpose": "Hover, foco y cambios de estado pequeños."
+      }
+    ],
+    "breakpoints": [
+      { "name": "stack", "value": "980px" },
+      { "name": "mobile-shell", "value": "820px" },
+      { "name": "compact", "value": "620px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Acción principal única del contexto.",
+      "html": "<button class=\"ds-btn-primary\">Confirmar venta</button>",
+      "css": ".ds-btn-primary{min-height:52px;border:0;border-radius:10px;padding:12px 20px;color:#fff;background:#2563eb;font:700 16px Aptos,Segoe UI,sans-serif;transition:background 180ms ease,box-shadow 180ms ease}.ds-btn-primary:hover{background:#1d4ed8;box-shadow:0 8px 18px rgba(37,99,235,.18)}.ds-btn-primary:focus-visible{outline:3px solid #91aaf5;outline-offset:3px}"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Campo operativo de altura táctil.",
+      "html": "<label class=\"ds-field\"><span>Usuario</span><input placeholder=\"empleado1\"></label>",
+      "css": ".ds-field{display:grid;gap:8px;color:#1f2937;font:680 14px Aptos,Segoe UI,sans-serif}.ds-field input{min-height:52px;border:1px solid #bdcadd;border-radius:10px;padding:11px 14px;color:#1f2937;background:#fff;font:400 16px Aptos,Segoe UI,sans-serif}.ds-field input:hover{border-color:#8798b1}.ds-field input:focus-visible{border-color:#2563eb;outline:3px solid #e7efff;outline-offset:0}"
+    },
+    {
+      "name": "Active Navigation",
+      "kind": "nav",
+      "description": "Destino actual con texto e icono visibles.",
+      "html": "<a class=\"ds-nav-active\" href=\"#\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M3 10.8 12 3l9 7.8V21h-6v-6H9v6H3V10.8Z\"/></svg><span>Inicio</span></a>",
+      "css": ".ds-nav-active{display:flex;min-height:46px;align-items:center;gap:12px;border-radius:10px;padding:9px 12px;color:#2563eb;background:#e7efff;font:650 14px Aptos,Segoe UI,sans-serif;text-decoration:none}.ds-nav-active svg{width:20px;fill:none;stroke:currentColor;stroke-width:1.8}.ds-nav-active:focus-visible{outline:3px solid #91aaf5;outline-offset:3px}"
+    },
+    {
+      "name": "Operational Trace",
+      "kind": "custom",
+      "description": "Historia breve de hechos relacionados.",
+      "html": "<ol class=\"ds-trace\"><li><i></i><span><strong>Venta registrada</strong><small>Responsable y momento exacto</small></span></li><li><i></i><span><strong>Stock actualizado</strong><small>Tienda y almacén por separado</small></span></li></ol>",
+      "css": ".ds-trace{position:relative;display:grid;gap:18px;margin:0;padding:0;list-style:none;color:#1f2937;font-family:Aptos,Segoe UI,sans-serif}.ds-trace:before{position:absolute;top:8px;bottom:8px;left:6px;width:1px;background:#bdcadd;content:''}.ds-trace li{position:relative;display:grid;grid-template-columns:14px 1fr;gap:14px}.ds-trace i{z-index:1;width:12px;height:12px;margin-top:4px;border:3px solid #f6f8fc;border-radius:50%;background:#16866c;box-shadow:0 0 0 1px #16866c}.ds-trace span{display:grid}.ds-trace small{color:#53627a}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Mostrador luminoso",
+    "overview": "Nova se siente como una mesa de trabajo limpia bajo buena luz: cada herramienta tiene un lugar, los estados importantes se distinguen con rapidez y el color nunca compite con la operación. La personalidad aparece en el rastro cronológico que une ventas, inventario, pagos y responsables; no en decoración ajena al negocio.",
+    "keyCharacteristics": [
+      "Base clara y fría",
+      "Azul reservado para acción",
+      "Rastro operativo como firma",
+      "Adaptación estructural responsive"
+    ],
+    "rules": [
+      {
+        "name": "One Blue Action",
+        "body": "Un contexto presenta una sola acción primaria azul.",
+        "section": "colors"
+      },
+      {
+        "name": "Flat Worktop",
+        "body": "Una superficie usa borde o sombra, nunca ambos por decoración.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do priorizar la acción cotidiana.",
+      "Do mantener texto e icono en estados.",
+      "Do preservar objetivos táctiles de 44px."
+    ],
+    "donts": [
+      "Don't usar gradientes, cristal o neón.",
+      "Don't asignar un color por módulo.",
+      "Don't usar animación que retrase una tarea."
+    ]
+  }
+}

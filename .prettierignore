@@ -5,6 +5,7 @@ build
 coverage
 pnpm-lock.yaml
 apps/api/src/generated
+apps/web/src/shared/api/schema.d.ts
 apps/web/next-env.d.ts
 **/*.md
 *.tsbuildinfo

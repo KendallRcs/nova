@@ -23,7 +23,7 @@ Este es el punto de entrada para personas y agentes. La documentación se versio
 | [Arquitectura](architecture/README.md) | Arquitectura general, frontend y backend | Backend MVP y arquitectura frontend cerrados |
 | [ADR](adr/README.md) | Decisiones costosas de revertir | Activo |
 | [Datos](data/README.md) | Modelo relacional, integridad y transacciones | Fase 4 cerrada |
-| [UI/UX](ui-ux/README.md) | Design system, flujos y accesibilidad | Fase 6 en definición |
+| [UI/UX](ui-ux/README.md) | Design system, flujos y accesibilidad | Base confirmada; implementación frontend iniciada |
 | [Calidad](quality/README.md) | Estrategia de pruebas y calidad | Base backend confirmada |
 | [Operaciones](operations/README.md) | Docker, CI/CD, observabilidad y despliegue | Pendiente |
 

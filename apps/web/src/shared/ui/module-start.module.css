@@ -1,0 +1,157 @@
+.module {
+  width: min(100%, 1180px);
+  margin: 0 auto;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 2rem;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 2.15rem;
+  font-weight: 770;
+  letter-spacing: -0.035em;
+  line-height: 1.08;
+}
+
+.header > div > p {
+  max-width: 62ch;
+  margin: 0.65rem 0 0;
+  color: var(--ink-soft);
+}
+
+.header details {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.header summary {
+  display: flex;
+  min-height: 2.75rem;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.45rem 0.7rem;
+  color: var(--nova);
+  font-size: 0.83rem;
+  font-weight: 700;
+  list-style: none;
+}
+
+.header summary::-webkit-details-marker {
+  display: none;
+}
+
+.header summary svg {
+  width: 1.15rem;
+  height: 1.15rem;
+}
+
+.header details > p {
+  position: absolute;
+  top: 3rem;
+  right: 0;
+  z-index: 3;
+  width: min(360px, calc(100vw - 2rem));
+  margin: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  color: var(--ink-soft);
+  background: var(--surface);
+  box-shadow: var(--shadow-raised);
+  font-size: 0.85rem;
+}
+
+.body {
+  margin-top: 2rem;
+}
+
+.intro {
+  display: grid;
+  justify-items: center;
+  min-height: 430px;
+  align-content: center;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 2rem;
+  background: var(--surface);
+  text-align: center;
+}
+
+.introMark {
+  display: grid;
+  width: 3.25rem;
+  height: 3.25rem;
+  place-items: center;
+  border-radius: 0.9rem;
+  color: var(--nova);
+  background: var(--nova-soft);
+  font-weight: 800;
+}
+
+.intro h2 {
+  margin: 1rem 0 0;
+  font-size: 1.25rem;
+  letter-spacing: -0.02em;
+}
+
+.intro > p {
+  max-width: 56ch;
+  margin: 0.55rem 0 0;
+  color: var(--ink-soft);
+}
+
+.intro ul {
+  display: grid;
+  gap: 0.55rem;
+  margin: 1.5rem 0 0;
+  padding: 0;
+  list-style: none;
+  text-align: left;
+}
+
+.intro li {
+  display: flex;
+  gap: 0.65rem;
+  align-items: center;
+  color: var(--ink-soft);
+  font-size: 0.86rem;
+}
+
+.intro li span {
+  color: var(--mint);
+  font-weight: 800;
+}
+
+@media (max-width: 620px) {
+  .header {
+    display: block;
+  }
+
+  .header h1 {
+    font-size: 1.8rem;
+  }
+
+  .header details {
+    margin-top: 0.75rem;
+  }
+
+  .header summary {
+    width: fit-content;
+    padding-left: 0;
+  }
+
+  .header details > p {
+    right: auto;
+    left: 0;
+  }
+
+  .intro {
+    min-height: 360px;
+    padding: 1.5rem;
+  }
+}

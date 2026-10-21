@@ -1,6 +1,6 @@
 # UI/UX
 
-**Estado:** Fase 6 en definición; fundamentos confirmados el 2026-10-20.
+**Estado:** fundamentos confirmados e implementación frontend iniciada el 2026-10-21.
 
 ## Fuentes de verdad
 
@@ -11,6 +11,7 @@
 - [Estados y recuperación de la interfaz](interface-states.md)
 - [Paleta visual aprobada](assets/nova-color-palette.svg)
 - [Contexto durable de la aplicación web](../../apps/web/PRODUCT.md)
+- [Sistema visual implementado](../../apps/web/DESIGN.md)
 
 ## Decisiones confirmadas
 
@@ -27,8 +28,9 @@
 1. Confirmar arquitectura de información y flujos críticos.
 2. Definir estados, patrones responsive y wireframes de baja fidelidad. **Completado.**
 3. Resolver la arquitectura frontend y sus ADR sin inventar decisiones UI. **Completado.**
-4. Implementar el shell, autenticación y primera vertical visible. **Siguiente.**
-5. Consolidar el sistema visual desde la interfaz construida.
+4. Implementar el shell y autenticación. **Completado.**
+5. Implementar la primera vertical operativa: consulta de inventario. **Siguiente.**
+6. Consolidar el sistema visual desde la interfaz construida. **Base extraída.**
 
 `DESIGN.md` no se escribirá como una aspiración previa: se generará desde el
 sistema visual probado en pantallas reales. La configuración técnica de Next.js,

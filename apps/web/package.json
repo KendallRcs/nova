@@ -3,6 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
+    "api:types": "openapi-typescript http://localhost:3001/docs-json -o src/shared/api/schema.d.ts",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",

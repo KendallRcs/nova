@@ -13,6 +13,7 @@ export default tseslint.config(
       '**/dist/**',
       '**/node_modules/**',
       '**/generated/**',
+      '**/src/shared/api/schema.d.ts',
     ],
   },
   eslint.configs.recommended,
