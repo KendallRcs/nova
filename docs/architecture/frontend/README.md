@@ -28,4 +28,5 @@
 3. Implementar acceso, sesión actual y cambio de contraseña temporal. **Completado.**
 4. Implementar la primera vertical operativa de consulta de inventario. **Completado.**
 5. Añadir pruebas unitarias y de integración de componentes sin Playwright. **Completado.**
-6. Continuar con la vertical de ventas sobre la base operativa validada. **Siguiente.**
+6. Implementar consulta y seguimiento responsive de ventas. **Completado.**
+7. Implementar creación multilínea y confirmación de ventas. **Siguiente.**

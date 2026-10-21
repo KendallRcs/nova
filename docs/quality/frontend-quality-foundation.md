@@ -30,7 +30,10 @@ La primera suite protege:
 - carga, resultados, búsqueda por URL, estado vacío y error recuperable del catálogo;
 - detalle comercial y desglose de stock de tienda y almacén;
 - diferenciación entre producto inexistente y fallo de conexión;
-- validación de credenciales y redirección de cuentas con contraseña temporal.
+- validación de credenciales y redirección de cuentas con contraseña temporal;
+- listado de ventas con alcance del servidor, filtros de deuda y estados de carga,
+  vacío y error;
+- detalle histórico de productos y cronología de cobros de una venta.
 
 Cada nueva vertical debe agregar pruebas alrededor de sus decisiones y estados de
 mayor riesgo. No se persigue una cifra global aislada: una línea cubierta sin una

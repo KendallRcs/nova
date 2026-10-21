@@ -99,7 +99,9 @@
   entrega y atraso. El detalle operativo expone líneas, instantáneas, reservas,
   entregas posteriores, pagos, correcciones, ajustes y cierre; oculta el costo
   atribuido a quien no tiene capacidad financiera. El alcance del empleado se
-  fuerza a su propia cuenta.
+  fuerza a su propia cuenta. El frontend incorpora listado responsive, filtros por
+  ciclo de vida y deuda, progreso de cobro y un detalle con productos, ubicación,
+  acuerdo y cronología de pagos y cambios principales.
 - **Como** empleado
 - **quiero** consultar las ventas que registré
 - **para** dar seguimiento a mis operaciones y pagos pendientes.
@@ -116,7 +118,9 @@
 - **Estado:** Confirmada
 - **Trazabilidad de implementación:** backend completo; el permiso `sales:read-any`
   habilita el listado general y los filtros por creador, cliente, ciclo de vida y
-  situación de deuda, además del detalle de cualquier venta.
+  situación de deuda, además del detalle de cualquier venta. El frontend reutiliza
+  la misma consulta, identifica al responsable en cada operación y delega al
+  backend el alcance efectivo según la cuenta autenticada.
 - **Como** administrador
 - **quiero** consultar ventas creadas por cualquier empleado
 - **para** supervisar las operaciones del negocio.

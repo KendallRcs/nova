@@ -1,6 +1,7 @@
 import type { components } from '@/shared/api/schema';
 import { apiClient } from '@/shared/api/client';
 import { toApiProblem } from '@/shared/api/problem-details';
+export { formatMoney } from '@/shared/formatters';
 
 export type Product = components['schemas']['ProductCatalogResponse'];
 export type ProductPage = components['schemas']['ProductCatalogPageResponse'];
@@ -27,10 +28,6 @@ export async function getProduct(productId: string): Promise<Product> {
   });
   if (!response.ok || data === undefined) throw toApiProblem(response, error);
   return data;
-}
-
-export function formatMoney(cents: number): string {
-  return new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' }).format(cents / 100);
 }
 
 export function availableStock(product: Product): number {
