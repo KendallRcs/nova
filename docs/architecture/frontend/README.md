@@ -29,4 +29,5 @@
 4. Implementar la primera vertical operativa de consulta de inventario. **Completado.**
 5. Añadir pruebas unitarias y de integración de componentes sin Playwright. **Completado.**
 6. Implementar consulta y seguimiento responsive de ventas. **Completado.**
-7. Implementar creación multilínea y confirmación de ventas. **Siguiente.**
+7. Implementar creación multilínea y confirmación de ventas. **Completado.**
+8. Incorporar cobros y entregas posteriores desde el detalle de venta. **Siguiente.**

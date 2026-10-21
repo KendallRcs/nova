@@ -13,7 +13,8 @@ export interface SaleFilters {
   debt: SaleDebtFilter;
 }
 
-export const salesQueryKey = (filters: SaleFilters) => ['sales', filters] as const;
+export const salesQueryRoot = ['sales'] as const;
+export const salesQueryKey = (filters: SaleFilters) => [...salesQueryRoot, filters] as const;
 export const saleDetailQueryKey = (saleId: string) => ['sale', saleId] as const;
 
 export async function listSales(filters: SaleFilters, cursor?: string): Promise<SalePage> {

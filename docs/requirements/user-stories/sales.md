@@ -12,7 +12,9 @@
   congela composición, precios y costo y ejecuta los efectos iniciales de
   inventario. También puede registrar un cobro inicial y su entrada de caja; una
   venta totalmente pagada puede confirmarse sin cliente y una que conserve saldo
-  continúa exigiendo un cliente.
+  continúa exigiendo un cliente. El frontend incorpora una mesa de venta
+  multilínea con búsqueda de productos, total en vivo, cliente existente o nuevo,
+  cobro inicial y confirmación atómica con protección idempotente.
 - **Como** empleado
 - **quiero** registrar varios productos y cantidades en una sola venta
 - **para** representar la operación completa realizada con el cliente.
@@ -31,7 +33,9 @@
   bloquea posiciones, entrega y reserva por línea en una transacción idempotente y
   revierte todo el conjunto si cualquier efecto falla. También permite entregas
   posteriores parciales o totales sobre reservas activas, conserva su historial y
-  recalcula la situación de entrega sin generar un cobro.
+  recalcula la situación de entrega sin generar un cobro. Al registrar la venta,
+  el frontend permite distribuir por línea las unidades que se entregan ahora y
+  las que permanecen separadas.
 - **Como** empleado
 - **quiero** indicar por producto y cantidad qué se entrega y qué queda reservado
 - **para** atender operaciones con cumplimiento parcial.
@@ -62,7 +66,9 @@
 
 - **Estado:** Confirmada
 - **Trazabilidad de implementación:** backend completo; cada línea conserva su
-  ubicación y la confirmación afecta únicamente esa posición de inventario.
+  ubicación y la confirmación afecta únicamente esa posición de inventario. El
+  frontend muestra el disponible por ubicación y permite elegir tienda o almacén
+  antes de confirmar cada línea.
 - **Como** empleado
 - **quiero** seleccionar el almacén como origen de una línea
 - **para** registrar correctamente una venta atendida desde esa ubicación.
@@ -79,7 +85,8 @@
 - **Estado:** Confirmada
 - **Trazabilidad de implementación:** backend completo para derivar la etiqueta
   `overdue` usando el saldo vigente, la fecha civil actual de Lima y el vencimiento;
-  la consulta no modifica ni cancela la venta.
+  la consulta no modifica ni cancela la venta. La creación frontend admite fecha
+  esperada y nota opcional del acuerdo cuando queda saldo.
 - **Como** empleado
 - **quiero** definir una fecha esperada de pago
 - **para** identificar visualmente operaciones atrasadas.
@@ -137,7 +144,9 @@
 - **Estado:** Confirmada
 - **Trazabilidad de implementación:** backend completo al confirmar: congela código,
   nombre, precios de referencia, precio acordado, costo atribuido y política de
-  costeo. Un precio inferior al mínimo exige permiso y razón administrativa.
+  costeo. Un precio inferior al mínimo exige permiso y razón administrativa. El
+  frontend muestra mínimo y sugerido, acepta el precio acordado y solicita la razón
+  únicamente a una cuenta autorizada cuando el precio queda bajo el mínimo.
 - **Como** administrador
 - **quiero** conservar los precios de referencia y acordados al vender
 - **para** explicar el margen histórico aunque cambie el catálogo.
@@ -154,7 +163,10 @@
 - **Estado:** Confirmada
 - **Trazabilidad de implementación:** backend completo para reemplazar los datos y
   líneas de un borrador propio con versión optimista; un administrador puede
-  corregir cualquier borrador. No se producen movimientos de stock ni caja.
+  corregir cualquier borrador. No se producen movimientos de stock ni caja. El
+  frontend conserva el borrador creado durante el intento actual y lo actualiza
+  antes de reintentar cuando cambian productos o condiciones después de un fallo
+  de confirmación.
 - **Como** empleado
 - **quiero** modificar una venta mientras permanece en borrador
 - **para** corregir productos, cantidades y precios antes de producir efectos financieros o de inventario.

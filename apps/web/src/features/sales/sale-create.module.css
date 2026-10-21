@@ -1,0 +1,552 @@
+.page {
+  width: min(100%, 1180px);
+  margin: 0 auto;
+}
+.header {
+  max-width: 48rem;
+}
+.backButton {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  gap: 0.45rem;
+  border: 0;
+  padding: 0;
+  color: var(--nova);
+  background: transparent;
+  font-size: 0.82rem;
+  font-weight: 750;
+}
+.backButton svg {
+  width: 1.05rem;
+  transform: rotate(180deg);
+}
+.kicker {
+  margin: 1rem 0 0.35rem;
+  color: var(--ink-soft);
+  font-size: 0.72rem;
+  font-weight: 760;
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
+}
+.header h1 {
+  margin: 0;
+  font-size: 2.15rem;
+  letter-spacing: -0.035em;
+  line-height: 1.08;
+}
+.header > p:last-child {
+  margin: 0.55rem 0 0;
+  color: var(--ink-soft);
+}
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 19.5rem;
+  gap: 1rem;
+  align-items: start;
+  margin-top: 1.75rem;
+}
+.mainColumn {
+  display: grid;
+  gap: 1rem;
+}
+.section,
+.summary {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+.section {
+  padding: clamp(1.25rem, 3vw, 2rem);
+}
+.sectionHeading {
+  display: grid;
+  grid-template-columns: 2.2rem 1fr;
+  gap: 0.8rem;
+  align-items: start;
+  margin-bottom: 1.4rem;
+}
+.sectionHeading > span {
+  display: grid;
+  width: 2.1rem;
+  height: 2.1rem;
+  place-items: center;
+  border-radius: 50%;
+  color: #174694;
+  background: var(--nova-soft);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+.sectionHeading h2,
+.summary h2 {
+  margin: 0;
+  font-size: 1.2rem;
+  letter-spacing: -0.02em;
+}
+.sectionHeading p {
+  max-width: 62ch;
+  margin: 0.3rem 0 0;
+  color: var(--ink-soft);
+  font-size: 0.86rem;
+}
+.field,
+.searchField {
+  display: grid;
+  gap: 0.38rem;
+}
+.field > span:first-child,
+.searchField > span:first-child,
+.paymentModes legend {
+  color: var(--ink-soft);
+  font-size: 0.72rem;
+  font-weight: 720;
+}
+.field small {
+  font-weight: 500;
+}
+.field input,
+.field select,
+.field textarea,
+.searchInput,
+.moneyInput {
+  width: 100%;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  color: var(--ink);
+  background: var(--surface);
+}
+.field input,
+.field select {
+  min-height: 3rem;
+  padding: 0 0.8rem;
+}
+.field textarea {
+  resize: vertical;
+  padding: 0.75rem 0.8rem;
+  font: inherit;
+}
+.field input:focus,
+.field select:focus,
+.field textarea:focus,
+.searchInput:focus-within,
+.moneyInput:focus-within {
+  border-color: var(--nova);
+  outline: 3px solid var(--nova-soft);
+}
+.searchInput,
+.moneyInput {
+  display: flex;
+  min-height: 3.25rem;
+  align-items: center;
+}
+.searchInput svg {
+  width: 1.15rem;
+  margin-left: 0.9rem;
+  color: var(--ink-soft);
+}
+.searchInput input,
+.moneyInput input {
+  min-width: 0;
+  flex: 1;
+  align-self: stretch;
+  border: 0;
+  padding: 0 0.85rem;
+  color: var(--ink);
+  background: transparent;
+  outline: 0;
+  font: inherit;
+}
+.moneyInput b {
+  padding-left: 0.8rem;
+  color: var(--ink-soft);
+  font-size: 0.78rem;
+}
+.pickerResults,
+.customerResults {
+  display: grid;
+  margin-top: 0.55rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.pickerResults > p,
+.customerResults > p {
+  margin: 0;
+  padding: 1rem;
+  color: var(--ink-soft);
+}
+.pickerResults button,
+.customerResults button {
+  display: flex;
+  min-height: 3.7rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border: 0;
+  padding: 0.7rem 0.9rem;
+  color: var(--ink);
+  background: var(--surface);
+  text-align: left;
+}
+.pickerResults button + button,
+.customerResults button + button {
+  border-top: 1px solid var(--line);
+}
+.pickerResults button:hover,
+.customerResults button:hover {
+  background: #f9fbfe;
+}
+.pickerResults button:disabled {
+  opacity: 0.55;
+}
+.pickerResults button > span:first-child {
+  display: grid;
+}
+.pickerResults small,
+.pickerResults button > span:last-child,
+.customerResults span {
+  color: var(--ink-soft);
+  font-size: 0.74rem;
+}
+.emptyLines {
+  margin-top: 1rem;
+  border-top: 1px solid var(--line);
+  padding: 1.5rem 0 0.2rem;
+  text-align: center;
+}
+.emptyLines p {
+  margin: 0.35rem 0 0;
+  color: var(--ink-soft);
+}
+.lines {
+  margin-top: 1.25rem;
+  border-top: 1px solid var(--line);
+}
+.line {
+  padding: 1.35rem 0;
+}
+.line + .line {
+  border-top: 1px solid var(--line);
+}
+.line > header {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 0.65rem;
+  align-items: center;
+}
+.lineNumber {
+  display: grid;
+  width: 1.65rem;
+  height: 1.65rem;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--ink-soft);
+  background: var(--surface-muted);
+  font-size: 0.7rem;
+  font-weight: 780;
+}
+.line header > div {
+  display: grid;
+}
+.line header small {
+  color: var(--ink-soft);
+}
+.line header button {
+  min-height: 2.75rem;
+  border: 0;
+  padding: 0.4rem 0.6rem;
+  color: var(--red);
+  background: transparent;
+  font-weight: 700;
+}
+.lineFields {
+  display: grid;
+  grid-template-columns: minmax(150px, 1.2fr) repeat(2, minmax(95px, 0.55fr)) minmax(145px, 0.8fr);
+  gap: 0.7rem;
+  margin-top: 1rem;
+}
+.lineFoot {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr auto;
+  gap: 0.75rem;
+  align-items: center;
+  margin-top: 0.75rem;
+  color: var(--ink-soft);
+  font-size: 0.72rem;
+}
+.lineFoot strong {
+  color: var(--ink);
+  font-size: 0.9rem;
+}
+.exceptionField {
+  display: grid;
+  gap: 0.38rem;
+  margin-top: 0.85rem;
+  padding: 0.85rem;
+  color: var(--amber);
+  background: var(--amber-soft);
+}
+.exceptionField > span {
+  font-size: 0.72rem;
+  font-weight: 720;
+}
+.exceptionField textarea {
+  width: 100%;
+  resize: vertical;
+  border: 1px solid #d9b46c;
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 0.8rem;
+  color: var(--ink);
+  background: var(--surface);
+  font: inherit;
+}
+.selectedCustomer {
+  display: flex;
+  min-height: 4rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border: 1px solid #bfe4d8;
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 0.9rem;
+  background: var(--mint-soft);
+}
+.selectedCustomer > span {
+  display: grid;
+}
+.selectedCustomer small {
+  color: var(--ink-soft);
+}
+.selectedCustomer button,
+.secondaryButton {
+  min-height: 2.75rem;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.8rem;
+  color: var(--ink);
+  background: var(--surface);
+  font-weight: 700;
+}
+.secondaryButton {
+  margin-top: 0.75rem;
+}
+.newCustomer {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 0.75rem;
+  align-items: end;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--line);
+}
+.saveCustomerButton,
+.confirmButton {
+  min-height: 3rem;
+  border: 0;
+  border-radius: var(--radius-sm);
+  padding: 0.65rem 1rem;
+  color: white;
+  background: var(--nova);
+  font-weight: 760;
+}
+.saveCustomerButton:disabled,
+.confirmButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.agreementFields,
+.paymentFields {
+  display: grid;
+  grid-template-columns: 0.8fr 1.2fr;
+  gap: 0.75rem;
+  align-items: start;
+  margin-top: 1rem;
+}
+.paymentModes {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.65rem;
+  border: 0;
+  padding: 0;
+}
+.paymentModes legend {
+  margin-bottom: 0.45rem;
+}
+.paymentModes label {
+  display: flex;
+  min-height: 4.2rem;
+  align-items: center;
+  gap: 0.6rem;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  padding: 0.7rem;
+}
+.paymentModes label[data-selected='true'] {
+  border-color: var(--nova);
+  background: var(--nova-soft);
+}
+.paymentModes input {
+  accent-color: var(--nova);
+}
+.paymentModes label span {
+  display: grid;
+}
+.paymentModes small {
+  margin-top: 0.1rem;
+  color: var(--ink-soft);
+  font-size: 0.69rem;
+}
+.summary {
+  position: sticky;
+  top: 1.5rem;
+  padding: 1.4rem;
+}
+.summary .kicker {
+  margin-top: 0;
+}
+.summary dl {
+  display: grid;
+  gap: 0;
+  margin: 1.2rem 0 0;
+}
+.summary dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 0;
+  border-top: 1px solid var(--line);
+}
+.summary dt {
+  color: var(--ink-soft);
+  font-size: 0.78rem;
+}
+.summary dd {
+  margin: 0;
+  font-weight: 780;
+}
+.openBalance[data-open='true'] dd {
+  color: var(--amber);
+}
+.summaryCustomer,
+.ready,
+.issues,
+.submitError {
+  margin: 0.8rem 0 0;
+  border-radius: var(--radius-sm);
+  padding: 0.75rem;
+  font-size: 0.76rem;
+}
+.summaryCustomer,
+.ready {
+  color: #175944;
+  background: var(--mint-soft);
+}
+.issues {
+  color: #67430c;
+  background: var(--amber-soft);
+}
+.issues ul {
+  margin: 0.35rem 0 0;
+  padding-left: 1.05rem;
+}
+.issues li + li {
+  margin-top: 0.25rem;
+}
+.submitError,
+.inlineError {
+  color: var(--red);
+  background: var(--red-soft);
+}
+.submitError p {
+  margin: 0.3rem 0;
+}
+.inlineError {
+  margin: 0.75rem 0 0;
+  border-radius: var(--radius-sm);
+  padding: 0.65rem 0.75rem;
+  font-size: 0.76rem;
+}
+.confirmButton {
+  width: 100%;
+  margin-top: 1rem;
+}
+.confirmButton:not(:disabled):hover,
+.saveCustomerButton:not(:disabled):hover {
+  background: var(--nova-hover);
+}
+.confirmNote {
+  display: block;
+  margin-top: 0.65rem;
+  color: var(--ink-soft);
+  line-height: 1.45;
+  text-align: center;
+}
+
+@media (max-width: 1080px) {
+  .workspace {
+    grid-template-columns: minmax(0, 1fr) 17.5rem;
+  }
+  .lineFields {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 820px) {
+  .page {
+    padding-bottom: 1rem;
+  }
+  .header h1 {
+    font-size: 1.8rem;
+  }
+  .workspace {
+    display: flex;
+    flex-direction: column;
+  }
+  .mainColumn,
+  .summary {
+    width: 100%;
+  }
+  .summary {
+    position: static;
+    order: 2;
+  }
+  .section {
+    padding: 1.25rem;
+  }
+  .pickerResults button {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+  .lineFields,
+  .agreementFields,
+  .paymentFields,
+  .newCustomer,
+  .paymentModes {
+    grid-template-columns: 1fr;
+  }
+  .lineFoot {
+    grid-template-columns: 1fr auto;
+  }
+  .lineFoot span:nth-child(2) {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+}
+
+@media (max-width: 520px) {
+  .sectionHeading {
+    grid-template-columns: 1.8rem 1fr;
+  }
+  .sectionHeading > span {
+    width: 1.8rem;
+    height: 1.8rem;
+  }
+  .lineFields {
+    grid-template-columns: 1fr 1fr;
+  }
+  .lineFields label:first-child,
+  .lineFields label:last-child {
+    grid-column: 1 / -1;
+  }
+}

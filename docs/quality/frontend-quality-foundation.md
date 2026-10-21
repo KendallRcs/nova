@@ -33,7 +33,9 @@ La primera suite protege:
 - validación de credenciales y redirección de cuentas con contraseña temporal;
 - listado de ventas con alcance del servidor, filtros de deuda y estados de carga,
   vacío y error;
-- detalle histórico de productos y cronología de cobros de una venta.
+- detalle histórico de productos y cronología de cobros de una venta;
+- armado de una venta, total derivado, deuda asociada a cliente y confirmación de
+  borrador con identificador UUID v7 idempotente.
 
 Cada nueva vertical debe agregar pruebas alrededor de sus decisiones y estados de
 mayor riesgo. No se persigue una cifra global aislada: una línea cubierta sin una

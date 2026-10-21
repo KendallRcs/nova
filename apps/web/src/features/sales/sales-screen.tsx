@@ -67,6 +67,11 @@ export function SalesScreen() {
       description="Sigue cada acuerdo desde el registro hasta el último pago y entrega."
       help="Pago y entrega avanzan por separado. Una venta puede estar pagada y todavía tener productos reservados, o estar entregada y conservar saldo."
     >
+      <div className={styles.pageActions}>
+        <Link className={styles.primaryAction} href="/sales/new">
+          Registrar venta
+        </Link>
+      </div>
       <section className={styles.controlBar} aria-labelledby="sales-filter-title">
         <div>
           <p className={styles.kicker}>Seguimiento</p>

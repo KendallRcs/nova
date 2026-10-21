@@ -6,6 +6,31 @@
   letter-spacing: 0.055em;
   text-transform: uppercase;
 }
+.pageActions {
+  display: flex;
+  justify-content: flex-end;
+  margin: -3.25rem 0 1rem;
+}
+.primaryAction {
+  display: inline-flex;
+  min-height: 3rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  padding: 0.65rem 1.1rem;
+  color: white;
+  background: var(--nova);
+  font-size: 0.86rem;
+  font-weight: 760;
+  text-decoration: none;
+}
+.primaryAction:hover {
+  background: var(--nova-hover);
+}
+.primaryAction:focus-visible {
+  outline: 3px solid var(--nova-soft);
+  outline-offset: 2px;
+}
 .controlBar,
 .salesPanel,
 .detailCard {
@@ -501,6 +526,13 @@
   }
 }
 @media (max-width: 620px) {
+  .pageActions {
+    justify-content: stretch;
+    margin: 0 0 1rem;
+  }
+  .primaryAction {
+    width: 100%;
+  }
   .controlBar {
     display: grid;
     align-items: stretch;
