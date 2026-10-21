@@ -24,6 +24,7 @@
   "include": [
     "next-env.d.ts",
     "next.config.mts",
+    "vitest.config.mts",
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
     "**/*.ts",

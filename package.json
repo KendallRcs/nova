@@ -20,7 +20,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "pnpm -r --if-present typecheck",
-    "test": "pnpm --filter @nova/api test",
+    "test": "pnpm -r --if-present test",
+    "test:web": "pnpm --filter @nova/web test",
     "test:architecture": "dependency-cruiser apps/api/src",
     "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test:architecture && pnpm test"
   },

@@ -24,7 +24,7 @@ Este es el punto de entrada para personas y agentes. La documentación se versio
 | [ADR](adr/README.md) | Decisiones costosas de revertir | Activo |
 | [Datos](data/README.md) | Modelo relacional, integridad y transacciones | Fase 4 cerrada |
 | [UI/UX](ui-ux/README.md) | Design system, flujos y accesibilidad | Base confirmada; implementación frontend iniciada |
-| [Calidad](quality/README.md) | Estrategia de pruebas y calidad | Base backend confirmada |
+| [Calidad](quality/README.md) | Estrategia de pruebas y calidad | Bases backend y frontend verificadas |
 | [Operaciones](operations/README.md) | Docker, CI/CD, observabilidad y despliegue | Pendiente |
 
 ## Reglas documentales

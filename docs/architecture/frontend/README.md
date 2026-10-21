@@ -27,5 +27,5 @@
 2. Crear tokens, primitivas y shell responsive. **Completado.**
 3. Implementar acceso, sesión actual y cambio de contraseña temporal. **Completado.**
 4. Implementar la primera vertical operativa de consulta de inventario. **Completado.**
-5. Añadir pruebas unitarias y de integración de componentes sin Playwright. **Siguiente.**
-6. Continuar con la vertical de ventas sobre la base operativa validada.
+5. Añadir pruebas unitarias y de integración de componentes sin Playwright. **Completado.**
+6. Continuar con la vertical de ventas sobre la base operativa validada. **Siguiente.**
