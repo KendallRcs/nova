@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760" role="img" aria-labelledby="title description">
+  <title id="title">Paleta de colores propuesta para Nova</title>
+  <desc id="description">Una paleta clara con blanco nube, blanco puro, azul tinta, azul Nova, menta, ámbar y rojo de alerta.</desc>
+  <rect width="1200" height="760" fill="#F6F8FC"/>
+
+  <g font-family="Arial, Helvetica, sans-serif" fill="#1F2937">
+    <text x="72" y="92" font-size="22" font-weight="700" letter-spacing="2">NOVA · SISTEMA VISUAL</text>
+    <text x="72" y="154" font-size="48" font-weight="800">Mostrador luminoso</text>
+    <text x="72" y="194" font-size="20" fill="#566174">Claro, llamativo y ordenado sin saturar la operación.</text>
+  </g>
+
+  <g transform="translate(72 246)">
+    <rect width="1056" height="126" rx="22" fill="#FFFFFF"/>
+    <rect x="24" y="23" width="80" height="80" rx="18" fill="#2563EB"/>
+    <text x="64" y="76" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="800" fill="#FFFFFF">N</text>
+    <text x="132" y="58" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="700" fill="#566174">RESUMEN DE HOY</text>
+    <text x="132" y="89" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="800" fill="#1F2937">Tu negocio, claro de un vistazo</text>
+    <rect x="796" y="33" width="226" height="60" rx="16" fill="#2563EB"/>
+    <text x="909" y="70" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700" fill="#FFFFFF">Nueva venta</text>
+  </g>
+
+  <g font-family="Arial, Helvetica, sans-serif">
+    <g transform="translate(72 422)">
+      <rect width="228" height="224" rx="22" fill="#FFFFFF" stroke="#E3E8F0"/>
+      <rect width="228" height="104" rx="22" fill="#F6F8FC"/>
+      <path d="M0 82H228V104H0Z" fill="#F6F8FC"/>
+      <text x="22" y="138" font-size="18" font-weight="800" fill="#1F2937">Nube</text>
+      <text x="22" y="166" font-size="16" fill="#566174">#F6F8FC</text>
+      <text x="22" y="196" font-size="14" fill="#778296">Fondo principal</text>
+    </g>
+
+    <g transform="translate(324 422)">
+      <rect width="228" height="224" rx="22" fill="#FFFFFF" stroke="#E3E8F0"/>
+      <rect width="228" height="104" rx="22" fill="#1F2937"/>
+      <path d="M0 82H228V104H0Z" fill="#1F2937"/>
+      <text x="22" y="138" font-size="18" font-weight="800" fill="#1F2937">Tinta</text>
+      <text x="22" y="166" font-size="16" fill="#566174">#1F2937</text>
+      <text x="22" y="196" font-size="14" fill="#778296">Texto y contraste</text>
+    </g>
+
+    <g transform="translate(576 422)">
+      <rect width="228" height="224" rx="22" fill="#FFFFFF" stroke="#E3E8F0"/>
+      <rect width="228" height="104" rx="22" fill="#2563EB"/>
+      <path d="M0 82H228V104H0Z" fill="#2563EB"/>
+      <text x="22" y="138" font-size="18" font-weight="800" fill="#1F2937">Azul Nova</text>
+      <text x="22" y="166" font-size="16" fill="#566174">#2563EB</text>
+      <text x="22" y="196" font-size="14" fill="#778296">Acción y selección</text>
+    </g>
+
+    <g transform="translate(828 422)">
+      <rect width="300" height="224" rx="22" fill="#FFFFFF" stroke="#E3E8F0"/>
+      <rect width="300" height="104" rx="22" fill="#E8F8F2"/>
+      <circle cx="52" cy="52" r="24" fill="#2BAE8C"/>
+      <path d="m41 52 8 8 15-18" fill="none" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="88" y="59" font-size="18" font-weight="800" fill="#176B57">Stock disponible</text>
+      <text x="22" y="138" font-size="18" font-weight="800" fill="#1F2937">Menta</text>
+      <text x="22" y="166" font-size="16" fill="#566174">#2BAE8C</text>
+      <text x="22" y="196" font-size="14" fill="#778296">Éxito y disponibilidad</text>
+    </g>
+  </g>
+
+  <g transform="translate(72 682)" font-family="Arial, Helvetica, sans-serif">
+    <rect width="508" height="42" rx="12" fill="#FFF4D8"/>
+    <circle cx="24" cy="21" r="8" fill="#F3B43F"/>
+    <text x="44" y="27" font-size="15" font-weight="700" fill="#78561A">Ámbar · atención y vencimientos</text>
+
+    <rect x="532" width="524" height="42" rx="12" fill="#FDECEC"/>
+    <circle cx="556" cy="21" r="8" fill="#D94A4A"/>
+    <text x="576" y="27" font-size="15" font-weight="700" fill="#8F2929">Rojo · errores y acciones destructivas</text>
+  </g>
+</svg>
