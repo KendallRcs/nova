@@ -7,6 +7,9 @@ const nextConfig: NextConfig = {
     // keeps Next's full production type check without ignoring build errors.
     useTypeScriptCli: false,
   },
+  images: {
+    remotePatterns: [{ protocol: 'https', hostname: 'res.cloudinary.com', pathname: '/**' }],
+  },
   poweredByHeader: false,
   typedRoutes: true,
 };

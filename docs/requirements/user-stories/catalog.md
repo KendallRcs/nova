@@ -7,8 +7,10 @@
 
 - **Estado:** Confirmada
 - **Trazabilidad de implementación:** backend completo para búsqueda paginada por
-  código o nombre, filtros y consulta individual. Ambas vistas incluyen precios de
-  venta, imágenes y disponibilidad por tienda y almacén sin exponer costos ni márgenes.
+  código o nombre, filtros y consulta individual. El frontend ya permite buscar por
+  código o nombre, recorrer resultados paginados y abrir el detalle responsive con
+  precios, imágenes y disponibilidad por tienda y almacén sin exponer costos ni
+  márgenes. Los filtros visuales por categoría y etiqueta continúan bajo PROD-006.
 - **Como** empleado
 - **quiero** buscar un producto por código o nombre
 - **para** informar su disponibilidad y utilizar un precio de venta autorizado.

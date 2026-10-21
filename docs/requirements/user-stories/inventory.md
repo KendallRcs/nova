@@ -8,6 +8,9 @@
 - **Estado:** Confirmada
 - **Trazabilidad de implementación:** backend completo para listar las ubicaciones y
   mostrar por producto las cantidades físicas, reservadas, en revisión y disponibles.
+  El frontend incorpora catálogo responsive y detalle por producto con el total
+  disponible y el desglose físico, reservado, en revisión y disponible de cada
+  ubicación, además de estados de carga, error, ausencia de stock y producto inexistente.
 - **Como** empleado
 - **quiero** consultar el inventario de tienda y almacén
 - **para** saber cuántas unidades pueden ofrecerse realmente.
