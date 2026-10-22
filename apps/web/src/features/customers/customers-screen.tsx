@@ -12,7 +12,13 @@ import { formatDate } from '@/shared/formatters';
 import { Icon } from '@/shared/ui/icons';
 import { ModuleStart } from '@/shared/ui/module-start';
 import { CustomerForm } from './customer-form';
-import { customersQueryKey, searchCustomers, type Customer } from './customers-api';
+import { CustomerMergeForm } from './customer-merge-form';
+import {
+  customersQueryKey,
+  searchCustomers,
+  type Customer,
+  type CustomerMerge,
+} from './customers-api';
 import styles from './customers.module.css';
 
 export function CustomersScreen() {
@@ -24,9 +30,11 @@ export function CustomersScreen() {
     queryKey: customersQueryKey(query),
     queryFn: () => searchCustomers(query),
   });
-  const [form, setForm] = useState<'create' | Customer | null>(null);
+  const [form, setForm] = useState<'create' | 'merge' | Customer | null>(null);
   const [saved, setSaved] = useState<Customer | null>(null);
+  const [merged, setMerged] = useState<CustomerMerge | null>(null);
   const canWrite = actor.data !== undefined && hasPermission(actor.data, 'customers:write-basic');
+  const canMerge = actor.data !== undefined && hasPermission(actor.data, 'customers:merge');
 
   function submitSearch(event: SyntheticEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -68,21 +76,38 @@ export function CustomersScreen() {
           ) : null}
           <button type="submit">Buscar</button>
         </form>
-        {canWrite && form === null ? (
-          <button
-            className={styles.newButton}
-            type="button"
-            onClick={() => {
-              setSaved(null);
-              setForm('create');
-            }}
-          >
-            Registrar cliente
-          </button>
+        {(canWrite || canMerge) && form === null ? (
+          <div className={styles.commandActions}>
+            {canMerge ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setSaved(null);
+                  setMerged(null);
+                  setForm('merge');
+                }}
+              >
+                Fusionar duplicados
+              </button>
+            ) : null}
+            {canWrite ? (
+              <button
+                className={styles.newButton}
+                type="button"
+                onClick={() => {
+                  setSaved(null);
+                  setMerged(null);
+                  setForm('create');
+                }}
+              >
+                Registrar cliente
+              </button>
+            ) : null}
+          </div>
         ) : null}
       </section>
 
-      {form !== null ? (
+      {form !== null && form !== 'merge' ? (
         <CustomerForm
           {...(form === 'create' ? {} : { customer: form })}
           onCancel={() => {
@@ -94,10 +119,29 @@ export function CustomersScreen() {
           }}
         />
       ) : null}
+      {form === 'merge' ? (
+        <CustomerMergeForm
+          onCancel={() => {
+            setForm(null);
+          }}
+          onDone={(result) => {
+            setForm(null);
+            setMerged(result);
+          }}
+        />
+      ) : null}
       {saved !== null ? (
         <p className={styles.savedNotice} role="status">
           <span>{saved.name} quedó guardado.</span>
           <Link href={`/customers/${saved.id}` as Route}>Ver su cuenta</Link>
+        </p>
+      ) : null}
+      {merged !== null ? (
+        <p className={styles.savedNotice} role="status">
+          <span>Los registros se fusionaron en {merged.name}.</span>
+          <Link href={`/customers/${merged.primaryCustomerId}` as Route}>
+            Ver cuenta consolidada
+          </Link>
         </p>
       ) : null}
 

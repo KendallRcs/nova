@@ -72,8 +72,9 @@
 ### User Story CUS-004 — Fusionar clientes duplicados
 
 - **Estado:** Confirmada
-- **Trazabilidad de implementación:** backend completo con datos resueltos,
-  bloqueo ordenado, versiones optimistas, idempotencia y auditoría del administrador.
+- **Trazabilidad de implementación:** backend y frontend completos con selección del
+  registro principal, comparación y resolución de datos, confirmación administrativa,
+  bloqueo ordenado, versiones optimistas, idempotencia y auditoría.
 - **Como** administrador
 - **quiero** fusionar dos registros de la misma persona
 - **para** mantener un único historial comercial y financiero.

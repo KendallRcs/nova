@@ -4,10 +4,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { renderWithQueryClient } from '@/test/render';
 import { CustomerDetailScreen } from './customer-detail-screen';
+import type { Customer } from './customers-api';
 import { CustomersScreen } from './customers-screen';
 
 const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), put: vi.fn() }));
 const navigation = vi.hoisted(() => ({ replace: vi.fn(), search: '' }));
+const access = vi.hoisted(() => ({ permissions: ['customers:read', 'customers:write-basic'] }));
 vi.mock('@/shared/api/client', () => ({
   apiClient: { GET: api.get, POST: api.post, PUT: api.put },
 }));
@@ -21,6 +23,7 @@ describe('customer management', () => {
     api.get.mockReset();
     api.post.mockReset();
     api.put.mockReset();
+    access.permissions = ['customers:read', 'customers:write-basic'];
     navigation.replace.mockReset();
     navigation.search = '';
     api.get.mockImplementation((path: string) =>
@@ -30,7 +33,7 @@ describe('customer management', () => {
             ? {
                 userId: IDS.user,
                 username: 'empleada',
-                permissionCodes: ['customers:read', 'customers:write-basic'],
+                permissionCodes: access.permissions,
                 requiresPasswordChange: false,
               }
             : { items: [customerFixture()] },
@@ -85,16 +88,95 @@ describe('customer management', () => {
     expect(screen.getByText('1 pago registrado')).toBeInTheDocument();
     expect(screen.queryByText(/costo/i)).not.toBeInTheDocument();
   });
+
+  it('merges duplicate customers with resolved data and an idempotency key', async () => {
+    const user = userEvent.setup();
+    const primary = customerFixture();
+    const duplicate = customerFixture({
+      id: IDS.duplicate,
+      name: 'María T. Pérez',
+      phone: '988777666',
+      dni: '74261835',
+      version: 5,
+    });
+    access.permissions = ['customers:read', 'customers:write-basic', 'customers:merge'];
+    api.get.mockImplementation((path: string) =>
+      Promise.resolve(
+        ok(
+          path === '/api/v1/auth/me'
+            ? {
+                userId: IDS.user,
+                username: 'admin',
+                permissionCodes: access.permissions,
+                requiresPasswordChange: false,
+              }
+            : { items: [primary, duplicate] },
+        ),
+      ),
+    );
+    api.post.mockResolvedValue(
+      ok({
+        id: IDS.merge,
+        operationId: IDS.operation,
+        primaryCustomerId: primary.id,
+        duplicateCustomerId: duplicate.id,
+        primaryVersion: 4,
+        duplicateVersion: 6,
+        name: primary.name,
+        phone: primary.phone,
+        dni: primary.dni,
+        address: primary.address,
+        mergedBy: IDS.user,
+        mergedAt: '2026-10-21T15:00:00.000Z',
+        replayed: false,
+      }),
+    );
+
+    renderWithQueryClient(<CustomersScreen />);
+    await user.click(await screen.findByRole('button', { name: 'Fusionar duplicados' }));
+    await user.click(
+      await screen.findByRole('button', {
+        name: `Elegir a ${primary.name}, teléfono ${primary.phone} como cliente principal`,
+      }),
+    );
+    await user.click(
+      await screen.findByRole('button', {
+        name: `Elegir a ${duplicate.name}, teléfono ${duplicate.phone} como registro duplicado`,
+      }),
+    );
+    await user.click(
+      screen.getByRole('checkbox', { name: /entiendo que María T\. Pérez se desactivará/i }),
+    );
+    await user.click(screen.getByRole('button', { name: 'Fusionar y conservar principal' }));
+
+    expect(
+      await screen.findByText(`Los registros se fusionaron en ${primary.name}.`),
+    ).toBeVisible();
+    const calls = JSON.stringify(api.post.mock.calls);
+    expect(calls).toContain('/api/v1/customers/merges');
+    expect(calls).toContain(`"expectedPrimaryVersion":${String(primary.version)}`);
+    expect(calls).toContain(`"expectedDuplicateVersion":${String(duplicate.version)}`);
+    expect(calls).toMatch(
+      /Idempotency-Key.*[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/,
+    );
+  });
 });
 
 const IDS = {
   user: '01900000-0000-7000-8000-000000000001',
   customer: '01900000-0000-7000-8000-000000000501',
+  duplicate: '01900000-0000-7000-8000-000000000502',
+  merge: '01900000-0000-7000-8000-000000000503',
+  operation: '01900000-0000-7000-8000-000000000504',
   sale: '01900000-0000-7000-8000-000000000451',
   payment: '01900000-0000-7000-8000-000000000701',
 } as const;
 
-function customerFixture() {
+function customerFixture(overrides: Partial<Customer> = {}): Customer {
+  return { ...baseCustomerFixture(), ...overrides };
+}
+
+function baseCustomerFixture(): Customer {
   return {
     id: IDS.customer,
     name: 'María Torres',
