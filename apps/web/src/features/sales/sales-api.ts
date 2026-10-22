@@ -5,6 +5,9 @@ import { toApiProblem } from '@/shared/api/problem-details';
 export type SaleActivity = components['schemas']['SaleActivityItemResponse'];
 export type SalePage = components['schemas']['SaleActivityPageResponse'];
 export type SaleDetail = components['schemas']['SaleDetailResponse'];
+export type SalePayment = components['schemas']['SalePaymentResponse'];
+export type SaleDelivery = components['schemas']['SaleDeliveryResponse'];
+export type PaymentMethod = components['schemas']['RecordSalePaymentRequest']['method'];
 export type SaleLifecycle = SaleActivity['lifecycle'];
 export type SaleDebtFilter = 'all' | 'pending' | 'paid' | 'overdue';
 
@@ -34,6 +37,41 @@ export async function listSales(filters: SaleFilters, cursor?: string): Promise<
 export async function getSaleDetail(saleId: string): Promise<SaleDetail> {
   const { data, error, response } = await apiClient.GET('/api/v1/sales/{saleId}', {
     params: { path: { saleId } },
+  });
+  if (!response.ok || data === undefined) throw toApiProblem(response, error);
+  return data;
+}
+
+export async function recordSalePayment(input: {
+  saleId: string;
+  operationId: string;
+  expectedVersion: number;
+  amountCents: number;
+  method: PaymentMethod;
+}): Promise<SalePayment> {
+  const { data, error, response } = await apiClient.POST('/api/v1/sales/{saleId}/payments', {
+    params: { path: { saleId: input.saleId } },
+    headers: { 'Idempotency-Key': input.operationId },
+    body: {
+      expectedVersion: input.expectedVersion,
+      amountCents: input.amountCents,
+      method: input.method,
+    },
+  });
+  if (!response.ok || data === undefined) throw toApiProblem(response, error);
+  return data;
+}
+
+export async function deliverSaleReservation(input: {
+  saleId: string;
+  operationId: string;
+  expectedVersion: number;
+  lines: { saleLineId: string; quantity: number }[];
+}): Promise<SaleDelivery> {
+  const { data, error, response } = await apiClient.POST('/api/v1/sales/{saleId}/deliveries', {
+    params: { path: { saleId: input.saleId } },
+    headers: { 'Idempotency-Key': input.operationId },
+    body: { expectedVersion: input.expectedVersion, lines: input.lines },
   });
   if (!response.ok || data === undefined) throw toApiProblem(response, error);
   return data;

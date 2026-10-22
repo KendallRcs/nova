@@ -9,7 +9,9 @@
 - **Trazabilidad de implementación:** backend completo para registrar cobros en una
   venta propia con efectivo, Yape, Plin o POS. El pago, el nuevo saldo, la versión
   de la venta y la entrada de caja se confirman de manera atómica e idempotente;
-  un cobro superior al saldo se rechaza indicando el saldo disponible.
+  un cobro superior al saldo se rechaza indicando el saldo disponible. El frontend
+  incorpora el cobro posterior desde el detalle, valida el saldo, permite usar su
+  importe exacto y conserva la misma clave idempotente durante un reintento.
 - **Como** empleado
 - **quiero** registrar un pago posterior en una venta que creé
 - **para** mantener actualizado el saldo del cliente.
@@ -37,7 +39,8 @@
 - **Estado:** Confirmada
 - **Trazabilidad de implementación:** backend completo; una cuenta con
   `payments:create-any` puede cobrar ventas ajenas y se conservan por separado el
-  creador de la venta y quien registró el pago.
+  creador de la venta y quien registró el pago. La acción frontend se habilita por
+  capacidad y el rastro identifica la cuenta que registró cada cobro.
 - **Como** administrador
 - **quiero** registrar pagos en ventas de cualquier empleado
 - **para** mantener correctos los saldos cuando atiendo al cliente.

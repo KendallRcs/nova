@@ -355,6 +355,213 @@
 .summaryTrack > span {
   background: #d5e1f7;
 }
+.actionDesk {
+  margin-top: 1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: clamp(1.2rem, 3vw, 1.6rem);
+  background: var(--surface);
+}
+.actionDeskHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.actionDeskHeader h2 {
+  margin: 0;
+  font-size: 1.2rem;
+  letter-spacing: -0.02em;
+}
+.actionSwitch {
+  display: flex;
+  gap: 0.35rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 0.25rem;
+  background: var(--surface-muted);
+}
+.actionSwitch button {
+  min-height: 2.75rem;
+  border: 0;
+  border-radius: 8px;
+  padding: 0.45rem 0.8rem;
+  color: var(--ink-soft);
+  background: transparent;
+  font-weight: 720;
+}
+.actionSwitch button[aria-pressed='true'] {
+  color: #174694;
+  background: var(--surface);
+}
+.operationForm {
+  display: grid;
+  grid-template-columns: minmax(210px, 1fr) minmax(180px, 0.72fr) minmax(170px, 0.7fr) auto;
+  gap: 0.8rem;
+  align-items: end;
+  margin-top: 1.2rem;
+  padding-top: 1.2rem;
+  border-top: 1px solid var(--line);
+}
+.operationIntro {
+  align-self: center;
+}
+.operationIntro p {
+  max-width: 48ch;
+  margin: 0.3rem 0 0;
+  color: var(--ink-soft);
+  font-size: 0.78rem;
+}
+.operationField {
+  position: relative;
+  display: grid;
+  gap: 0.35rem;
+}
+.operationField > span:first-child {
+  color: var(--ink-soft);
+  font-size: 0.7rem;
+  font-weight: 720;
+}
+.operationField select,
+.operationMoneyInput {
+  min-height: 3rem;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  color: var(--ink);
+  background: var(--surface);
+}
+.operationField select {
+  padding: 0 0.8rem;
+}
+.operationMoneyInput {
+  display: flex;
+  align-items: center;
+}
+.operationMoneyInput b {
+  padding-left: 0.8rem;
+  color: var(--ink-soft);
+  font-size: 0.75rem;
+}
+.operationMoneyInput input {
+  min-width: 0;
+  flex: 1;
+  align-self: stretch;
+  border: 0;
+  padding: 0 0.8rem;
+  color: var(--ink);
+  background: transparent;
+  outline: 0;
+  font: inherit;
+}
+.operationField select:focus,
+.operationMoneyInput:focus-within,
+.deliveryLines input:focus {
+  border-color: var(--nova);
+  outline: 3px solid var(--nova-soft);
+}
+.fieldShortcut {
+  position: absolute;
+  right: 0;
+  bottom: -1.35rem;
+  border: 0;
+  padding: 0;
+  color: var(--nova);
+  background: transparent;
+  font-size: 0.67rem;
+  font-weight: 720;
+}
+.operationSubmit {
+  min-height: 3rem;
+  border: 0;
+  border-radius: var(--radius-sm);
+  padding: 0.65rem 1rem;
+  color: white;
+  background: var(--nova);
+  font-weight: 760;
+}
+.operationSubmit:not(:disabled):hover {
+  background: var(--nova-hover);
+}
+.operationSubmit:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.operationSuccess,
+.operationError {
+  grid-column: 1 / -1;
+  margin: 0.6rem 0 0;
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 0.85rem;
+  font-size: 0.78rem;
+}
+.operationSuccess {
+  color: #175944;
+  background: var(--mint-soft);
+}
+.operationError {
+  color: var(--red);
+  background: var(--red-soft);
+}
+.operationError p {
+  margin: 0.25rem 0;
+}
+.operationError small {
+  color: #7a3838;
+}
+.formHint {
+  grid-column: 2 / -1;
+  margin: 0.6rem 0 0;
+  color: var(--red);
+  font-size: 0.72rem;
+}
+.deliveryForm {
+  display: grid;
+  grid-template-columns: minmax(210px, 0.65fr) minmax(0, 1.35fr) auto;
+  gap: 1rem;
+  align-items: end;
+  margin-top: 1.2rem;
+  padding-top: 1.2rem;
+  border-top: 1px solid var(--line);
+}
+.deliveryLines {
+  display: grid;
+}
+.deliveryLines label {
+  display: grid;
+  grid-template-columns: minmax(150px, 1fr) 5rem 3.2rem;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.55rem 0;
+  border-top: 1px solid var(--line);
+}
+.deliveryLines label:first-child {
+  border-top: 0;
+}
+.deliveryLines label > span {
+  display: grid;
+}
+.deliveryLines small {
+  color: var(--ink-soft);
+  font-size: 0.7rem;
+}
+.deliveryLines input {
+  min-height: 2.75rem;
+  min-width: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  padding: 0 0.65rem;
+  color: var(--ink);
+  background: var(--surface);
+}
+.deliveryLines button {
+  min-height: 2.75rem;
+  border: 0;
+  padding: 0.35rem;
+  color: var(--nova);
+  background: transparent;
+  font-size: 0.72rem;
+  font-weight: 740;
+}
 .detailGrid {
   display: grid;
   grid-template-columns: minmax(0, 1.5fr) minmax(260px, 0.55fr);
@@ -524,6 +731,17 @@
   .detailGrid {
     grid-template-columns: 1fr;
   }
+  .operationForm {
+    grid-template-columns: 1fr 1fr;
+  }
+  .operationIntro,
+  .operationSuccess,
+  .operationError {
+    grid-column: 1 / -1;
+  }
+  .deliveryForm {
+    grid-template-columns: 1fr;
+  }
 }
 @media (max-width: 620px) {
   .pageActions {
@@ -570,6 +788,30 @@
   }
   .detailHeader {
     display: grid;
+  }
+  .actionDeskHeader {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .actionSwitch {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .operationForm {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  .operationIntro,
+  .operationSuccess,
+  .operationError,
+  .formHint {
+    grid-column: 1;
+  }
+  .operationField:has(.fieldShortcut) {
+    margin-bottom: 1rem;
+  }
+  .deliveryLines label {
+    grid-template-columns: minmax(0, 1fr) 4.5rem 3rem;
   }
   .detailHeader h1 {
     font-size: 1.8rem;

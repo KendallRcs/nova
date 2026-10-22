@@ -106,7 +106,9 @@
   venta, con reserva identificable, movimiento inmutable, costo reservado y
   actualización atómica de disponibilidad. La entrega posterior consume parcial o
   totalmente la reserva activa, la existencia física y su valor histórico exacto
-  en una sola transacción.
+  en una sola transacción. El frontend muestra únicamente líneas con reserva
+  vigente, limita la cantidad entregable y permite consumir una parte o todo el
+  saldo reservado desde la venta.
 - **Como** empleado
 - **quiero** reservar unidades de una venta para un cliente
 - **para** evitar que se ofrezcan mientras permanecen en tienda o almacén.

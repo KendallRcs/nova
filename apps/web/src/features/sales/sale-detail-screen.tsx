@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { ApiProblem, problemMessage } from '@/shared/api/problem-details';
 import { formatDate, formatDateTime, formatMoney } from '@/shared/formatters';
 import { Icon } from '@/shared/ui/icons';
+import { SaleActions } from './sale-actions';
 import {
   deliveryLabels,
   getSaleDetail,
@@ -108,6 +109,8 @@ export function SaleDetailScreen({ saleId }: Readonly<{ saleId: string }>) {
           <small>{paidPercent}% cobrado</small>
         </div>
       </section>
+
+      <SaleActions sale={item} />
 
       <div className={styles.detailGrid}>
         <section className={styles.detailCard} aria-labelledby="sale-products-title">
@@ -242,6 +245,13 @@ function eventsFor(sale: SaleDetail): TimelineEvent[] {
       detail: `${paymentMethodLabels[payment.method]} · registrado por ${payment.registrarUsername}.`,
       at: payment.effectiveAt,
     });
+  for (const delivery of deliveryEvents(sale.deliveries))
+    events.push({
+      key: delivery.id,
+      title: `${String(delivery.quantity)} ${delivery.quantity === 1 ? 'unidad entregada' : 'unidades entregadas'}`,
+      detail: `Entrega registrada por ${delivery.actorUsername}.`,
+      at: delivery.effectiveAt,
+    });
   if (sale.finalizedAt)
     events.push({
       key: 'finalized',
@@ -258,6 +268,40 @@ function eventsFor(sale: SaleDetail): TimelineEvent[] {
       at: sale.cancelledAt,
     });
   return events.toSorted((left, right) => left.at.localeCompare(right.at));
+}
+
+function deliveryEvents(values: SaleDetail['deliveries']): {
+  id: string;
+  actorUsername: string;
+  effectiveAt: string;
+  quantity: number;
+}[] {
+  return values.flatMap((value) => {
+    const candidate: unknown = value;
+    if (!isRecord(candidate)) return [];
+    const lines = Array.isArray(candidate.lines) ? candidate.lines : [];
+    const quantity = lines.reduce(
+      (total: number, line: unknown) =>
+        total + (isRecord(line) && typeof line.quantity === 'number' ? line.quantity : 0),
+      0,
+    );
+    return typeof candidate.id === 'string' &&
+      typeof candidate.actorUsername === 'string' &&
+      typeof candidate.effectiveAt === 'string'
+      ? [
+          {
+            id: candidate.id,
+            actorUsername: candidate.actorUsername,
+            effectiveAt: candidate.effectiveAt,
+            quantity,
+          },
+        ]
+      : [];
+  });
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
 }
 
 function BackLink() {

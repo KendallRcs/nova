@@ -35,7 +35,8 @@
   posteriores parciales o totales sobre reservas activas, conserva su historial y
   recalcula la situación de entrega sin generar un cobro. Al registrar la venta,
   el frontend permite distribuir por línea las unidades que se entregan ahora y
-  las que permanecen separadas.
+  las que permanecen separadas. Desde el detalle también permite consumir una o
+  varias reservas activas y refleja el hecho en el rastro cronológico.
 - **Como** empleado
 - **quiero** indicar por producto y cantidad qué se entrega y qué queda reservado
 - **para** atender operaciones con cumplimiento parcial.

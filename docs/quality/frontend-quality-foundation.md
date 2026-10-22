@@ -35,7 +35,9 @@ La primera suite protege:
   vacío y error;
 - detalle histórico de productos y cronología de cobros de una venta;
 - armado de una venta, total derivado, deuda asociada a cliente y confirmación de
-  borrador con identificador UUID v7 idempotente.
+  borrador con identificador UUID v7 idempotente;
+- registro posterior de pagos y entregas con límites de saldo o reserva, permisos
+  por cuenta y claves idempotentes enviadas al backend.
 
 Cada nueva vertical debe agregar pruebas alrededor de sus decisiones y estados de
 mayor riesgo. No se persigue una cifra global aislada: una línea cubierta sin una

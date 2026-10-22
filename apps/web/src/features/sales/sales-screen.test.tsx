@@ -50,6 +50,7 @@ describe('sales tracking', () => {
     expect(screen.getByText('Muñeca de colección')).toBeInTheDocument();
     expect(screen.getByText(/Pago de S\/\s*40\.00/)).toBeInTheDocument();
     expect(screen.getByText('Yape · registrado por empleada.')).toBeInTheDocument();
+    expect(screen.getByText('1 unidad entregada')).toBeInTheDocument();
   });
 });
 
@@ -121,7 +122,14 @@ function detailFixture(): SaleDetail {
     ],
     totalAdjustments: [],
     returns: [],
-    deliveries: [],
+    deliveries: [
+      {
+        id: '01900000-0000-7000-8000-000000000801',
+        actorUsername: 'empleada',
+        effectiveAt: '2026-10-03T15:00:00.000Z',
+        lines: [{ quantity: 1 }],
+      } as never,
+    ],
     cancellation: null,
     closure: null,
   };

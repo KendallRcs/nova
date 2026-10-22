@@ -3,6 +3,7 @@
 
 | Fecha | Cambio |
 | --- | --- |
+| 2026-10-21 | PAY-001, PAY-002, SAL-002 e INV-005 incorporaron acciones frontend en el detalle: cobros posteriores y entregas parciales o totales con permisos, versión, reintento idempotente y actualización del rastro. |
 | 2026-10-21 | SAL-001, SAL-002, SAL-003, SAL-004, SAL-007 y SAL-008 incorporaron creación frontend: venta multilínea, ubicación, entrega o separación, cliente, acuerdo, precio excepcional, cobro inicial y confirmación idempotente. |
 | 2026-10-21 | SAL-005 y SAL-006 incorporaron seguimiento frontend responsive: listado paginado, filtros de ciclo y deuda, progreso de cobro y detalle operativo con productos, ubicación, cliente y cronología de pagos. |
 | 2026-10-21 | PROD-001 e INV-001 incorporaron su primera vertical frontend: búsqueda paginada por código o nombre, detalle responsive, precios autorizados, imágenes y stock por ubicación sin exponer costos. |
