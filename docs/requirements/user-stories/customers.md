@@ -6,8 +6,9 @@
 ### User Story CUS-001 — Identificar a un cliente con saldo pendiente
 
 - **Estado:** Confirmada
-- **Trazabilidad de implementación:** backend completo para registrar, buscar y
-  actualizar clientes, con teléfono canónico único y control optimista de versión.
+- **Trazabilidad de implementación:** backend y frontend completos para registrar,
+  buscar y actualizar clientes, con teléfono canónico único, control optimista de
+  versión y directorio responsive por nombre o teléfono.
 - **Como** empleado
 - **quiero** asociar una venta con deuda a un cliente identificable
 - **para** saber quién debe pagar el saldo.
@@ -27,8 +28,8 @@
 ### User Story CUS-002 — Registrar datos opcionales de un cliente
 
 - **Estado:** Confirmada
-- **Trazabilidad de implementación:** backend completo; DNI y dirección permanecen
-  opcionales tanto al registrar como al actualizar.
+- **Trazabilidad de implementación:** backend y formulario frontend completos; DNI y
+  dirección permanecen opcionales tanto al registrar como al actualizar.
 - **Como** empleado
 - **quiero** registrar dirección y DNI de manera opcional
 - **para** identificar mejor al cliente cuando el negocio lo necesite.
@@ -43,10 +44,10 @@
 ### User Story CUS-003 — Consultar historial y deuda consolidada
 
 - **Estado:** Confirmada
-- **Trazabilidad de implementación:** backend completo mediante un modelo de
-  lectura CQRS-lite. Consolida identidades fusionadas, ventas no borrador, pagos y
-  correcciones, reembolsos, saldos, atrasos y vencimientos sin exponer costos ni
-  márgenes.
+- **Trazabilidad de implementación:** backend y cuenta corriente frontend completos
+  mediante un modelo de lectura CQRS-lite. Consolida identidades fusionadas, ventas
+  no borrador, pagos y correcciones, reembolsos, saldos, atrasos y vencimientos sin
+  exponer costos ni márgenes.
 - **Como** empleado
 - **quiero** consultar las ventas, pagos y saldo total de un cliente
 - **para** conocer su situación antes de acordar una nueva venta.

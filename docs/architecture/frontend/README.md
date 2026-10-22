@@ -33,4 +33,5 @@
 8. Incorporar cobros y entregas posteriores desde el detalle de venta. **Completado.**
 9. Incorporar devoluciones, correcciones y cierre administrativo de ventas. **Completado.**
 10. Incorporar ajustes del total y cancelación administrativa de ventas. **Completado.**
-11. Implementar consulta y gestión de clientes. **Siguiente.**
+11. Implementar consulta, registro, edición y cuenta consolidada de clientes. **Completado.**
+12. Incorporar la fusión administrativa de clientes duplicados. **Siguiente.**
