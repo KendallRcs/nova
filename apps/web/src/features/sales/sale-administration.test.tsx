@@ -23,7 +23,13 @@ describe('sale administration', () => {
         ok({
           userId: IDS.admin,
           username: 'admin',
-          permissionCodes: ['returns:approve', 'payments:correct', 'sales:finalize-with-balance'],
+          permissionCodes: [
+            'returns:approve',
+            'payments:correct',
+            'sales:adjust-confirmed',
+            'sales:finalize-with-balance',
+            'sales:cancel',
+          ],
           requiresPasswordChange: false,
         }),
       );
@@ -131,6 +137,92 @@ describe('sale administration', () => {
     await waitFor(() => {
       expect(JSON.stringify(api.post.mock.calls)).toContain('/api/v1/sales/{saleId}/closure');
     });
+  });
+
+  it('adjusts the agreed total without allowing it below the amount already paid', async () => {
+    const user = userEvent.setup();
+    api.post.mockResolvedValue(
+      ok({
+        adjustmentId: IDS.result,
+        operationId: IDS.operation,
+        saleId: IDS.sale,
+        saleVersion: 3,
+        previousTotalCents: 10000,
+        currentTotalCents: 9000,
+        differenceCents: -1000,
+        reason: 'Nuevo acuerdo',
+        changedBy: IDS.admin,
+        effectiveAt: '2026-10-21T18:00:00.000Z',
+        replayed: false,
+      }),
+    );
+    renderWithQueryClient(<SaleAdministration sale={saleFixture()} />);
+
+    await user.click(await screen.findByRole('button', { name: /Ajustar total acordado/ }));
+    const total = screen.getByLabelText('Nuevo total acordado');
+    await user.clear(total);
+    await user.type(total, '30');
+    expect(
+      screen.getByText(/no puede ser menor que los S\/\s*40\.00 ya cobrados/),
+    ).toBeInTheDocument();
+    await user.clear(total);
+    await user.type(total, '90');
+    await user.type(screen.getByLabelText('Razón obligatoria'), 'Nuevo acuerdo');
+    await user.click(screen.getByRole('button', { name: 'Confirmar nuevo total' }));
+
+    expect(await screen.findByText(/Nuevo total de S\/\s*90\.00 registrado/)).toBeInTheDocument();
+    const calls = JSON.stringify(api.post.mock.calls);
+    expect(calls).toContain('/api/v1/sales/{saleId}/total-adjustments');
+    expect(calls).toContain('"newTotalCents":9000');
+  });
+
+  it('cancels a sale with explicit product treatment and a manual refund', async () => {
+    const user = userEvent.setup();
+    const sale = saleFixture();
+    const line = sale.lines[0];
+    if (line === undefined) throw new Error('Fixture line is required.');
+    line.deliveryQuantity = 1;
+    line.reservationQuantity = 1;
+    line.activeReservationQuantity = 1;
+    api.post.mockResolvedValue(
+      ok({
+        cancellationId: IDS.result,
+        operationId: IDS.operation,
+        saleId: IDS.sale,
+        saleVersion: 3,
+        refundAmountCents: 2000,
+        refundMethod: 'cash',
+        paidCents: 2000,
+        releasedQuantity: 1,
+        returnedQuantity: 1,
+        notReturnedQuantity: 0,
+        cancelledBy: IDS.admin,
+        effectiveAt: '2026-10-21T18:00:00.000Z',
+        replayed: false,
+      }),
+    );
+    renderWithQueryClient(<SaleAdministration sale={sale} />);
+
+    await user.click(await screen.findByRole('button', { name: /Cancelar venta/ }));
+    await user.clear(screen.getByLabelText('Unidades que regresan de Muñeca de colección'));
+    await user.type(screen.getByLabelText('Unidades que regresan de Muñeca de colección'), '1');
+    await user.selectOptions(
+      await screen.findByLabelText('Ubicación de cancelación de Muñeca de colección'),
+      IDS.location,
+    );
+    await user.clear(screen.getByLabelText('Reembolso real'));
+    await user.type(screen.getByLabelText('Reembolso real'), '20');
+    await user.type(screen.getByLabelText('Razón obligatoria'), 'El cliente desistió');
+    await user.click(screen.getByRole('button', { name: 'Cancelar venta definitivamente' }));
+
+    expect(
+      await screen.findByText(/Venta cancelada y S\/\s*20\.00 reembolsados/),
+    ).toBeInTheDocument();
+    const calls = JSON.stringify(api.post.mock.calls);
+    expect(calls).toContain('/api/v1/sales/{saleId}/cancellations');
+    expect(calls).toContain('"refundAmountCents":2000,"refundMethod":"cash"');
+    expect(calls).toContain('"returnedQuantity":1,"notReturnedQuantity":0');
+    expect(calls).not.toContain('"releasedQuantity"');
   });
 });
 

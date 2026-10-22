@@ -80,7 +80,10 @@
   administrativa atómica, versionada e idempotente. La cancelación exige una
   decisión explícita por cada línea, libera reservas, registra retornos físicos y
   su costo histórico, conserva productos no retornados y crea una salida de caja
-  únicamente por el reembolso manual declarado.
+  únicamente por el reembolso manual declarado. El frontend muestra las reservas
+  que se liberarán automáticamente, deriva las unidades que permanecen con el
+  cliente, exige ubicación y condición para cada retorno y limita el reembolso
+  manual al cobro vigente antes de confirmar la cancelación definitiva.
 - **Como** administrador
 - **quiero** cancelar una venta indicando pagos, entregas y productos retornados
 - **para** revertir únicamente los efectos que realmente correspondan.

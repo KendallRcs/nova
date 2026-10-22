@@ -10,6 +10,8 @@ export type SaleDelivery = components['schemas']['SaleDeliveryResponse'];
 export type SaleClosure = components['schemas']['SaleClosureResponse'];
 export type PaymentCorrection = components['schemas']['PaymentCorrectionResponse'];
 export type SaleReturn = components['schemas']['SaleReturnResponse'];
+export type SaleTotalAdjustment = components['schemas']['SaleTotalAdjustmentResponse'];
+export type SaleCancellation = components['schemas']['SaleCancellationResponse'];
 export type InventoryLocation = components['schemas']['InventoryLocationResponse'];
 export type PaymentMethod = components['schemas']['RecordSalePaymentRequest']['method'];
 export type SaleLifecycle = SaleActivity['lifecycle'];
@@ -151,6 +153,61 @@ export async function approveSaleReturn(input: {
     body: {
       expectedVersion: input.expectedVersion,
       reason: input.reason,
+      refundMethod: input.refundMethod,
+      lines: input.lines,
+    } as never,
+  });
+  if (!response.ok || data === undefined) throw toApiProblem(response, error);
+  return data;
+}
+
+export async function adjustSaleTotal(input: {
+  saleId: string;
+  operationId: string;
+  expectedVersion: number;
+  newTotalCents: number;
+  reason: string;
+}): Promise<SaleTotalAdjustment> {
+  const { data, error, response } = await apiClient.POST(
+    '/api/v1/sales/{saleId}/total-adjustments',
+    {
+      params: { path: { saleId: input.saleId } },
+      headers: { 'Idempotency-Key': input.operationId },
+      body: {
+        expectedVersion: input.expectedVersion,
+        newTotalCents: input.newTotalCents,
+        reason: input.reason,
+      },
+    },
+  );
+  if (!response.ok || data === undefined) throw toApiProblem(response, error);
+  return data;
+}
+
+export interface CancellationLineInput {
+  saleLineId: string;
+  returnedQuantity: number;
+  notReturnedQuantity: number;
+  returnLocationId: string | null;
+  condition: 'available' | 'review' | null;
+}
+
+export async function cancelSale(input: {
+  saleId: string;
+  operationId: string;
+  expectedVersion: number;
+  reason: string;
+  refundAmountCents: number;
+  refundMethod: PaymentMethod | null;
+  lines: CancellationLineInput[];
+}): Promise<SaleCancellation> {
+  const { data, error, response } = await apiClient.POST('/api/v1/sales/{saleId}/cancellations', {
+    params: { path: { saleId: input.saleId } },
+    headers: { 'Idempotency-Key': input.operationId },
+    body: {
+      expectedVersion: input.expectedVersion,
+      reason: input.reason,
+      refundAmountCents: input.refundAmountCents,
       refundMethod: input.refundMethod,
       lines: input.lines,
     } as never,

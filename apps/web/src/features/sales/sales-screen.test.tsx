@@ -53,6 +53,8 @@ describe('sales tracking', () => {
     expect(screen.getByText('1 unidad entregada')).toBeInTheDocument();
     expect(screen.getByText(/Pago corregido por S\/\s*10\.00/)).toBeInTheDocument();
     expect(screen.getByText(/Devolución por S\/\s*50\.00/)).toBeInTheDocument();
+    expect(screen.getByText(/Total ajustado a S\/\s*90\.00/)).toBeInTheDocument();
+    expect(screen.getByText('Venta cancelada')).toBeInTheDocument();
   });
 });
 
@@ -129,7 +131,15 @@ function detailFixture(): SaleDetail {
         ],
       },
     ],
-    totalAdjustments: [],
+    totalAdjustments: [
+      {
+        id: '01900000-0000-7000-8000-000000000703',
+        newTotalCents: 9000,
+        differenceCents: -1000,
+        reason: 'Nuevo acuerdo',
+        effectiveAt: '2026-10-02T17:00:00.000Z',
+      } as never,
+    ],
     returns: [
       {
         id: '01900000-0000-7000-8000-000000000901',
@@ -148,7 +158,13 @@ function detailFixture(): SaleDetail {
         lines: [{ quantity: 1 }],
       } as never,
     ],
-    cancellation: null,
+    cancellation: {
+      id: '01900000-0000-7000-8000-000000000902',
+      reason: 'El cliente desistió',
+      refundAmountCents: 2000,
+      effectiveAt: '2026-10-05T15:00:00.000Z',
+      lines: [],
+    } as never,
     closure: null,
   };
 }

@@ -8,7 +8,9 @@ import { newOperationId } from '@/shared/api/idempotency';
 import { ApiProblem, problemMessage } from '@/shared/api/problem-details';
 import { formatDateTime, formatMoney } from '@/shared/formatters';
 import {
+  adjustSaleTotal,
   approveSaleReturn,
+  cancelSale,
   correctSalePayment,
   finalizeSale,
   listInventoryLocations,
@@ -17,12 +19,13 @@ import {
   saleDetailQueryKey,
   salesQueryRoot,
   type PaymentMethod,
+  type CancellationLineInput,
   type ReturnLineInput,
   type SaleDetail,
 } from './sales-api';
 import styles from './sales.module.css';
 
-type AdminAction = 'return' | 'correction' | 'closure';
+type AdminAction = 'return' | 'correction' | 'adjustment' | 'closure' | 'cancellation';
 interface Attempt {
   signature: string;
   operationId: string;
@@ -30,6 +33,11 @@ interface Attempt {
 interface ReturnDraft {
   quantity: string;
   productReturns: boolean;
+  returnLocationId: string;
+  condition: 'available' | 'review';
+}
+interface CancellationDraft {
+  returnedQuantity: string;
   returnLocationId: string;
   condition: 'available' | 'review';
 }
@@ -56,9 +64,17 @@ export function SaleAdministration({ sale }: Readonly<{ sale: SaleDetail }>) {
     sale.lifecycle === 'confirmed' &&
     actor.data !== undefined &&
     hasPermission(actor.data, 'sales:finalize-with-balance');
+  const canAdjust =
+    sale.lifecycle === 'confirmed' &&
+    actor.data !== undefined &&
+    hasPermission(actor.data, 'sales:adjust-confirmed');
+  const canCancel =
+    sale.lifecycle === 'confirmed' &&
+    actor.data !== undefined &&
+    hasPermission(actor.data, 'sales:cancel');
   const [active, setActive] = useState<AdminAction | null>(null);
 
-  if (!canReturn && !canCorrect && !canClose) return null;
+  if (!canReturn && !canCorrect && !canAdjust && !canClose && !canCancel) return null;
 
   return (
     <section className={styles.adminDesk} aria-labelledby="sale-administration-title">
@@ -101,6 +117,15 @@ export function SaleAdministration({ sale }: Readonly<{ sale: SaleDetail }>) {
               }}
             />
           ) : null}
+          {canAdjust ? (
+            <AdminChoice
+              title="Ajustar total acordado"
+              detail="Registra un nuevo acuerdo económico sin reemplazar el total original."
+              onClick={() => {
+                setActive('adjustment');
+              }}
+            />
+          ) : null}
           {canClose ? (
             <AdminChoice
               title="Finalizar venta"
@@ -114,6 +139,16 @@ export function SaleAdministration({ sale }: Readonly<{ sale: SaleDetail }>) {
               }}
             />
           ) : null}
+          {canCancel ? (
+            <AdminChoice
+              title="Cancelar venta"
+              detail="Cierra la operación declarando productos, reservas y cualquier reembolso real."
+              danger
+              onClick={() => {
+                setActive('cancellation');
+              }}
+            />
+          ) : null}
         </div>
       ) : null}
       {active === 'return' && canReturn ? (
@@ -122,7 +157,9 @@ export function SaleAdministration({ sale }: Readonly<{ sale: SaleDetail }>) {
       {active === 'correction' && canCorrect ? (
         <CorrectionForm sale={sale} payments={correctablePayments} />
       ) : null}
+      {active === 'adjustment' && canAdjust ? <AdjustmentForm sale={sale} /> : null}
       {active === 'closure' && canClose ? <ClosureForm sale={sale} /> : null}
+      {active === 'cancellation' && canCancel ? <CancellationForm sale={sale} /> : null}
     </section>
   );
 }
@@ -130,10 +167,11 @@ export function SaleAdministration({ sale }: Readonly<{ sale: SaleDetail }>) {
 function AdminChoice({
   title,
   detail,
+  danger = false,
   onClick,
-}: Readonly<{ title: string; detail: string; onClick: () => void }>) {
+}: Readonly<{ title: string; detail: string; danger?: boolean; onClick: () => void }>) {
   return (
-    <button type="button" onClick={onClick}>
+    <button type="button" data-danger={danger} onClick={onClick}>
       <strong>{title}</strong>
       <span>{detail}</span>
       <b aria-hidden="true">Abrir →</b>
@@ -268,6 +306,105 @@ function CorrectionForm({
         {correction.isPending ? 'Registrando…' : 'Confirmar corrección'}
       </button>
       {issue !== null && (amount.length > 0 || reason.length > 0) ? (
+        <p className={styles.adminHint}>{issue}</p>
+      ) : null}
+    </form>
+  );
+}
+
+function AdjustmentForm({ sale }: Readonly<{ sale: SaleDetail }>) {
+  const queryClient = useQueryClient();
+  const attempt = useRef<Attempt | null>(null);
+  const [newTotal, setNewTotal] = useState(centsToInput(sale.currentTotalCents));
+  const [reason, setReason] = useState('');
+  const [success, setSuccess] = useState<string | null>(null);
+  const newTotalCents = parseMoney(newTotal);
+  const differenceCents = newTotalCents - sale.currentTotalCents;
+  const resultingBalanceCents = Math.max(0, newTotalCents - sale.paidCents);
+  const issue =
+    newTotalCents < sale.paidCents
+      ? `El nuevo total no puede ser menor que los ${formatMoney(sale.paidCents)} ya cobrados.`
+      : newTotalCents > sale.paidCents && sale.customer === null
+        ? 'Asocia un cliente antes de crear un saldo pendiente.'
+        : reason.trim().length === 0
+          ? 'Escribe la razón del nuevo acuerdo.'
+          : null;
+  const adjustment = useMutation({
+    mutationFn: async () => {
+      const signature = JSON.stringify({ saleVersion: sale.version, newTotalCents, reason });
+      return adjustSaleTotal({
+        saleId: sale.id,
+        operationId: operationIdFor(attempt, signature),
+        expectedVersion: sale.version,
+        newTotalCents,
+        reason: reason.trim(),
+      });
+    },
+    onSuccess(result) {
+      attempt.current = null;
+      setSuccess(`Nuevo total de ${formatMoney(result.currentTotalCents)} registrado.`);
+      void refresh(sale.id, queryClient);
+    },
+    onError(error) {
+      setSuccess(null);
+      if (isConflict(error)) void refresh(sale.id, queryClient);
+    },
+  });
+
+  function submit(event: SyntheticEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSuccess(null);
+    if (issue === null) adjustment.mutate();
+  }
+
+  return (
+    <form className={styles.adminForm} onSubmit={submit} noValidate>
+      <div className={styles.adminFormIntro}>
+        <strong>Nuevo acuerdo económico</strong>
+        <p>
+          El total original de {formatMoney(sale.originalTotalCents)} permanecerá en el historial.
+        </p>
+      </div>
+      <label className={styles.adminField}>
+        <span>Nuevo total acordado</span>
+        <span className={styles.operationMoneyInput}>
+          <b>S/</b>
+          <input
+            aria-label="Nuevo total acordado"
+            inputMode="decimal"
+            value={newTotal}
+            onChange={(event) => {
+              setNewTotal(event.target.value);
+              setSuccess(null);
+            }}
+          />
+        </span>
+      </label>
+      <div className={styles.adjustmentPreview}>
+        <span>{differenceCents < 0 ? 'Reducción' : 'Incremento'}</span>
+        <strong>{formatMoney(Math.abs(differenceCents))}</strong>
+        <small>Saldo resultante: {formatMoney(resultingBalanceCents)}</small>
+      </div>
+      <label className={[styles.adminField, styles.adminReason].join(' ')}>
+        <span>Razón obligatoria</span>
+        <textarea
+          value={reason}
+          maxLength={500}
+          onChange={(event) => {
+            setReason(event.target.value);
+          }}
+          placeholder="Ej. Se acordó un importe diferente con el cliente"
+        />
+      </label>
+      <AdminFeedback mutation={adjustment} success={success} />
+      <button
+        className={styles.adminSubmit}
+        type="submit"
+        disabled={issue !== null || adjustment.isPending}
+      >
+        {adjustment.isPending ? 'Registrando…' : 'Confirmar nuevo total'}
+      </button>
+      {issue !== null && (newTotalCents !== sale.currentTotalCents || reason.length > 0) ? (
         <p className={styles.adminHint}>{issue}</p>
       ) : null}
     </form>
@@ -596,6 +733,255 @@ function ReturnForm({
   );
 }
 
+function CancellationForm({ sale }: Readonly<{ sale: SaleDetail }>) {
+  const queryClient = useQueryClient();
+  const attempt = useRef<Attempt | null>(null);
+  const locations = useQuery({
+    queryKey: ['inventory-locations'],
+    queryFn: listInventoryLocations,
+  });
+  const [drafts, setDrafts] = useState<Record<string, CancellationDraft>>({});
+  const [refund, setRefund] = useState('0.00');
+  const [refundMethod, setRefundMethod] = useState<PaymentMethod>('cash');
+  const [reason, setReason] = useState('');
+  const [success, setSuccess] = useState<string | null>(null);
+  const refundAmountCents = parseMoney(refund);
+  const lineStates = sale.lines.map((line) => {
+    const unresolvedDelivered = Math.max(
+      0,
+      deliveredQuantity(sale, line.id) - returnedQuantity(sale, line.id),
+    );
+    const draft = drafts[line.id] ?? emptyCancellationDraft();
+    const returned = positiveInteger(draft.returnedQuantity);
+    return {
+      line,
+      unresolvedDelivered,
+      returned,
+      notReturned: unresolvedDelivered - returned,
+      draft,
+    };
+  });
+  const lines: CancellationLineInput[] = lineStates.map(
+    ({ line, returned, notReturned, draft }) => ({
+      saleLineId: line.id,
+      returnedQuantity: returned,
+      notReturnedQuantity: Math.max(0, notReturned),
+      returnLocationId: returned > 0 ? draft.returnLocationId || null : null,
+      condition: returned > 0 ? draft.condition : null,
+    }),
+  );
+  const excessive = lineStates.find(
+    ({ returned, unresolvedDelivered }) => returned > unresolvedDelivered,
+  );
+  const missingLocation = lineStates.find(
+    ({ returned, draft }) => returned > 0 && draft.returnLocationId.length === 0,
+  );
+  const issue =
+    excessive !== undefined
+      ? `No pueden retornar más de ${String(excessive.unresolvedDelivered)} unidades de ${productSnapshot(excessive.line).name}.`
+      : missingLocation !== undefined
+        ? 'Elige la ubicación para cada producto que regresa.'
+        : refundAmountCents > sale.paidCents
+          ? `El reembolso no puede superar los ${formatMoney(sale.paidCents)} cobrados.`
+          : reason.trim().length === 0
+            ? 'Escribe la razón de la cancelación.'
+            : null;
+  const cancellation = useMutation({
+    mutationFn: async () => {
+      const signature = JSON.stringify({
+        saleVersion: sale.version,
+        refundAmountCents,
+        refundMethod,
+        reason,
+        lines,
+      });
+      return cancelSale({
+        saleId: sale.id,
+        operationId: operationIdFor(attempt, signature),
+        expectedVersion: sale.version,
+        reason: reason.trim(),
+        refundAmountCents,
+        refundMethod: refundAmountCents > 0 ? refundMethod : null,
+        lines,
+      });
+    },
+    onSuccess(result) {
+      attempt.current = null;
+      setSuccess(
+        result.refundAmountCents > 0
+          ? `Venta cancelada y ${formatMoney(result.refundAmountCents)} reembolsados.`
+          : 'Venta cancelada sin reembolso.',
+      );
+      void refresh(sale.id, queryClient);
+    },
+    onError(error) {
+      setSuccess(null);
+      if (isConflict(error)) void refresh(sale.id, queryClient);
+    },
+  });
+
+  function updateDraft(lineId: string, update: Partial<CancellationDraft>) {
+    setDrafts((current) => ({
+      ...current,
+      [lineId]: { ...(current[lineId] ?? emptyCancellationDraft()), ...update },
+    }));
+    setSuccess(null);
+  }
+  function submit(event: SyntheticEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSuccess(null);
+    if (issue === null) cancellation.mutate();
+  }
+
+  return (
+    <form className={styles.cancellationForm} onSubmit={submit} noValidate>
+      <div className={styles.cancellationNotice}>
+        <strong>La cancelación finaliza esta venta</strong>
+        <p>
+          Nova liberará automáticamente las reservas activas. Los pagos anteriores permanecerán en
+          el historial y solo saldrá de caja el reembolso que declares.
+        </p>
+      </div>
+      <div className={styles.cancellationLines}>
+        {lineStates.map(({ line, unresolvedDelivered, returned, notReturned, draft }) => {
+          const product = productSnapshot(line);
+          return (
+            <article key={line.id}>
+              <div className={styles.cancellationProduct}>
+                <span>
+                  <strong>{product.name}</strong>
+                  <small>
+                    {unresolvedDelivered} entregadas pendientes de resolver
+                    {line.activeReservationQuantity > 0
+                      ? ` · ${String(line.activeReservationQuantity)} reservadas se liberarán`
+                      : ''}
+                  </small>
+                </span>
+                <label>
+                  <span>Unidades que regresan</span>
+                  <input
+                    aria-label={`Unidades que regresan de ${product.name}`}
+                    type="number"
+                    min="0"
+                    max={unresolvedDelivered}
+                    value={draft.returnedQuantity}
+                    onChange={(event) => {
+                      updateDraft(line.id, { returnedQuantity: event.target.value });
+                    }}
+                  />
+                </label>
+                <span className={styles.customerKeeps}>
+                  <small>Permanece con el cliente</small>
+                  <strong>{Math.max(0, notReturned)}</strong>
+                </span>
+              </div>
+              {returned > 0 ? (
+                <div className={styles.returnTreatment}>
+                  <span />
+                  <label>
+                    <span>Ubicación de retorno</span>
+                    <select
+                      aria-label={`Ubicación de cancelación de ${product.name}`}
+                      value={draft.returnLocationId}
+                      onChange={(event) => {
+                        updateDraft(line.id, { returnLocationId: event.target.value });
+                      }}
+                    >
+                      <option value="">Seleccionar</option>
+                      {(locations.data ?? []).map((location) => (
+                        <option key={location.id} value={location.id}>
+                          {location.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    <span>Condición</span>
+                    <select
+                      aria-label={`Condición al cancelar de ${product.name}`}
+                      value={draft.condition}
+                      onChange={(event) => {
+                        updateDraft(line.id, {
+                          condition: event.target.value as 'available' | 'review',
+                        });
+                      }}
+                    >
+                      <option value="available">Disponible para venta</option>
+                      <option value="review">Requiere revisión</option>
+                    </select>
+                  </label>
+                </div>
+              ) : null}
+            </article>
+          );
+        })}
+      </div>
+      <div className={styles.cancellationMoney}>
+        <div>
+          <span>Cobrado vigente</span>
+          <strong>{formatMoney(sale.paidCents)}</strong>
+        </div>
+        <label className={styles.adminField}>
+          <span>Reembolso real</span>
+          <span className={styles.operationMoneyInput}>
+            <b>S/</b>
+            <input
+              aria-label="Reembolso real"
+              inputMode="decimal"
+              value={refund}
+              onChange={(event) => {
+                setRefund(event.target.value);
+                setSuccess(null);
+              }}
+            />
+          </span>
+        </label>
+        {refundAmountCents > 0 ? (
+          <label className={styles.adminField}>
+            <span>Método del reembolso</span>
+            <select
+              value={refundMethod}
+              onChange={(event) => {
+                setRefundMethod(event.target.value as PaymentMethod);
+              }}
+            >
+              {Object.entries(paymentMethodLabels).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : (
+          <p>No se registrará ninguna salida de dinero.</p>
+        )}
+      </div>
+      <label className={[styles.adminField, styles.returnReason].join(' ')}>
+        <span>Razón obligatoria</span>
+        <textarea
+          value={reason}
+          maxLength={500}
+          onChange={(event) => {
+            setReason(event.target.value);
+          }}
+          placeholder="Ej. El cliente desistió de la compra"
+        />
+      </label>
+      <AdminFeedback mutation={cancellation} success={success} />
+      <button
+        className={[styles.adminSubmit, styles.cancelSubmit].join(' ')}
+        type="submit"
+        disabled={issue !== null || cancellation.isPending}
+      >
+        {cancellation.isPending ? 'Cancelando…' : 'Cancelar venta definitivamente'}
+      </button>
+      {issue !== null && (reason.length > 0 || refund !== '0.00') ? (
+        <p className={styles.adminHint}>{issue}</p>
+      ) : null}
+    </form>
+  );
+}
+
 function AdminFeedback({
   mutation,
   success,
@@ -618,6 +1004,9 @@ function AdminFeedback({
 
 function emptyReturnDraft(): ReturnDraft {
   return { quantity: '', productReturns: false, returnLocationId: '', condition: 'available' };
+}
+function emptyCancellationDraft(): CancellationDraft {
+  return { returnedQuantity: '0', returnLocationId: '', condition: 'available' };
 }
 function deliveredQuantity(sale: SaleDetail, saleLineId: string): number {
   const line = sale.lines.find((candidate) => candidate.id === saleLineId);

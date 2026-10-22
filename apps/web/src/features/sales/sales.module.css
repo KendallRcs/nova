@@ -618,6 +618,17 @@
   border-color: #d8b77f;
   background: #fffaf1;
 }
+.adminChoices button[data-danger='true'] {
+  border-color: #ecc9c4;
+}
+.adminChoices button[data-danger='true'] strong,
+.adminChoices button[data-danger='true'] b {
+  color: var(--red);
+}
+.adminChoices button[data-danger='true']:hover {
+  border-color: #d99c94;
+  background: var(--red-soft);
+}
 .adminChoices span {
   margin-top: 0.3rem;
   color: var(--ink-soft);
@@ -683,6 +694,22 @@
 }
 .adminReason {
   grid-column: span 1;
+}
+.adjustmentPreview {
+  display: grid;
+  align-self: stretch;
+  align-content: center;
+  border-radius: var(--radius-sm);
+  padding: 0.65rem 0.8rem;
+  background: var(--nova-soft);
+}
+.adjustmentPreview span,
+.adjustmentPreview small {
+  color: #41577f;
+  font-size: 0.68rem;
+}
+.adjustmentPreview strong {
+  font-size: 1rem;
 }
 .adminSubmit {
   min-height: 3rem;
@@ -795,6 +822,123 @@
 }
 .returnForm > .adminSubmit {
   justify-self: end;
+}
+.cancellationForm {
+  display: grid;
+  gap: 0.85rem;
+  margin-top: 1.15rem;
+  padding-top: 1.15rem;
+  border-top: 1px solid #ead9bf;
+}
+.cancellationNotice {
+  border-radius: var(--radius-sm);
+  padding: 0.9rem 1rem;
+  color: #6f2923;
+  background: var(--red-soft);
+}
+.cancellationNotice p {
+  max-width: 72ch;
+  margin: 0.3rem 0 0;
+  font-size: 0.76rem;
+  line-height: 1.45;
+}
+.cancellationLines {
+  display: grid;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+.cancellationLines article {
+  padding: 0.9rem 1rem;
+}
+.cancellationLines article + article {
+  border-top: 1px solid var(--line);
+}
+.cancellationProduct {
+  display: grid;
+  grid-template-columns: minmax(200px, 1fr) minmax(145px, 0.45fr) minmax(130px, 0.35fr);
+  gap: 1rem;
+  align-items: end;
+}
+.cancellationProduct > span:first-child {
+  display: grid;
+  align-self: center;
+}
+.cancellationProduct small {
+  margin-top: 0.2rem;
+  color: var(--ink-soft);
+  font-size: 0.7rem;
+}
+.cancellationProduct label {
+  display: grid;
+  gap: 0.3rem;
+}
+.cancellationProduct label span {
+  color: var(--ink-soft);
+  font-size: 0.7rem;
+  font-weight: 720;
+}
+.cancellationProduct input {
+  min-height: 3rem;
+  min-width: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  padding: 0 0.75rem;
+  color: var(--ink);
+  background: var(--surface);
+  font: inherit;
+}
+.cancellationProduct input:focus {
+  border-color: var(--nova);
+  outline: 3px solid var(--nova-soft);
+}
+.customerKeeps {
+  display: grid;
+  align-content: center;
+  min-height: 3rem;
+  border-radius: var(--radius-sm);
+  padding: 0.45rem 0.75rem;
+  background: var(--surface-muted);
+}
+.customerKeeps strong {
+  font-size: 0.9rem;
+}
+.cancellationMoney {
+  display: grid;
+  grid-template-columns: minmax(130px, 0.4fr) minmax(180px, 0.6fr) minmax(220px, 1fr);
+  gap: 0.8rem;
+  align-items: end;
+  border-radius: var(--radius-sm);
+  padding: 0.9rem 1rem;
+  background: var(--amber-soft);
+}
+.cancellationMoney > div {
+  display: grid;
+  align-self: center;
+}
+.cancellationMoney > div span {
+  color: #704707;
+  font-size: 0.68rem;
+}
+.cancellationMoney > div strong {
+  font-size: 1rem;
+}
+.cancellationMoney > p {
+  align-self: center;
+  margin: 0;
+  color: #704707;
+  font-size: 0.75rem;
+}
+.cancellationForm > .operationSuccess,
+.cancellationForm > .operationError {
+  grid-column: 1 / -1;
+}
+.cancelSubmit {
+  justify-self: end;
+  background: var(--red);
+}
+.cancelSubmit:not(:disabled):hover {
+  background: #982f2f;
 }
 .detailGrid {
   display: grid;
@@ -984,6 +1128,9 @@
   .adminForm .operationError {
     grid-column: 1 / -1;
   }
+  .cancellationProduct {
+    grid-template-columns: 1fr 0.55fr 0.45fr;
+  }
 }
 @media (max-width: 620px) {
   .pageActions {
@@ -1001,7 +1148,8 @@
   }
   .adminChoices,
   .adminForm,
-  .returnSummary {
+  .returnSummary,
+  .cancellationMoney {
     grid-template-columns: 1fr;
   }
   .adminChoices button {
@@ -1016,8 +1164,16 @@
     justify-self: stretch;
   }
   .returnProduct,
-  .returnTreatment {
+  .returnTreatment,
+  .cancellationProduct {
     grid-template-columns: 1fr;
+  }
+  .returnTreatment > span:empty {
+    display: none;
+  }
+  .cancelSubmit {
+    width: 100%;
+    justify-self: stretch;
   }
   .controlBar {
     display: grid;

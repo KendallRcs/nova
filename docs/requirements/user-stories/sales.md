@@ -190,7 +190,9 @@
 - **Trazabilidad de implementación:** backend completo mediante una operación
   administrativa atómica, idempotente y versionada. Conserva el total anterior,
   el nuevo total, la diferencia, la razón, el actor y la fecha; rechaza un total
-  inferior al cobro neto vigente y recalcula el seguimiento desde los hechos.
+  inferior al cobro neto vigente y recalcula el seguimiento desde los hechos. El
+  frontend anticipa la diferencia y el saldo resultante, conserva visible el total
+  original y exige una justificación antes de registrar el nuevo acuerdo.
 - **Como** administrador
 - **quiero** ajustar justificadamente el total acordado de una venta confirmada
 - **para** representar un acuerdo posterior sin sobrescribir su valor original.

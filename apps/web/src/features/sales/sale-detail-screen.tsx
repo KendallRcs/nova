@@ -255,6 +255,13 @@ function eventsFor(sale: SaleDetail): TimelineEvent[] {
         detail: correction.reason,
         at: correction.effectiveAt,
       });
+  for (const adjustment of adjustmentEvents(sale.totalAdjustments))
+    events.push({
+      key: adjustment.id,
+      title: `Total ajustado a ${formatMoney(adjustment.newTotalCents)}`,
+      detail: `${adjustment.reason} · diferencia de ${signedMoney(adjustment.differenceCents)}.`,
+      at: adjustment.effectiveAt,
+    });
   for (const delivery of deliveryEvents(sale.deliveries))
     events.push({
       key: delivery.id,
@@ -286,14 +293,73 @@ function eventsFor(sale: SaleDetail): TimelineEvent[] {
           : 'El acuerdo quedó completo.',
       at: closure.effectiveAt,
     });
-  if (sale.cancelledAt)
+  const cancellation = cancellationEvent(sale.cancellation);
+  if (cancellation !== null)
     events.push({
-      key: 'cancelled',
+      key: cancellation.id,
       title: 'Venta cancelada',
-      detail: 'La cancelación quedó registrada en el historial.',
-      at: sale.cancelledAt,
+      detail:
+        cancellation.refundAmountCents > 0
+          ? `${cancellation.reason} · reembolso de ${formatMoney(cancellation.refundAmountCents)}.`
+          : `${cancellation.reason} · sin reembolso.`,
+      at: cancellation.effectiveAt,
     });
   return events.toSorted((left, right) => left.at.localeCompare(right.at));
+}
+
+function adjustmentEvents(values: SaleDetail['totalAdjustments']): {
+  id: string;
+  newTotalCents: number;
+  differenceCents: number;
+  reason: string;
+  effectiveAt: string;
+}[] {
+  return values.flatMap((value) => {
+    const candidate: unknown = value;
+    return isRecord(candidate) &&
+      typeof candidate.id === 'string' &&
+      typeof candidate.newTotalCents === 'number' &&
+      typeof candidate.differenceCents === 'number' &&
+      typeof candidate.reason === 'string' &&
+      typeof candidate.effectiveAt === 'string'
+      ? [
+          {
+            id: candidate.id,
+            newTotalCents: candidate.newTotalCents,
+            differenceCents: candidate.differenceCents,
+            reason: candidate.reason,
+            effectiveAt: candidate.effectiveAt,
+          },
+        ]
+      : [];
+  });
+}
+
+function cancellationEvent(value: SaleDetail['cancellation']): {
+  id: string;
+  reason: string;
+  refundAmountCents: number;
+  effectiveAt: string;
+} | null {
+  const candidate: unknown = value;
+  if (
+    !isRecord(candidate) ||
+    typeof candidate.id !== 'string' ||
+    typeof candidate.reason !== 'string' ||
+    typeof candidate.refundAmountCents !== 'number' ||
+    typeof candidate.effectiveAt !== 'string'
+  )
+    return null;
+  return {
+    id: candidate.id,
+    reason: candidate.reason,
+    refundAmountCents: candidate.refundAmountCents,
+    effectiveAt: candidate.effectiveAt,
+  };
+}
+
+function signedMoney(cents: number): string {
+  return `${cents >= 0 ? '+' : '−'}${formatMoney(Math.abs(cents))}`;
 }
 
 function correctionEvents(values: SaleDetail['payments'][number]['corrections']): {
