@@ -7,6 +7,10 @@ export type SalePage = components['schemas']['SaleActivityPageResponse'];
 export type SaleDetail = components['schemas']['SaleDetailResponse'];
 export type SalePayment = components['schemas']['SalePaymentResponse'];
 export type SaleDelivery = components['schemas']['SaleDeliveryResponse'];
+export type SaleClosure = components['schemas']['SaleClosureResponse'];
+export type PaymentCorrection = components['schemas']['PaymentCorrectionResponse'];
+export type SaleReturn = components['schemas']['SaleReturnResponse'];
+export type InventoryLocation = components['schemas']['InventoryLocationResponse'];
 export type PaymentMethod = components['schemas']['RecordSalePaymentRequest']['method'];
 export type SaleLifecycle = SaleActivity['lifecycle'];
 export type SaleDebtFilter = 'all' | 'pending' | 'paid' | 'overdue';
@@ -72,6 +76,84 @@ export async function deliverSaleReservation(input: {
     params: { path: { saleId: input.saleId } },
     headers: { 'Idempotency-Key': input.operationId },
     body: { expectedVersion: input.expectedVersion, lines: input.lines },
+  });
+  if (!response.ok || data === undefined) throw toApiProblem(response, error);
+  return data;
+}
+
+export async function listInventoryLocations(): Promise<InventoryLocation[]> {
+  const { data, error, response } = await apiClient.GET('/api/v1/inventory/locations');
+  if (!response.ok || data === undefined) throw toApiProblem(response, error);
+  return data.items;
+}
+
+export async function finalizeSale(input: {
+  saleId: string;
+  operationId: string;
+  expectedVersion: number;
+  reason: string | null;
+}): Promise<SaleClosure> {
+  const { data, error, response } = await apiClient.POST('/api/v1/sales/{saleId}/closure', {
+    params: { path: { saleId: input.saleId } },
+    headers: { 'Idempotency-Key': input.operationId },
+    body: {
+      expectedVersion: input.expectedVersion,
+      reason: input.reason,
+    } as never,
+  });
+  if (!response.ok || data === undefined) throw toApiProblem(response, error);
+  return data;
+}
+
+export async function correctSalePayment(input: {
+  saleId: string;
+  paymentId: string;
+  operationId: string;
+  expectedVersion: number;
+  amountCents: number;
+  reason: string;
+}): Promise<PaymentCorrection> {
+  const { data, error, response } = await apiClient.POST(
+    '/api/v1/sales/{saleId}/payments/{paymentId}/corrections',
+    {
+      params: { path: { saleId: input.saleId, paymentId: input.paymentId } },
+      headers: { 'Idempotency-Key': input.operationId },
+      body: {
+        expectedVersion: input.expectedVersion,
+        amountCents: input.amountCents,
+        reason: input.reason,
+      },
+    },
+  );
+  if (!response.ok || data === undefined) throw toApiProblem(response, error);
+  return data;
+}
+
+export interface ReturnLineInput {
+  saleLineId: string;
+  quantity: number;
+  productReturns: boolean;
+  returnLocationId: string | null;
+  condition: 'available' | 'review' | null;
+}
+
+export async function approveSaleReturn(input: {
+  saleId: string;
+  operationId: string;
+  expectedVersion: number;
+  reason: string;
+  refundMethod: PaymentMethod | null;
+  lines: ReturnLineInput[];
+}): Promise<SaleReturn> {
+  const { data, error, response } = await apiClient.POST('/api/v1/sales/{saleId}/returns', {
+    params: { path: { saleId: input.saleId } },
+    headers: { 'Idempotency-Key': input.operationId },
+    body: {
+      expectedVersion: input.expectedVersion,
+      reason: input.reason,
+      refundMethod: input.refundMethod,
+      lines: input.lines,
+    } as never,
   });
   if (!response.ok || data === undefined) throw toApiProblem(response, error);
   return data;

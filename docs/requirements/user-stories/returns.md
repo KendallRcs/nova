@@ -6,6 +6,10 @@
 ### User Story RET-001 — Aprobar una devolución total o parcial
 
 - **Estado:** Confirmada
+- **Trazabilidad de implementación:** backend y frontend completos. Desde el detalle
+  administrativo se eligen únicamente unidades entregadas todavía retornables; la
+  interfaz anticipa la reducción comercial y el eventual reembolso antes de
+  confirmar la operación idempotente.
 - **Como** administrador
 - **quiero** devolver una o varias unidades de una venta
 - **para** reembolsar al cliente sin cancelar productos que no forman parte de la devolución.
@@ -31,6 +35,10 @@
 ### User Story RET-002 — Registrar reembolso y retorno físico por separado
 
 - **Estado:** Confirmada
+- **Trazabilidad de implementación:** el formulario trata cada línea por separado,
+  permite declarar si vuelve físicamente y, cuando retorna, exige ubicación y
+  condición. El método financiero se solicita solo cuando el nuevo total produce
+  un exceso pagado reembolsable.
 - **Como** administrador
 - **quiero** indicar si el producto retorna y el método de un eventual reembolso
 - **para** reflejar correctamente el efecto financiero y físico de una devolución.
@@ -57,6 +65,9 @@
 ### User Story RET-003 — Impedir devoluciones no autorizadas
 
 - **Estado:** Confirmada
+- **Trazabilidad de implementación:** tanto el endpoint como la acción de interfaz
+  requieren `returns:approve`; una cuenta sin esa capacidad no recibe la opción
+  administrativa y el backend conserva la autorización final.
 - **Como** administrador
 - **quiero** reservar la aprobación de devoluciones al rol administrativo
 - **para** controlar salidas de dinero y alteraciones de inventario.

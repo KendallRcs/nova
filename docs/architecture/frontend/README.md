@@ -31,4 +31,5 @@
 6. Implementar consulta y seguimiento responsive de ventas. **Completado.**
 7. Implementar creación multilínea y confirmación de ventas. **Completado.**
 8. Incorporar cobros y entregas posteriores desde el detalle de venta. **Completado.**
-9. Incorporar devoluciones, correcciones y cierre administrativo de ventas. **Siguiente.**
+9. Incorporar devoluciones, correcciones y cierre administrativo de ventas. **Completado.**
+10. Incorporar ajustes del total y cancelación administrativa de ventas. **Siguiente.**

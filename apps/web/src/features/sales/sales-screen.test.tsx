@@ -51,6 +51,8 @@ describe('sales tracking', () => {
     expect(screen.getByText(/Pago de S\/\s*40\.00/)).toBeInTheDocument();
     expect(screen.getByText('Yape · registrado por empleada.')).toBeInTheDocument();
     expect(screen.getByText('1 unidad entregada')).toBeInTheDocument();
+    expect(screen.getByText(/Pago corregido por S\/\s*10\.00/)).toBeInTheDocument();
+    expect(screen.getByText(/Devolución por S\/\s*50\.00/)).toBeInTheDocument();
   });
 });
 
@@ -110,18 +112,34 @@ function detailFixture(): SaleDetail {
       {
         id: '01900000-0000-7000-8000-000000000701',
         amountCents: 4000,
-        correctedCents: 0,
-        netAmountCents: 4000,
+        correctedCents: 1000,
+        netAmountCents: 3000,
         method: 'yape',
         status: 'confirmed',
         registeredBy: '01900000-0000-7000-8000-000000000001',
         registrarUsername: 'empleada',
         effectiveAt: '2026-10-02T15:00:00.000Z',
-        corrections: [],
+        corrections: [
+          {
+            id: '01900000-0000-7000-8000-000000000702',
+            amountCents: 1000,
+            reason: 'Monto duplicado',
+            effectiveAt: '2026-10-02T16:00:00.000Z',
+          } as never,
+        ],
       },
     ],
     totalAdjustments: [],
-    returns: [],
+    returns: [
+      {
+        id: '01900000-0000-7000-8000-000000000901',
+        reason: 'El cliente cambió de opinión',
+        commercialReductionCents: 5000,
+        refundAmountCents: 0,
+        effectiveAt: '2026-10-04T15:00:00.000Z',
+        lines: [],
+      } as never,
+    ],
     deliveries: [
       {
         id: '01900000-0000-7000-8000-000000000801',

@@ -58,7 +58,9 @@
 - **Trazabilidad de implementación:** backend completo mediante cierre atómico,
   idempotente y versionado. Un cierre con saldo exige razón, registra el importe
   condonado y se distingue de una venta pagada mediante el estado
-  `closed-with-balance`; un cierre sin saldo queda como completo.
+  `closed-with-balance`; un cierre sin saldo queda como completo. El frontend
+  muestra previamente el importe que dejará de cobrarse, exige la razón cuando
+  corresponde y separa esta acción del registro cotidiano de pagos.
 - **Como** administrador
 - **quiero** cerrar una venta sin cobrar todo el total acordado
 - **para** representar un acuerdo informal sin ocultar la diferencia.
@@ -122,7 +124,9 @@
 - **Trazabilidad de implementación:** backend completo mediante correcciones
   parciales o totales, acumulables, atómicas e idempotentes. El pago original se
   conserva, su estado refleja la corrección y cada compensación crea una salida de
-  caja con el mismo método, razón, actor y fecha.
+  caja con el mismo método, razón, actor y fecha. El frontend permite elegir un
+  cobro todavía corregible, limita el monto neto disponible, exige la razón y
+  mantiene visible el movimiento original dentro del rastro operativo.
 - **Como** administrador
 - **quiero** anular o compensar un pago incorrecto con una razón
 - **para** corregir el saldo sin ocultar la operación original.

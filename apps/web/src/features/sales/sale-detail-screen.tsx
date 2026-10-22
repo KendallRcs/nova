@@ -7,6 +7,7 @@ import { ApiProblem, problemMessage } from '@/shared/api/problem-details';
 import { formatDate, formatDateTime, formatMoney } from '@/shared/formatters';
 import { Icon } from '@/shared/ui/icons';
 import { SaleActions } from './sale-actions';
+import { SaleAdministration } from './sale-administration';
 import {
   deliveryLabels,
   getSaleDetail,
@@ -111,6 +112,7 @@ export function SaleDetailScreen({ saleId }: Readonly<{ saleId: string }>) {
       </section>
 
       <SaleActions sale={item} />
+      <SaleAdministration sale={item} />
 
       <div className={styles.detailGrid}>
         <section className={styles.detailCard} aria-labelledby="sale-products-title">
@@ -241,10 +243,18 @@ function eventsFor(sale: SaleDetail): TimelineEvent[] {
   for (const payment of sale.payments)
     events.push({
       key: payment.id,
-      title: `Pago de ${formatMoney(payment.netAmountCents)}`,
+      title: `Pago de ${formatMoney(payment.amountCents)}`,
       detail: `${paymentMethodLabels[payment.method]} · registrado por ${payment.registrarUsername}.`,
       at: payment.effectiveAt,
     });
+  for (const payment of sale.payments)
+    for (const correction of correctionEvents(payment.corrections))
+      events.push({
+        key: correction.id,
+        title: `Pago corregido por ${formatMoney(correction.amountCents)}`,
+        detail: correction.reason,
+        at: correction.effectiveAt,
+      });
   for (const delivery of deliveryEvents(sale.deliveries))
     events.push({
       key: delivery.id,
@@ -252,13 +262,29 @@ function eventsFor(sale: SaleDetail): TimelineEvent[] {
       detail: `Entrega registrada por ${delivery.actorUsername}.`,
       at: delivery.effectiveAt,
     });
-  if (sale.finalizedAt)
+  for (const saleReturn of returnEvents(sale.returns))
     events.push({
-      key: 'finalized',
-      title: 'Venta finalizada',
+      key: saleReturn.id,
+      title: `Devolución por ${formatMoney(saleReturn.commercialReductionCents)}`,
       detail:
-        sale.balanceCents > 0 ? 'Se finalizó con un saldo incompleto.' : 'La venta quedó completa.',
-      at: sale.finalizedAt,
+        saleReturn.refundAmountCents > 0
+          ? `${saleReturn.reason} · reembolso de ${formatMoney(saleReturn.refundAmountCents)}.`
+          : `${saleReturn.reason} · sin reembolso.`,
+      at: saleReturn.effectiveAt,
+    });
+  const closure = closureEvent(sale.closure);
+  if (closure !== null)
+    events.push({
+      key: closure.id,
+      title:
+        closure.type === 'complete'
+          ? 'Venta finalizada como completa'
+          : 'Venta finalizada incompleta',
+      detail:
+        closure.forgivenAmountCents > 0
+          ? `${formatMoney(closure.forgivenAmountCents)} quedaron sin cobrar${closure.reason === null ? '.' : ` · ${closure.reason}`}`
+          : 'El acuerdo quedó completo.',
+      at: closure.effectiveAt,
     });
   if (sale.cancelledAt)
     events.push({
@@ -268,6 +294,85 @@ function eventsFor(sale: SaleDetail): TimelineEvent[] {
       at: sale.cancelledAt,
     });
   return events.toSorted((left, right) => left.at.localeCompare(right.at));
+}
+
+function correctionEvents(values: SaleDetail['payments'][number]['corrections']): {
+  id: string;
+  amountCents: number;
+  reason: string;
+  effectiveAt: string;
+}[] {
+  return values.flatMap((value) => {
+    const candidate: unknown = value;
+    return isRecord(candidate) &&
+      typeof candidate.id === 'string' &&
+      typeof candidate.amountCents === 'number' &&
+      typeof candidate.reason === 'string' &&
+      typeof candidate.effectiveAt === 'string'
+      ? [
+          {
+            id: candidate.id,
+            amountCents: candidate.amountCents,
+            reason: candidate.reason,
+            effectiveAt: candidate.effectiveAt,
+          },
+        ]
+      : [];
+  });
+}
+
+function returnEvents(values: SaleDetail['returns']): {
+  id: string;
+  reason: string;
+  commercialReductionCents: number;
+  refundAmountCents: number;
+  effectiveAt: string;
+}[] {
+  return values.flatMap((value) => {
+    const candidate: unknown = value;
+    return isRecord(candidate) &&
+      typeof candidate.id === 'string' &&
+      typeof candidate.reason === 'string' &&
+      typeof candidate.commercialReductionCents === 'number' &&
+      typeof candidate.refundAmountCents === 'number' &&
+      typeof candidate.effectiveAt === 'string'
+      ? [
+          {
+            id: candidate.id,
+            reason: candidate.reason,
+            commercialReductionCents: candidate.commercialReductionCents,
+            refundAmountCents: candidate.refundAmountCents,
+            effectiveAt: candidate.effectiveAt,
+          },
+        ]
+      : [];
+  });
+}
+
+function closureEvent(value: SaleDetail['closure']): {
+  id: string;
+  type: 'complete' | 'incomplete';
+  forgivenAmountCents: number;
+  reason: string | null;
+  effectiveAt: string;
+} | null {
+  const candidate: unknown = value;
+  if (
+    !isRecord(candidate) ||
+    typeof candidate.id !== 'string' ||
+    (candidate.type !== 'complete' && candidate.type !== 'incomplete') ||
+    typeof candidate.forgivenAmountCents !== 'number' ||
+    (candidate.reason !== null && typeof candidate.reason !== 'string') ||
+    typeof candidate.effectiveAt !== 'string'
+  )
+    return null;
+  return {
+    id: candidate.id,
+    type: candidate.type,
+    forgivenAmountCents: candidate.forgivenAmountCents,
+    reason: candidate.reason,
+    effectiveAt: candidate.effectiveAt,
+  };
 }
 
 function deliveryEvents(values: SaleDetail['deliveries']): {
