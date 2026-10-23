@@ -6,9 +6,10 @@
 ### User Story EXP-001 — Registrar un gasto operativo
 
 - **Estado:** Confirmada
-- **Trazabilidad de implementación:** backend completo para registrar el gasto y
+- **Trazabilidad de implementación:** backend y frontend completos para registrar el gasto y
   su egreso de caja en una transacción idempotente. El comprobante opcional se
-  adjunta, reemplaza, consulta y elimina mediante almacenamiento protegido.
+  adjunta, reemplaza, consulta y elimina mediante almacenamiento protegido. La
+  interfaz muestra el historial y obtiene accesos temporales sin exponer claves.
 - **Como** administrador
 - **quiero** registrar manualmente los gastos del negocio
 - **para** conocer las salidas operativas y el resultado del período.
@@ -43,7 +44,7 @@
 ### User Story EXP-002 — Administrar categorías de gastos
 
 - **Estado:** Confirmada
-- **Trazabilidad de implementación:** backend completo para crear, listar,
+- **Trazabilidad de implementación:** backend y frontend completos para crear, listar,
   renombrar y desactivar categorías sin eliminar su historial. Una categoría
   inactiva no admite gastos nuevos.
 - **Como** administrador
@@ -60,7 +61,7 @@
 ### User Story EXP-003 — Anular un gasto conservando historial
 
 - **Estado:** Confirmada
-- **Trazabilidad de implementación:** backend completo mediante una operación
+- **Trazabilidad de implementación:** backend y frontend completos mediante una operación
   idempotente y auditable. Excluye el gasto de los totales operativos y registra
   un ingreso solo cuando se declara la devolución total.
 - **Decisión funcional:** la anulación admite devolución nula o total, nunca

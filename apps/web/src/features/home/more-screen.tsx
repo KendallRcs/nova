@@ -16,7 +16,7 @@ import styles from './more.module.css';
 
 const adminAreas = [
   ['Mercadería', 'Catálogo, compras y anticipos', '/purchases'],
-  ['Finanzas', 'Gastos y reportes', null],
+  ['Finanzas', 'Gastos y reportes', '/expenses'],
   ['Administración', 'Usuarios y carga inicial', null],
 ] as const;
 

@@ -106,7 +106,7 @@ export function ProcurementScreen() {
           >
             Registrar anticipo
           </button>
-          <Link href={'/purchases/new' as Route}>Registrar compra</Link>
+          <Link href={'/purchases/new'}>Registrar compra</Link>
         </div>
       </section>
 
