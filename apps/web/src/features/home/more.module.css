@@ -37,7 +37,8 @@
   margin-top: 1.25rem;
 }
 
-.areaList div {
+.areaList div,
+.areaList a {
   display: grid;
   gap: 0.1rem;
   border-radius: var(--radius-sm);
@@ -45,7 +46,34 @@
   background: var(--cloud);
 }
 
-.areaList span {
+.areaList a {
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  color: inherit;
+  text-decoration: none;
+}
+
+.areaList a:hover {
+  color: var(--nova);
+  background: var(--nova-soft);
+}
+
+.areaList a > span {
+  display: grid;
+  gap: 0.1rem;
+}
+
+.areaList a small {
+  color: var(--ink-soft);
+  font-size: 0.78rem;
+}
+
+.areaList a b {
+  color: var(--nova);
+  font-size: 0.74rem;
+}
+
+.areaList div > span {
   color: var(--ink-soft);
   font-size: 0.78rem;
 }

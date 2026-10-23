@@ -35,4 +35,5 @@
 10. Incorporar ajustes del total y cancelación administrativa de ventas. **Completado.**
 11. Implementar consulta, registro, edición y cuenta consolidada de clientes. **Completado.**
 12. Incorporar la fusión administrativa de clientes duplicados. **Completado.**
-13. Implementar compras, proveedores y adelantos. **Siguiente.**
+13. Implementar proveedores, anticipos y sus resoluciones. **Completado.**
+14. Implementar registro y detalle de compras con aplicación de anticipos. **Siguiente.**

@@ -1,6 +1,8 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import type { Route } from 'next';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
 import {
@@ -13,9 +15,9 @@ import { ModuleStart } from '@/shared/ui/module-start';
 import styles from './more.module.css';
 
 const adminAreas = [
-  ['Mercadería', 'Catálogo, compras y anticipos'],
-  ['Finanzas', 'Gastos y reportes'],
-  ['Administración', 'Usuarios y carga inicial'],
+  ['Mercadería', 'Catálogo, compras y anticipos', '/purchases'],
+  ['Finanzas', 'Gastos y reportes', null],
+  ['Administración', 'Usuarios y carga inicial', null],
 ] as const;
 
 export function MoreScreen() {
@@ -45,12 +47,22 @@ export function MoreScreen() {
             <p className={styles.label}>Solo administrador</p>
             <h2 id="admin-areas">Gestión del negocio</h2>
             <div className={styles.areaList}>
-              {adminAreas.map(([title, detail]) => (
-                <div key={title}>
-                  <strong>{title}</strong>
-                  <span>{detail}</span>
-                </div>
-              ))}
+              {adminAreas.map(([title, detail, href]) =>
+                href === null ? (
+                  <div key={title}>
+                    <strong>{title}</strong>
+                    <span>{detail}</span>
+                  </div>
+                ) : (
+                  <Link key={title} href={href as Route}>
+                    <span>
+                      <strong>{title}</strong>
+                      <small>{detail}</small>
+                    </span>
+                    <b aria-hidden="true">Abrir →</b>
+                  </Link>
+                ),
+              )}
             </div>
           </section>
         ) : null}
