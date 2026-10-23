@@ -293,6 +293,10 @@
   color: inherit;
   text-decoration: none;
 }
+
+.purchaseRow:hover {
+  background: var(--surface-muted);
+}
 .purchaseRow + .purchaseRow,
 .advanceRow + .advanceRow,
 .supplierRow + .supplierRow {

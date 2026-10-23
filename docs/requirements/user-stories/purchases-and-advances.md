@@ -6,11 +6,13 @@
 ### User Story PUR-001 — Registrar una compra con varios productos
 
 - **Estado:** Confirmada
-- **Trazabilidad de implementación:** backend completo mediante una confirmación
+- **Trazabilidad de implementación:** backend y frontend completos mediante una confirmación
   atómica e idempotente. Registra proveedor con identidad estable, líneas, ingreso
   físico por ubicación, costo promedio global y únicamente el nuevo egreso pagado.
   El historial administrativo permite filtrar por proveedor o producto y consultar
-  el detalle económico, físico y de anticipos de cada compra.
+  el detalle económico, físico y de anticipos de cada compra. La interfaz permite
+  construir una compra multilínea, elegir el destino de cada producto y revisar el
+  resultado después de confirmarla.
 - **Como** administrador
 - **quiero** registrar una compra pagada al contado con varios productos
 - **para** ingresar mercancía y conservar sus costos reales.
@@ -31,9 +33,10 @@
 ### User Story PUR-002 — Sugerir revisión de precios tras un cambio de costo
 
 - **Estado:** Confirmada
-- **Trazabilidad de implementación:** backend completo. Cada línea compara su costo
+- **Trazabilidad de implementación:** backend y frontend completos. Cada línea compara su costo
   entrante con el costo promedio disponible anterior y devuelve una sugerencia no
-  vinculante; ningún precio del catálogo se modifica automáticamente.
+  vinculante que se muestra en el detalle; ningún precio del catálogo se modifica
+  automáticamente.
 - **Como** administrador
 - **quiero** recibir una sugerencia cuando cambia el costo de reposición
 - **para** evaluar los precios de venta sin modificarlos automáticamente.
@@ -74,9 +77,10 @@
 ### User Story PUR-004 — Aplicar un anticipo al completar una compra
 
 - **Estado:** Confirmada
-- **Trazabilidad de implementación:** backend completo con control optimista de
+- **Trazabilidad de implementación:** backend y frontend completos con control optimista de
   versión. Una compra puede consumir varios anticipos del mismo proveedor, un
-  anticipo conserva el saldo no aplicado y solo el remanente pagado crea caja.
+  anticipo conserva el saldo no aplicado y solo el remanente pagado crea caja. La
+  aplicación de cada saldo es manual y la interfaz envía la versión observada.
 - **Como** administrador
 - **quiero** aplicar anticipos existentes al registrar la compra definitiva
 - **para** pagar únicamente el saldo restante sin duplicar egresos.

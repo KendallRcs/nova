@@ -15,6 +15,14 @@ export type Supplier = Omit<SupplierSchema, 'phone' | 'document' | 'description'
 export type SupplierAdvance = Omit<AdvanceSchema, 'purpose'> & { purpose: string | null };
 export type PurchasePage = components['schemas']['PurchaseHistoryPageResponse'];
 export type PurchaseSummary = components['schemas']['PurchaseHistoryItemResponse'];
+export type Product = components['schemas']['ProductCatalogResponse'];
+export type InventoryLocation = components['schemas']['InventoryLocationResponse'];
+type PurchaseDetailSchema = components['schemas']['PurchaseDetailResponse'];
+export type PurchaseDetail = Omit<PurchaseDetailSchema, 'lines'> & {
+  lines: (Omit<PurchaseDetailSchema['lines'][number], 'previousAverageUnitCostCents'> & {
+    previousAverageUnitCostCents: number | null;
+  })[];
+};
 export type AdvanceResolution = Omit<
   components['schemas']['AdvanceResolutionResponse'],
   'reason'
@@ -30,6 +38,10 @@ export const advancesQueryKey = (supplierId: string, status: string) =>
 export const purchasesQueryRoot = ['purchases'] as const;
 export const purchasesQueryKey = (supplierId: string) =>
   [...purchasesQueryRoot, supplierId] as const;
+export const purchaseDetailQueryKey = (purchaseId: string) => ['purchase', purchaseId] as const;
+export const procurementProductQueryKey = (query: string) =>
+  ['procurement-products', query] as const;
+export const procurementLocationsQueryKey = ['procurement-locations'] as const;
 
 export async function searchSuppliers(query = ''): Promise<Supplier[]> {
   const { data, error, response } = await apiClient.GET('/api/v1/suppliers', {
@@ -137,6 +149,57 @@ export async function listPurchases(input: {
   });
   if (!response.ok || data === undefined) throw toApiProblem(response, error);
   return data;
+}
+
+export async function searchPurchaseProducts(query: string): Promise<Product[]> {
+  const { data, error, response } = await apiClient.GET('/api/v1/products', {
+    params: { query: query ? { query } : {} },
+  });
+  if (!response.ok || data === undefined) throw toApiProblem(response, error);
+  return data.items;
+}
+
+export async function listProcurementLocations(): Promise<InventoryLocation[]> {
+  const { data, error, response } = await apiClient.GET('/api/v1/inventory/locations');
+  if (!response.ok || data === undefined) throw toApiProblem(response, error);
+  return data.items;
+}
+
+export async function confirmPurchase(input: {
+  operationId: string;
+  supplierId: string;
+  lines: {
+    productId: string;
+    destinationLocationId: string;
+    quantity: number;
+    unitCostCents: number;
+  }[];
+  advanceApplications: {
+    advanceId: string;
+    expectedVersion: number;
+    amountCents: number;
+  }[];
+  paymentMethod: PaymentMethod | null;
+}): Promise<components['schemas']['PurchaseResponse']> {
+  const { data, error, response } = await apiClient.POST('/api/v1/purchases', {
+    headers: { 'Idempotency-Key': input.operationId },
+    body: {
+      supplierId: input.supplierId,
+      lines: input.lines,
+      advanceApplications: input.advanceApplications,
+      paymentMethod: input.paymentMethod,
+    },
+  });
+  if (!response.ok || data === undefined) throw toApiProblem(response, error);
+  return data;
+}
+
+export async function getPurchaseDetail(purchaseId: string): Promise<PurchaseDetail> {
+  const { data, error, response } = await apiClient.GET('/api/v1/purchases/{purchaseId}', {
+    params: { path: { purchaseId } },
+  });
+  if (!response.ok || data === undefined) throw toApiProblem(response, error);
+  return data as PurchaseDetail;
 }
 
 export const paymentMethodLabels: Record<PaymentMethod, string> = {

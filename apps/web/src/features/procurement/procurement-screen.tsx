@@ -1,6 +1,8 @@
 'use client';
 
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import type { Route } from 'next';
+import Link from 'next/link';
 import { useState } from 'react';
 
 import { getCurrentActor, hasPermission, sessionQueryKey } from '@/features/auth/auth-api';
@@ -104,9 +106,7 @@ export function ProcurementScreen() {
           >
             Registrar anticipo
           </button>
-          <button type="button" disabled title="Se habilitará con el formulario de compra">
-            Registrar compra
-          </button>
+          <Link href={'/purchases/new' as Route}>Registrar compra</Link>
         </div>
       </section>
 
@@ -269,7 +269,11 @@ function PurchaseHistory({
         />
       ) : null}
       {items.map((purchase) => (
-        <article key={purchase.id} className={styles.purchaseRow}>
+        <Link
+          key={purchase.id}
+          className={styles.purchaseRow}
+          href={`/purchases/${purchase.id}` as Route}
+        >
           <span>
             <strong>{purchase.supplier.name}</strong>
             <small>
@@ -291,7 +295,7 @@ function PurchaseHistory({
             <small>Total</small>
             <strong>{formatMoney(purchase.totalCents)}</strong>
           </span>
-        </article>
+        </Link>
       ))}
       {hasMore ? (
         <button className={styles.moreButton} type="button" onClick={onMore} disabled={loadingMore}>
